@@ -1,0 +1,31 @@
+# pacod-kb's roles and permissions, for pacod-id's rules engine.
+#
+# The UI pushes this manifest to pacod-id at every start (web/identity.py) and derives a
+# person's kb role from it: admin when kb.settings.manage is allowed at the platform, editor
+# when kb.docs.write is, viewer when kb.docs.read is. tests/authz/kb_vectors.yaml pins what each
+# role may do.
+#
+# Permissions:
+#   docs.read         see documents, search, jobs
+#   docs.write        ingest, re-index, delete documents, run jobs, manage projects
+#   settings.manage   AI Management, prompts, the security and converter switches
+#   members.manage    give and take kb roles, invite people
+#
+# No role is implicit: in a realm where anyone can sign up, an implicit role would give every
+# account read access. An account without a kb role sees "no access".
+product: kb
+roles:
+  viewer:
+    at: [platform]
+    permissions: [docs.read]
+  editor:
+    at: [platform]
+    permissions: [docs.read, docs.write]
+  admin:
+    at: [platform]
+    permissions: [docs.read, docs.write, settings.manage, members.manage]
+    # Nobody removes the last kb admin.
+    protected: true
+grant:
+  # Admins give and take every kb role.
+  default: members.manage

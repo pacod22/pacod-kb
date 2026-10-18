@@ -1,0 +1,24 @@
+{# Partial — rendered both on dashboard load and after toggle POST #}
+{% set on = settings.get('llm_converter_enabled', false) %}
+{% set gateway_ready = settings.get('gateway_configured', true) %}
+<div id="converter-toggle" class="config-row">
+  <div>
+    <div class="config-label">Document conversion</div>
+    <div class="config-hint">
+      Deterministic uses rule-based extraction; AI sends the document through the AI gateway for format cleanup.
+      {% if on and not gateway_ready %}<span class="text-warning">The AI gateway is not set up — documents keep their deterministic parse.</span>{% endif %}
+    </div>
+  </div>
+  <fieldset {% if not user_can('admin') %}disabled title="Admin only"{% endif %}>
+  <form hx-post="/kb/pipeline/settings/converter"
+        hx-target="#converter-toggle"
+        hx-swap="outerHTML">
+    <input type="hidden" name="enabled" value="{{ 'false' if on else 'true' }}">
+    <button type="submit"
+            class="btn btn-sm {{ 'btn-info' if on else 'btn-outline-secondary' }}"
+            title="{{ 'Conversion: AI (LLM) — click to switch to Deterministic' if on else 'Conversion: Deterministic — click to switch to AI (LLM)' }}">
+      {% if on %}AI (LLM){% else %}Deterministic{% endif %}
+    </button>
+  </form>
+  </fieldset>
+</div>

@@ -1,0 +1,295 @@
+{% set providers = usage_summary.get('provider_options', []) %}
+{% set models = usage_summary.get('model_options', []) %}
+{% set selected_bucket = bucket_filter or usage_summary.get('bucket', 'day') %}
+{% set selected_metric = metric_filter or 'cost' %}
+<div id="usage-costs-panel" class="section-card mt-4">
+  <div class="sc-header">LLM usage &amp; costs (priced by the AI gateway)</div>
+  <div class="sc-body">
+    <form class="row g-2 mb-3" hx-get="/kb/pipeline/usage/summary" hx-target="#usage-costs-panel" hx-swap="outerHTML">
+      <div class="col-sm-2">
+        <label class="form-label form-label-sm">Bucket</label>
+        <select class="form-select form-select-sm" name="bucket">
+          {% for b in ['hour', 'day', 'week', 'month'] %}
+          <option value="{{ b }}" {% if selected_bucket == b %}selected{% endif %}>{{ b }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label form-label-sm">Metric</label>
+        <select class="form-select form-select-sm" name="metric">
+          <option value="cost" {% if selected_metric == 'cost' %}selected{% endif %}>Cost</option>
+          <option value="tokens" {% if selected_metric == 'tokens' %}selected{% endif %}>Tokens</option>
+        </select>
+      </div>
+      <div class="col-sm-2">
+        <label class="form-label form-label-sm">Provider</label>
+        <select id="usage-provider-filter" class="form-select form-select-sm" name="provider">
+          <option value="">All providers</option>
+          {% for p in providers %}
+          <option value="{{ p }}" {% if provider_filter == p %}selected{% endif %}>{{ p }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label form-label-sm">Model</label>
+        <select id="usage-model-filter" class="form-select form-select-sm" name="model">
+          <option value="">All models</option>
+          {% for m in models %}
+          <option value="{{ m }}" {% if model_filter == m %}selected{% endif %}>{{ m }}</option>
+          {% endfor %}
+        </select>
+      </div>
+      <div class="col-sm-3 d-flex gap-2 align-items-end">
+        <button class="btn btn-sm btn-outline-secondary w-100" type="submit">Apply filters</button>
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label form-label-sm">Range start (ISO)</label>
+        <input class="form-control form-control-sm" name="range_start" value="{{ range_start_filter or '' }}" placeholder="2026-01-01T00:00:00Z">
+      </div>
+      <div class="col-sm-3">
+        <label class="form-label form-label-sm">Range end (ISO)</label>
+        <input class="form-control form-control-sm" name="range_end" value="{{ range_end_filter or '' }}" placeholder="2026-06-28T23:59:59Z">
+      </div>
+    </form>
+
+    <div class="row g-2 mb-3">
+      {% for label in ['hour', 'day', 'week', 'month'] %}
+      {% set w = usage_overview.get(label, {}) %}
+      <div class="col-6 col-md-3">
+        <div class="border rounded p-2 h-100">
+          <div class="text-muted text-uppercase small">{{ label }}</div>
+          <div class="fw-semibold">${{ '%.4f'|format(w.get('cost_usd', 0.0)) }}</div>
+          <div class="small text-muted">{{ w.get('input_tokens', 0) + w.get('output_tokens', 0) + w.get('cached_tokens', 0) }} tokens</div>
+          <div class="small text-muted">{{ w.get('event_count', 0) }} calls</div>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="section-card mb-3">
+      <div class="sc-header">Trend chart</div>
+      <div class="sc-body">
+        <canvas id="usage-trends-chart" height="96"></canvas>
+      </div>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-lg-6">
+        <div class="table-responsive mb-3">
+          <table class="table table-sm">
+            <thead>
+              <tr><th>By provider</th><th class="text-end">Cost</th><th class="text-end">Calls</th></tr>
+            </thead>
+            <tbody>
+              {% for row in usage_summary.get('by_provider', []) %}
+              <tr>
+                <td>{{ row.provider }}</td>
+                <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
+                <td class="text-end">{{ row.event_count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <div class="col-lg-6">
+        <div class="table-responsive mb-3">
+          <table class="table table-sm">
+            <thead>
+              <tr><th>By purpose</th><th class="text-end">Cost</th><th class="text-end">Calls</th></tr>
+            </thead>
+            <tbody>
+              {% for row in usage_summary.get('by_purpose', []) %}
+              <tr>
+                <td>{{ row.purpose }}</td>
+                <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
+                <td class="text-end">{{ row.event_count }}</td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-responsive mb-3">
+      <table class="table table-sm">
+        <thead>
+          <tr><th>By model</th><th class="text-end">Cost</th><th class="text-end">In</th><th class="text-end">Out</th><th class="text-end">Cached</th><th class="text-end">Calls</th></tr>
+        </thead>
+        <tbody>
+          {% for row in usage_summary.get('by_model', []) %}
+          <tr>
+            <td><code>{{ row.model }}</code></td>
+            <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
+            <td class="text-end">{{ row.input_tokens }}</td>
+            <td class="text-end">{{ row.output_tokens }}</td>
+            <td class="text-end">{{ row.cached_tokens }}</td>
+            <td class="text-end">{{ row.event_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-responsive">
+      <table class="table table-sm mb-0">
+        <thead>
+          <tr><th>Top users</th><th class="text-end">Cost</th><th class="text-end">In</th><th class="text-end">Out</th><th class="text-end">Cached</th><th class="text-end">Calls</th></tr>
+        </thead>
+        <tbody>
+          {% for row in usage_summary.get('by_user', []) %}
+          <tr>
+            <td>{{ row.user_id }}</td>
+            <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
+            <td class="text-end">{{ row.input_tokens }}</td>
+            <td class="text-end">{{ row.output_tokens }}</td>
+            <td class="text-end">{{ row.cached_tokens }}</td>
+            <td class="text-end">{{ row.event_count }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var summary = {{ usage_summary | tojson }};
+  var selectedMetric = {{ (metric_filter or 'cost') | tojson }};
+  var selectedProvider = {{ (provider_filter or '') | tojson }};
+  var selectedModel = {{ (model_filter or '') | tojson }};
+  var allModels = Array.isArray(summary.model_options) ? summary.model_options : [];
+
+  // Keep FE provider mapping in sync with pipeline.llm_management.provider_of.
+  function providerOf(rawValue) {
+    var raw = String(rawValue || '').trim().toLowerCase();
+    if (!raw) return 'unknown';
+    if (raw.charAt(0) === '@') return 'pool';
+    if (['openai', 'anthropic', 'gemini', 'deepseek', 'glm'].indexOf(raw) >= 0) return raw;
+    if (raw.indexOf('/') >= 0) return raw.split('/', 1)[0];
+    if (raw.indexOf('claude') === 0) return 'anthropic';
+    if (raw.indexOf('gpt') === 0 || raw.indexOf('o1') === 0 || raw.indexOf('o3') === 0) return 'openai';
+    if (raw.indexOf('gemini') === 0) return 'gemini';
+    if (raw.indexOf('deepseek') === 0) return 'deepseek';
+    if (raw.indexOf('glm') === 0) return 'glm';
+    return raw;
+  }
+
+  function syncModelOptions() {
+    var providerSel = document.getElementById('usage-provider-filter');
+    var modelSel = document.getElementById('usage-model-filter');
+    if (!providerSel || !modelSel) return;
+    var selectedProviderNow = providerSel.value || '';
+    var selectedModelNow = modelSel.value || '';
+    var visible = selectedProviderNow
+      ? allModels.filter(function(m) { return providerOf(m) === selectedProviderNow; })
+      : allModels.slice();
+
+    modelSel.innerHTML = '';
+    var allOpt = document.createElement('option');
+    allOpt.value = '';
+    allOpt.textContent = 'All models';
+    modelSel.appendChild(allOpt);
+    visible.forEach(function(m) {
+      var opt = document.createElement('option');
+      opt.value = m;
+      opt.textContent = m;
+      modelSel.appendChild(opt);
+    });
+
+    if (selectedModelNow && visible.indexOf(selectedModelNow) >= 0) {
+      modelSel.value = selectedModelNow;
+    } else {
+      modelSel.value = '';
+    }
+  }
+
+  var providerSel = document.getElementById('usage-provider-filter');
+  var modelSel = document.getElementById('usage-model-filter');
+  if (providerSel) {
+    providerSel.addEventListener('change', syncModelOptions);
+    providerSel.value = selectedProvider;
+  }
+  if (modelSel) modelSel.value = selectedModel;
+  syncModelOptions();
+
+  function drawChart() {
+    var canvas = document.getElementById('usage-trends-chart');
+    if (!canvas || !window.Chart) return;
+    var labels = (summary.timeseries || []).map(function(x) { return x.bucket; });
+    var metricKey = selectedMetric === 'tokens' ? 'tokens' : 'cost_usd';
+    var palette = [
+      'rgba(54, 162, 235, 0.8)',
+      'rgba(75, 192, 192, 0.8)',
+      'rgba(255, 99, 132, 0.8)',
+      'rgba(255, 205, 86, 0.8)',
+      'rgba(153, 102, 255, 0.8)',
+      'rgba(255, 159, 64, 0.8)',
+      'rgba(100, 181, 246, 0.8)',
+      'rgba(129, 199, 132, 0.8)',
+      'rgba(174, 213, 129, 0.8)'
+    ];
+    var datasets = (summary.model_series || []).map(function(series, idx) {
+      return {
+        label: series.model,
+        data: series[metricKey] || [],
+        backgroundColor: palette[idx % palette.length],
+        stack: 'usage'
+      };
+    });
+
+    if (window._kbUsageChart) {
+      window._kbUsageChart.destroy();
+    }
+    window._kbUsageChart = new window.Chart(canvas.getContext('2d'), {
+      type: 'bar',
+      data: { labels: labels, datasets: datasets },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { position: 'bottom' },
+          tooltip: {
+            callbacks: {
+              label: function(ctx) {
+                var v = Number(ctx.raw || 0);
+                if (selectedMetric === 'tokens') {
+                  return ctx.dataset.label + ': ' + v.toLocaleString() + ' tokens';
+                }
+                return ctx.dataset.label + ': $' + v.toFixed(4);
+              }
+            }
+          }
+        },
+        scales: {
+          x: { stacked: true },
+          y: { stacked: true, beginAtZero: true }
+        }
+      }
+    });
+  }
+
+  function ensureChartJsAndDraw() {
+    if (window.Chart) {
+      drawChart();
+      return;
+    }
+    var existing = document.getElementById('chartjs-cdn');
+    if (existing) {
+      existing.addEventListener('load', drawChart, { once: true });
+      return;
+    }
+    var s = document.createElement('script');
+    s.id = 'chartjs-cdn';
+    s.src = 'https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js';
+    s.onload = drawChart;
+    document.head.appendChild(s);
+  }
+
+  ensureChartJsAndDraw();
+})();
+</script>
+

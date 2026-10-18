@@ -1,0 +1,94 @@
+{% if error %}
+<div class="modal-header">
+  <h5 class="modal-title text-danger">Error</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <div class="alert alert-danger small mb-0">{{ error }}</div>
+</div>
+{% elif interaction %}
+<div class="modal-header">
+  <h5 class="modal-title d-flex align-items-center gap-2" id="aiInteractionModalTitle">
+    <span class="text-truncate">Interaction #{{ interaction.id }}</span>
+    {% if interaction.status == 'ok' %}
+    <span class="badge bg-success">ok</span>
+    {% else %}
+    <span class="badge bg-danger">error</span>
+    {% endif %}
+  </h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <div class="table-responsive">
+    <table class="table table-sm mb-3">
+      <tbody>
+        <tr><th class="text-muted text-nowrap">Time</th><td>{{ interaction.created_at }}</td></tr>
+        <tr><th class="text-muted text-nowrap">Provider</th><td>{{ interaction.provider }}</td></tr>
+        <tr><th class="text-muted text-nowrap">Model</th><td><code class="text-break">{{ interaction.model }}</code></td></tr>
+        <tr><th class="text-muted text-nowrap">Purpose</th><td>{{ interaction.purpose }}</td></tr>
+        {% if interaction.model_role %}<tr><th class="text-muted text-nowrap">Role</th><td>{{ interaction.model_role }}</td></tr>{% endif %}
+        <tr><th class="text-muted text-nowrap">Duration</th><td>{{ interaction.duration_ms }} ms</td></tr>
+        <tr>
+          <th class="text-muted text-nowrap">Tokens</th>
+          <td>in {{ interaction.input_tokens }} · out {{ interaction.output_tokens }} · cached {{ interaction.cached_tokens }}</td>
+        </tr>
+        <tr><th class="text-muted text-nowrap">Cost</th><td>{% if interaction.cost_source == 'unpriced' %}not priced by the gateway{% else %}{{ '%.6f'|format(interaction.cost_usd) }} {{ interaction.currency or 'USD' }}{% endif %}</td></tr>
+        {% if interaction.model_served %}<tr><th class="text-muted text-nowrap">Model served</th><td><code class="small">{{ interaction.model_served }}</code></td></tr>{% endif %}
+        {% if interaction.request_id %}<tr><th class="text-muted text-nowrap">Gateway request</th><td><code class="small text-break">{{ interaction.request_id }}</code></td></tr>{% endif %}
+        {% if interaction.temperature is not none %}<tr><th class="text-muted text-nowrap">Temperature</th><td>{{ interaction.temperature }}</td></tr>{% endif %}
+        {% if interaction.max_tokens %}<tr><th class="text-muted text-nowrap">Max tokens</th><td>{{ interaction.max_tokens }}</td></tr>{% endif %}
+        {% if interaction.finish_reason %}<tr><th class="text-muted text-nowrap">Finish reason</th><td>{{ interaction.finish_reason }}</td></tr>{% endif %}
+        {% if interaction.turn_id %}<tr><th class="text-muted text-nowrap">Turn id</th><td><code class="small text-break">{{ interaction.turn_id }}</code></td></tr>{% endif %}
+        {% if interaction.doc_id %}<tr><th class="text-muted text-nowrap">Doc id</th><td><code class="small text-break">{{ interaction.doc_id }}</code></td></tr>{% endif %}
+        {% if interaction.user_id %}<tr><th class="text-muted text-nowrap">User</th><td>{{ interaction.user_id }}</td></tr>{% endif %}
+      </tbody>
+    </table>
+  </div>
+
+  {% if interaction.error %}
+  <div class="opts-group mb-3">
+    <div class="opts-header text-danger">Error</div>
+    <pre class="small mb-0 p-2 text-break" style="white-space:pre-wrap">{{ interaction.error }}</pre>
+  </div>
+  {% endif %}
+
+  {% if interaction.request_system %}
+  <div class="opts-group mb-3">
+    <div class="opts-header">System prompt</div>
+    <pre class="small mb-0 p-2 text-break" style="white-space:pre-wrap;max-height:240px;overflow:auto">{{ interaction.request_system }}</pre>
+  </div>
+  {% endif %}
+
+  {% if interaction.request_user %}
+  <div class="opts-group mb-3">
+    <div class="opts-header">Request</div>
+    <pre class="small mb-0 p-2 text-break" style="white-space:pre-wrap;max-height:280px;overflow:auto">{{ interaction.request_user }}</pre>
+  </div>
+  {% endif %}
+
+  {% if interaction.response_text %}
+  <div class="opts-group mb-3">
+    <div class="opts-header">Response</div>
+    <pre class="small mb-0 p-2 text-break" style="white-space:pre-wrap;max-height:280px;overflow:auto">{{ interaction.response_text }}</pre>
+  </div>
+  {% endif %}
+
+  {% if interaction.meta_json %}
+  <div class="opts-group mb-0">
+    <div class="opts-header">Metadata</div>
+    <pre class="small mb-0 p-2 text-break" style="white-space:pre-wrap">{{ interaction.meta_json }}</pre>
+  </div>
+  {% endif %}
+</div>
+<div class="modal-footer">
+  <button type="button" class="btn btn-sm btn-outline-secondary" data-bs-dismiss="modal">Close</button>
+</div>
+{% else %}
+<div class="modal-header">
+  <h5 class="modal-title">No interaction</h5>
+  <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+</div>
+<div class="modal-body">
+  <div class="text-muted small">No interaction selected.</div>
+</div>
+{% endif %}

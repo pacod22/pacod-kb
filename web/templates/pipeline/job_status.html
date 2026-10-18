@@ -1,0 +1,107 @@
+{% if error and not job_id %}
+<div class="alert alert-danger">{{ error }}</div>
+{% elif job_id %}
+<div id="job-{{ job_id }}"
+  {% if polling %}
+  hx-get="/kb/pipeline/jobs/{{ job_id }}"
+  hx-trigger="every 2s"
+  hx-target="#job-{{ job_id }}"
+  hx-swap="outerHTML"
+  {% endif %}>
+  {% if job %}
+    <span class="job-badge job-{{ job.status }}">{{ job.status }}</span>
+    <code class="ms-2 small">{{ job_id }}</code>
+    {% if job.status == 'running' and job.progress %}
+      {% set pct = job.progress.get('percent') %}
+      {% if pct is not none %}
+      <div class="job-progress-wrap mt-2">
+        <small class="text-muted">{{ pct }}%</small>
+        <div class="progress job-progress" role="progressbar" aria-label="Job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}">
+          <div class="progress-bar" style="width: {{ pct }}%"></div>
+        </div>
+      </div>
+      {% endif %}
+      {% if job.progress.get('message') %}
+        <small class="text-muted d-block mt-1">{{ job.progress.get('message') }}</small>
+      {% endif %}
+    {% endif %}
+    {% if job.error %}
+      <div class="alert alert-danger mt-2">{{ job.error }}</div>
+    {% elif job.result %}
+      <div class="mt-2">
+      {% if job.type == 'dropzone_scan' %}
+        {% set ing = job.result.get('ingested', 0) %}
+        {% set skp = job.result.get('skipped', 0) %}
+        {% set err = job.result.get('error', 0) %}
+        {% if not ing and not skp and not err %}
+          <small class="text-muted">Nothing processed (dropzone was empty).</small>
+        {% else %}
+          <ul class="mb-0 list-plain text-compact">
+            {% for f in job.result.get('files') or [] %}
+            <li class="mb-1">
+              <code>{{ f.file }}</code> —
+              {% if f.status == 'ingested' %}
+                <span class="text-success">ingested</span>
+                <code class="text-muted ms-1">{{ f.doc_id }}</code>
+                <span class="text-muted">({{ f.chunks }} chunks)</span>
+              {% elif f.status == 'skipped' %}
+                <span class="text-secondary">already known</span>
+                <code class="text-muted ms-1">{{ f.doc_id }}</code>
+              {% else %}
+                <span class="text-danger">error</span>
+                <span class="text-muted ms-1">{{ (f.get('error') or '')[:120] }}</span>
+              {% endif %}
+            </li>
+            {% endfor %}
+          </ul>
+        {% endif %}
+      {% elif job.type == 'ingest_urls' %}
+        {% set ing = job.result.get('ingested', 0) %}
+        {% set skp = job.result.get('skipped', 0) %}
+        {% set err = job.result.get('error', 0) %}
+        <small>
+          {% if ing %}<span class="text-success fw-semibold">{{ ing }} ingested</span>{% endif %}
+          {% if skp %}<span class="text-muted ms-2">{{ skp }} skipped</span>{% endif %}
+          {% if err %}<span class="text-danger ms-2">{{ err }} failed</span>{% endif %}
+        </small>
+        {% if job.result.get('urls') %}
+        <ul class="mb-0 mt-2 list-plain text-compact">
+          {% for u in job.result.urls %}
+          <li class="mb-1">
+            <span class="text-url-break">{{ u.url }}</span> —
+            {% if u.status == 'ingested' %}
+              <span class="text-success">ingested</span>
+              <code class="text-muted ms-1">{{ u.doc_id }}</code>
+              <span class="text-muted">({{ u.chunks }} chunks)</span>
+            {% elif u.status == 'skipped' %}
+              <span class="text-secondary">already known</span>
+            {% else %}
+              <span class="text-danger">error</span>
+              <span class="text-muted ms-1">{{ (u.get('error') or '')[:120] }}</span>
+            {% endif %}
+          </li>
+          {% endfor %}
+        </ul>
+        {% endif %}
+      {% elif job.result.get('doc_id') %}
+        <span class="text-success">Done.</span>
+        <code class="text-muted ms-2">{{ job.result.doc_id[:8] }}</code>
+        {% if job.result.get('chunks') is not none %}
+          <span class="text-muted"> · {{ job.result.chunks }} chunks</span>
+        {% endif %}
+      {% elif job.result.get('ok') is not none %}
+        <span class="text-muted">{{ job.result.ok }} ok, {{ job.result.errors }} errors</span>
+      {% else %}
+        <pre class="mt-1 pre-xs">{{ job.result | tojson(indent=2) }}</pre>
+      {% endif %}
+      </div>
+    {% else %}
+      <span class="spinner-border spinner-border-sm ms-2"></span>
+    {% endif %}
+  {% else %}
+    <span class="job-badge job-pending">pending</span>
+    <code class="ms-2 small">{{ job_id }}</code>
+    <span class="spinner-border spinner-border-sm ms-2"></span>
+  {% endif %}
+</div>
+{% endif %}

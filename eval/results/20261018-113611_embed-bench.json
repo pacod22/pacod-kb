@@ -1,0 +1,31 @@
+{
+ "created": "2026-10-18T11:36:11+00:00",
+ "cpu": "Apple M5",
+ "device": "cpu",
+ "torch_threads": 4,
+ "n": 240,
+ "runs": {
+  "fixed_32": {
+   "seconds": 75.69,
+   "chunks_per_s": 3.17
+  },
+  "sorted_1024": {
+   "seconds": 34.36,
+   "chunks_per_s": 6.98,
+   "min_cosine_vs_fixed": 0.9999998,
+   "batches": 72
+  },
+  "sorted_2048": {
+   "seconds": 35.53,
+   "chunks_per_s": 6.76,
+   "min_cosine_vs_fixed": 0.9999997,
+   "batches": 32
+  },
+  "sorted_4096": {
+   "seconds": 34.85,
+   "chunks_per_s": 6.89,
+   "min_cosine_vs_fixed": 0.9999997,
+   "batches": 16
+  }
+ }
+}

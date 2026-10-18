@@ -1,0 +1,20 @@
+{# Partial — rendered both on dashboard load and after toggle POST #}
+{% set on = settings.get('content_security_enabled', true) %}
+<div id="security-toggle" class="config-row">
+  <div>
+    <div class="config-label">Content security scan</div>
+    <div class="config-hint">Blocks prompt injection and spam in ingested documents before they reach the index.</div>
+  </div>
+  <fieldset {% if not user_can('admin') %}disabled title="Admin only"{% endif %}>
+  <form hx-post="/kb/pipeline/settings/security"
+        hx-target="#security-toggle"
+        hx-swap="outerHTML">
+    <input type="hidden" name="enabled" value="{{ 'false' if on else 'true' }}">
+    <button type="submit"
+            class="btn btn-sm {{ 'btn-success' if on else 'btn-outline-secondary' }}"
+            title="{{ 'Content security scan is ON — click to disable' if on else 'Content security scan is OFF — click to enable' }}">
+      {% if on %}ON{% else %}OFF{% endif %}
+    </button>
+  </form>
+  </fieldset>
+</div>

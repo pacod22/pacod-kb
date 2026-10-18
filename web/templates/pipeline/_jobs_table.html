@@ -1,0 +1,162 @@
+<div id="jobs-table"
+     {% if has_running %}
+     hx-get="/kb/pipeline/jobs"
+     hx-trigger="every 2s"
+     hx-target="#jobs-table"
+     hx-swap="outerHTML"
+     {% endif %}>
+{% if jobs_error %}
+  <div class="alert alert-danger py-2">{{ jobs_error }}</div>
+{% endif %}
+{% if not jobs %}
+  <p class="text-muted">No jobs yet.</p>
+{% else %}
+<div class="table-shell">
+<div class="table-responsive">
+<table class="table table-sm table-hover">
+  <thead class="table-light">
+    <tr>
+      <th class="table-col-job-id">ID</th>
+      <th class="table-col-job-type">Type</th>
+      <th class="table-col-job-status">Status</th>
+      <th class="table-col-job-time">Created</th>
+      <th class="table-col-job-time">Finished</th>
+      <th>Result</th>
+      <th class="text-end">Actions</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for j in jobs %}
+    <tr>
+      <td><code class="text-code">{{ j.job_id[:12] }}...</code></td>
+      <td>
+        <small>{{ j.type }}</small>
+        {% if j.result and j.result.get('source') == 'auto' %}
+          <span class="badge bg-light text-muted border ms-1 badge-micro">auto</span>
+        {% endif %}
+      </td>
+      <td><span class="job-badge job-{{ j.status }}">{{ j.status }}</span></td>
+      <td><small class="text-muted">{{ j.created_at[:19].replace('T', ' ') }}</small></td>
+      <td><small class="text-muted">{{ (j.finished_at or '-')[:19].replace('T', ' ') }}</small></td>
+      <td>
+        {% if j.status == 'running' and j.progress %}
+          {% set pct = j.progress.get('percent') %}
+          {% if pct is not none %}
+            <div class="job-progress-wrap">
+              <small class="text-muted">{{ pct }}%</small>
+              <div class="progress job-progress" role="progressbar" aria-label="Job progress" aria-valuemin="0" aria-valuemax="100" aria-valuenow="{{ pct }}">
+                <div class="progress-bar" style="width: {{ pct }}%"></div>
+              </div>
+            </div>
+          {% endif %}
+          {% if j.progress.get('message') %}
+            <small class="text-muted d-block mt-1">{{ j.progress.get('message') }}</small>
+          {% endif %}
+          {% if pct is none and not j.progress.get('message') %}
+            <span class="spinner-border spinner-border-sm" aria-hidden="true"></span>
+          {% endif %}
+        {% elif j.error %}
+          <small class="text-danger">{{ j.error[:100] }}</small>
+        {% elif j.result %}
+          {% if j.type == 'dropzone_scan' %}
+            {% set ing = j.result.get('ingested', 0) %}
+            {% set skp = j.result.get('skipped', 0) %}
+            {% set err = j.result.get('error', 0) %}
+            {% if not ing and not skp and not err %}
+              <small class="text-muted">nothing processed</small>
+            {% else %}
+              <ul class="mb-0 list-plain text-xs">
+                {% for f in j.result.get('files') or [] %}
+                <li class="mb-1">
+                  <code>{{ f.file }}</code> -
+                  {% if f.status == 'ingested' %}
+                    <span class="text-success">ingested</span>
+                    <code class="text-muted ms-1">{{ f.doc_id }}</code>
+                    <span class="text-muted">({{ f.chunks }} chunks)</span>
+                  {% elif f.status == 'skipped' %}
+                    <span class="text-secondary">already known</span>
+                    <code class="text-muted ms-1">{{ f.doc_id }}</code>
+                  {% else %}
+                    <span class="text-danger">error</span>
+                    <span class="text-muted ms-1">{{ (f.get('error') or '')[:80] }}</span>
+                  {% endif %}
+                </li>
+                {% endfor %}
+              </ul>
+            {% endif %}
+          {% elif j.type == 'ingest_urls' %}
+            {% set ing = j.result.get('ingested', 0) %}
+            {% set skp = j.result.get('skipped', 0) %}
+            {% set err = j.result.get('error', 0) %}
+            <small>
+              {% if ing %}<span class="text-success fw-semibold">{{ ing }} ingested</span>{% endif %}
+              {% if skp %}<span class="text-muted ms-1">{{ skp }} skipped</span>{% endif %}
+              {% if err %}<span class="text-danger ms-1">{{ err }} failed</span>{% endif %}
+            </small>
+            {% if j.result.get('urls') %}
+            <ul class="mb-0 mt-1 list-plain text-xs">
+              {% for u in j.result.urls %}
+              <li class="mb-1">
+                <span class="text-muted text-url-break">{{ u.url }}</span> -
+                {% if u.status == 'ingested' %}
+                  <span class="text-success">ingested</span>
+                  <code class="text-muted ms-1">{{ u.doc_id }}</code>
+                  <span class="text-muted">({{ u.chunks }} chunks)</span>
+                {% elif u.status == 'skipped' %}
+                  <span class="text-secondary">already known</span>
+                {% else %}
+                  <span class="text-danger">error</span>
+                  <span class="text-muted ms-1">{{ (u.get('error') or '')[:80] }}</span>
+                {% endif %}
+              </li>
+              {% endfor %}
+            </ul>
+            {% endif %}
+          {% elif j.result.get('doc_id') %}
+            <small class="font-monospace text-muted">{{ j.result.doc_id[:8] }}</small>
+            {% if j.result.get('chunks') is not none %}
+              <small class="text-muted"> - {{ j.result.chunks }} chunks</small>
+            {% endif %}
+          {% elif j.result.get('ok') is not none %}
+            <small class="text-muted">{{ j.result.ok }} ok, {{ j.result.errors }} err</small>
+          {% elif j.result.get('sources') %}
+            <small class="text-muted">{{ j.result.sources | length }} source(s)</small>
+          {% endif %}
+        {% endif %}
+      </td>
+      <td class="text-end text-nowrap">
+        <a class="btn btn-sm btn-outline-secondary"
+           href="/kb/pipeline/jobs/{{ j.job_id }}/view">View</a>
+        {% if j.status != 'running' %}
+        <form method="post"
+              action="/kb/pipeline/jobs/{{ j.job_id }}/restart"
+              class="d-inline"
+              hx-post="/kb/pipeline/jobs/{{ j.job_id }}/restart"
+              hx-target="#jobs-table"
+              hx-swap="outerHTML"
+              hx-confirm="Restart job {{ j.job_id[:8] }}?">
+          <button class="btn btn-sm btn-outline-primary" type="submit">Restart</button>
+        </form>
+        {% endif %}
+        {% if j.status != 'running' %}
+        <form method="post"
+              action="/kb/pipeline/jobs/{{ j.job_id }}/delete"
+              class="d-inline"
+              hx-post="/kb/pipeline/jobs/{{ j.job_id }}/delete"
+              hx-target="#jobs-table"
+              hx-swap="outerHTML"
+              hx-confirm="Delete job {{ j.job_id[:8] }} from history?">
+          <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+        </form>
+        {% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </tbody>
+</table>
+</div>
+</div>
+{% endif %}
+</div>
+
+

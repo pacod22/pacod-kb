@@ -1,0 +1,174 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Dashboard</h1>
+    {% if active_project %}
+    <p class="page-subtitle">Active project: <span class="badge bg-secondary">{{ active_project }}</span></p>
+    {% else %}
+    <p class="page-subtitle">Quick actions, live status, and runtime configuration.</p>
+    {% endif %}
+  </div>
+  <a href="/kb/pipeline/jobs" class="btn btn-sm btn-outline-secondary">Recent jobs</a>
+</div>
+
+{# ── Stats row ──────────────────────────────────────────────────────── #}
+<div class="row g-3 mb-4">
+  <div class="col-6 col-sm-3">
+    <a href="/kb/pipeline/documents" class="text-decoration-none">
+      <div class="stat-card s-total text-center">
+        <div class="stat-value">{{ total }}</div>
+        <div class="stat-label">Total</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-sm-3">
+    <a href="/kb/pipeline/documents?status=active" class="text-decoration-none">
+      <div class="stat-card s-active text-center">
+        <div class="stat-value">{{ active }}</div>
+        <div class="stat-label">Active</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-sm-3">
+    <a href="/kb/pipeline/documents?status=superseded" class="text-decoration-none">
+      <div class="stat-card s-muted text-center">
+        <div class="stat-value">{{ superseded }}</div>
+        <div class="stat-label">Superseded</div>
+      </div>
+    </a>
+  </div>
+  <div class="col-6 col-sm-3">
+    <a href="/kb/pipeline/documents?status=error" class="text-decoration-none">
+      <div class="stat-card s-danger text-center">
+        <div class="stat-value">{{ errored }}</div>
+        <div class="stat-label">Errors</div>
+      </div>
+    </a>
+  </div>
+</div>
+
+{# ── Workflow + Maintenance ─────────────────────────────────────────── #}
+<div class="row g-4 mb-4">
+
+  {# Workflow #}
+  <div class="col-md-5">
+    <div class="section-card h-100">
+      <div class="sc-header">Workflow</div>
+      <div class="sc-body action-list">
+        <a href="/kb/pipeline/ingest" class="btn btn-primary">
+          + Ingest document
+        </a>
+        <a href="/kb/pipeline/query" class="btn btn-outline-primary">
+          Search knowledge base
+        </a>
+        <a href="/kb/pipeline/documents" class="btn btn-outline-secondary">
+          Browse documents
+        </a>
+        <a href="/kb/pipeline/export" class="btn btn-outline-secondary">
+          Export JSON
+        </a>
+        {% if user_can('admin') %}
+        <a href="/kb/pipeline/ai-management" class="btn btn-outline-secondary">
+          AI Management
+        </a>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+   {# Maintenance #}
+   <div class="col-md-7">
+     <div class="section-card h-100">
+       <div class="sc-header">Maintenance</div>
+       <div class="sc-body">
+         <div class="action-list">
+           <div class="row g-2">
+             <div class="col-12 col-sm-6">
+             <button class="btn btn-outline-secondary flex-grow-1"
+                     hx-post="/kb/pipeline/dropzone/scan"
+                     hx-target="#action-result"
+                     hx-swap="innerHTML">
+               Scan dropzone
+               <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+             </button>
+             </div>
+             <div class="col-12 col-sm-6">
+             <button class="btn btn-outline-secondary flex-grow-1"
+                     hx-post="/kb/pipeline/watch"
+                     hx-target="#action-result"
+                     hx-swap="innerHTML">
+               Run watch
+               <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+             </button>
+             </div>
+           </div>
+           <p class="text-muted small mb-0">
+             <strong>Scan dropzone</strong> ingests new files dropped in the watch folder.
+             <strong>Run watch</strong> re-fetches watched URLs and re-ingests any that changed.
+           </p>
+           <hr class="my-1">
+           {% if active_project %}
+           <div class="row g-2">
+             <div class="col-12 col-sm-6">
+             <button class="btn btn-outline-info flex-grow-1"
+                     hx-post="/kb/pipeline/projects/{{ active_project }}/regenerate-from-vector-db"
+                     hx-target="#action-result"
+                     hx-swap="innerHTML"
+                     title="Regenerate document list from Qdrant collection">
+               Regenerate from DB
+               <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+             </button>
+             </div>
+             <div class="col-12 col-sm-6">
+             <button class="btn btn-outline-warning flex-grow-1"
+                     hx-post="/kb/pipeline/projects/{{ active_project }}/convert-without-index"
+                     hx-target="#action-result"
+                     hx-swap="innerHTML"
+                     title="Convert documents without indexing">
+               Convert no-index
+               <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+             </button>
+             </div>
+           </div>
+           <p class="text-muted small mb-0">
+             <strong>Regenerate from DB</strong> reconstructs the documents list from Qdrant collection data.
+             <strong>Convert no-index</strong> parses and converts documents without sending to vector database.
+           </p>
+           <hr class="my-1">
+           {% endif %}
+           <button class="btn btn-outline-danger"
+                   hx-post="/kb/pipeline/rebuild"
+                   hx-target="#action-result"
+                   hx-swap="innerHTML"
+                   hx-confirm="Rebuild the full index from scratch? This clears all existing vector embeddings and keyword index, then re-indexes every document. It may take a while.">
+             Rebuild full index
+             <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+           </button>
+           <p class="text-muted small mb-0">
+             Destroys and rebuilds the Qdrant vector store and FTS5 keyword index from the stored documents. Use after upgrading the embedding model.
+           </p>
+         </div>
+       </div>
+     </div>
+   </div>
+
+</div>
+
+{# Action result (HTMX target) #}
+<div id="action-result" class="mb-4"></div>
+
+{# ── Configuration ──────────────────────────────────────────────────── #}
+<div class="section-card">
+  <div class="sc-header">Configuration</div>
+  {% include "pipeline/_security_toggle.html" %}
+  {% include "pipeline/_converter_toggle.html" %}
+  {% include "pipeline/_language_toggle.html" %}
+  {% include "pipeline/_project_selector.html" %}
+  {% include "pipeline/_collection_selector.html" %}
+</div>
+
+
+{% endblock %}

@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}{{ title or 'Project' }}{% endblock %}
+{% block content %}
+{% set blocked_reasons = blocked_reasons or [] %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ title or 'Project' }}</h1>
+    {% if mode == 'edit' and project %}
+    <p class="page-subtitle">Update collection for <strong>{{ project.name }}</strong> (<code>{{ project.slug }}</code>).</p>
+    {% else %}
+    <p class="page-subtitle">Create a new project with its own collection.</p>
+    {% endif %}
+  </div>
+  <a href="/kb/pipeline/projects" class="btn btn-sm btn-outline-secondary">Back to projects</a>
+</div>
+
+{% if error %}
+<div class="alert alert-danger py-2 mb-3 text-compact">{{ error }}</div>
+{% endif %}
+
+<div class="section-card mw-720">
+  <div class="sc-header">{{ 'Project settings' if mode == 'edit' else 'New project' }}</div>
+  {% if user_can('editor') %}
+  <div class="sc-body">
+    <form method="post" action="{{ action_url }}">
+      {% if mode == 'edit' and project %}
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">Project</label>
+        <input type="text" class="form-control form-control-sm" value="{{ project.name }}" disabled>
+        <div class="form-text">Slug: <code>{{ project.slug }}</code></div>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">Collection name</label>
+        <input type="text"
+               class="form-control form-control-sm"
+               name="collection_name"
+               value="{{ form_values.get('collection_name', project.collection_name or project.slug) }}"
+               {% if edit_blocked %}disabled{% endif %}
+               required>
+        {% if edit_blocked %}
+        <div class="form-text text-danger">Edit is allowed only for inactive projects with no documents.</div>
+        {% else %}
+        <div class="form-text">Changing the collection re-targets this project's vector storage.</div>
+        {% endif %}
+      </div>
+      {% if edit_blocked and blocked_reasons %}
+      <div class="alert alert-warning py-2 mb-3">
+        <strong>Cannot edit:</strong>
+        <ul class="mb-0 ps-3 mt-1">
+          {% for reason in blocked_reasons %}
+          <li>{{ reason }}</li>
+          {% endfor %}
+        </ul>
+      </div>
+      {% endif %}
+      {% else %}
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">Name</label>
+        <input type="text"
+               class="form-control form-control-sm"
+               name="name"
+               value="{{ form_values.get('name', '') }}"
+               placeholder="e.g. Legal Research"
+               required>
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">
+          Description
+          <span class="text-muted fw-normal">(optional)</span>
+        </label>
+        <input type="text"
+               class="form-control form-control-sm"
+               name="description"
+               value="{{ form_values.get('description', '') }}"
+               placeholder="Short description">
+      </div>
+      <div class="mb-3">
+        <label class="form-label small fw-semibold mb-1">
+          Collection name
+          <span class="text-muted fw-normal">(optional)</span>
+        </label>
+        <input type="text"
+               class="form-control form-control-sm"
+               name="collection_name"
+               value="{{ form_values.get('collection_name', '') }}"
+               placeholder="defaults to project slug">
+      </div>
+      {% endif %}
+
+      <div class="d-flex gap-2">
+        <button type="submit" class="btn btn-sm btn-primary" {% if edit_blocked %}disabled{% endif %}>{{ submit_label or 'Save' }}</button>
+        <a href="/kb/pipeline/projects" class="btn btn-sm btn-outline-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
+  {% else %}
+  <div class="sc-body">
+    <p class="text-muted mb-0">Editor role required to modify project settings.</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}
+
+

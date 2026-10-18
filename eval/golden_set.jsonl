@@ -1,0 +1,10 @@
+{"question": "What is a vector database and how does it store data?", "expected_source_file": "sample.md", "expected_keywords": ["vector", "database", "dimensional"]}
+{"question": "How does cosine similarity work in vector search?", "expected_source_file": "sample.md", "expected_keywords": ["cosine", "similarity", "angle"]}
+{"question": "What indexing strategies are used in vector databases?", "expected_source_file": "sample.md", "expected_keywords": ["HNSW", "indexing", "nearest"]}
+{"question": "What is artificial intelligence and how is it defined?", "expected_source_file": "sample.txt", "expected_keywords": ["artificial", "intelligence", "rational"]}
+{"question": "How does machine learning differ from traditional rule-based systems?", "expected_source_file": "sample.txt", "expected_keywords": ["machine", "learning", "algorithms"]}
+{"question": "What is natural language processing used for?", "expected_source_file": "sample.txt", "expected_keywords": ["natural", "language", "processing"]}
+{"question": "What is a knowledge graph and what are its components?", "expected_source_file": "sample.html", "expected_keywords": ["knowledge", "graph", "nodes"]}
+{"question": "How do knowledge graphs enable semantic search?", "expected_source_file": "sample.html", "expected_keywords": ["semantic", "search", "intent"]}
+{"question": "What do obligations arise from according to Bulgarian contract law?", "expected_source_file": "legal_bg.md", "expected_keywords": ["задълженията", "договори", "закона"]}
+{"question": "What must an offer contain to lead to contract conclusion?", "expected_source_file": "legal_bg.md", "expected_keywords": ["предложение", "договор", "приемане"]}

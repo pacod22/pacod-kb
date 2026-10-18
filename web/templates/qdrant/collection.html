@@ -1,0 +1,223 @@
+{% extends "base.html" %}
+{% block title %}{{ collection }}{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">{{ collection }}</h1>
+    <p class="page-subtitle">Collection details, browsing, search, and management.</p>
+  </div>
+  <a href="/kb/qdrant/" class="btn btn-sm btn-outline-secondary">← Collections</a>
+</div>
+
+<!-- Stats row -->
+<div class="row g-3 mb-4">
+  <div class="col-sm-3">
+    <div class="stat-card">
+      <h2>{{ info.points_count or 0 }}</h2>
+      <div class="text-muted small">Points</div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="stat-card">
+      <h2>{{ info.indexed_vectors_count or 0 }}</h2>
+      <div class="text-muted small">Indexed vectors</div>
+    </div>
+  </div>
+  <div class="col-sm-3">
+    <div class="stat-card">
+      {% set st = info.status | string | lower %}
+      {% if "green" in st %}<span class="badge bg-success fs-6">green</span>
+      {% elif "yellow" in st %}<span class="badge bg-warning text-dark fs-6">yellow</span>
+      {% else %}<span class="badge bg-secondary fs-6">{{ info.status }}</span>{% endif %}
+      <div class="text-muted small mt-1">Status</div>
+    </div>
+  </div>
+</div>
+
+<!-- Tab nav -->
+<ul class="nav nav-tabs mb-4">
+  <li class="nav-item">
+    <a class="nav-link{% if tab == 'browse' %} active{% endif %}"
+       href="/kb/qdrant/{{ collection }}?tab=browse">Browse</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link{% if tab == 'search' %} active{% endif %}"
+       href="/kb/qdrant/{{ collection }}?tab=search">Search</a>
+  </li>
+  <li class="nav-item">
+    <a class="nav-link{% if tab == 'manage' %} active{% endif %}"
+       href="/kb/qdrant/{{ collection }}?tab=manage">Manage</a>
+  </li>
+</ul>
+
+<!-- ====================================================================
+     Browse tab
+     ==================================================================== -->
+{% if tab == "browse" %}
+<div id="browse-content"
+     hx-get="/kb/qdrant/{{ collection }}/browse"
+     hx-trigger="load"
+     hx-swap="innerHTML">
+  <div class="text-muted py-3">
+    <span class="spinner-border spinner-border-sm me-2"></span>Loading points…
+  </div>
+</div>
+
+<!-- ====================================================================
+     Search tab
+     ==================================================================== -->
+{% elif tab == "search" %}
+<div class="section-card mb-4 mw-720">
+  <div class="sc-header">Semantic search</div>
+  <div class="sc-body">
+    <form hx-post="/kb/qdrant/{{ collection }}/search"
+          hx-target="#search-results"
+          hx-swap="innerHTML"
+          hx-indicator="#search-indicator">
+      <div class="mb-3">
+        <label class="form-label">Query</label>
+        <input type="text" class="form-control" name="query"
+               placeholder="Enter your question or phrase…" required autofocus>
+      </div>
+      <div class="row g-2 mb-3">
+        <div class="col-auto">
+          <label class="form-label">Top K</label>
+          <input type="number" class="form-control form-control-sm w-inline-narrow" name="top_k"
+                 value="10" min="1" max="50">
+        </div>
+        <div class="col-auto d-flex align-items-end pb-1">
+          <div class="form-check">
+            <input class="form-check-input" type="checkbox" name="include_historical"
+                   id="inc-hist" value="true">
+            <label class="form-check-label small" for="inc-hist">Include superseded</label>
+          </div>
+        </div>
+      </div>
+      <button type="submit" class="btn btn-primary btn-sm">
+        <span id="search-indicator" class="htmx-indicator spinner-border spinner-border-sm me-1"></span>
+        Search
+      </button>
+    </form>
+  </div>
+</div>
+<div id="search-results"></div>
+
+<!-- ====================================================================
+     Manage tab
+     ==================================================================== -->
+{% elif tab == "manage" %}
+
+<!-- Rename -->
+{% if user_can('admin') %}
+<div class="section-card mb-4 mw-520">
+  <div class="sc-header">Rename collection</div>
+  <div class="sc-body">
+    <form hx-post="/kb/qdrant/{{ collection }}/rename"
+          hx-target="#rename-result"
+          hx-swap="innerHTML">
+      <div class="d-flex gap-2">
+        <input type="text" class="form-control form-control-sm" name="new_name"
+               placeholder="new name" required>
+        <button type="submit" class="btn btn-sm btn-warning"
+                hx-confirm="Rename '{{ collection }}'? All points will be copied to a new collection.">
+          Rename
+        </button>
+      </div>
+    </form>
+    <div id="rename-result" class="mt-2"></div>
+  </div>
+</div>
+{% endif %}
+
+<!-- Aliases -->
+<div class="mb-4">
+  <h6 class="text-muted text-uppercase small">Aliases</h6>
+  {% if aliases %}
+    {% for a in aliases %}
+      <span class="badge bg-secondary me-1">{{ a }}</span>
+    {% endfor %}
+  {% else %}
+    <span class="text-muted small">No aliases.</span>
+  {% endif %}
+</div>
+
+<!-- Snapshots -->
+<div class="section-card mb-4">
+  <div class="sc-header d-flex justify-content-between align-items-center">
+    <span>Snapshots</span>
+    <button class="btn btn-sm btn-outline-primary"
+            hx-post="/kb/qdrant/{{ collection }}/snapshots"
+            hx-target="#snap-result"
+            hx-swap="innerHTML">
+      Create snapshot
+    </button>
+  </div>
+  <div class="sc-body">
+    <div id="snap-result" class="mb-2"></div>
+    {% if not snapshots %}
+      <p class="text-muted mb-0 small">No snapshots.</p>
+    {% else %}
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr><th>Name</th><th>Size</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for s in snapshots %}
+        <tr>
+          <td><code class="text-xs">{{ s.name }}</code></td>
+          <td>{{ (s.size / 1048576) | round(1) }} MB</td>
+          <td class="d-flex gap-1">
+            <a class="btn btn-xs btn-outline-secondary"
+               href="/kb/qdrant/{{ collection }}/snapshots/{{ s.name }}/download">Download</a>
+            {% if user_can('admin') %}
+            <button class="btn btn-xs btn-outline-danger"
+                    hx-delete="/kb/qdrant/{{ collection }}/snapshots/{{ s.name }}"
+                    hx-target="#del-snap-{{ loop.index }}"
+                    hx-swap="innerHTML"
+                    hx-confirm="Delete snapshot '{{ s.name }}'?">Delete</button>
+            {% endif %}
+            <span id="del-snap-{{ loop.index }}"></span>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% endif %}
+
+    {% if user_can('admin') %}
+    <hr>
+    <h6 class="mt-2 small text-muted text-uppercase">Restore from snapshot</h6>
+    <form hx-post="/kb/qdrant/{{ collection }}/snapshots/restore"
+          hx-target="#restore-result"
+          hx-swap="innerHTML"
+          hx-encoding="multipart/form-data"
+          class="d-flex gap-2 align-items-center">
+      <input type="file" class="form-control form-control-sm" name="file"
+             accept=".snapshot" required>
+      <button type="submit" class="btn btn-sm btn-warning">Restore</button>
+    </form>
+    <div id="restore-result" class="mt-2"></div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Danger zone -->
+{% if user_can('admin') %}
+<div class="section-card border border-danger mb-4 mw-520">
+  <div class="sc-header text-danger">Danger zone</div>
+  <div class="sc-body">
+    <p class="small text-muted">Permanently deletes this collection and all its vectors.</p>
+    <div id="delete-result"></div>
+    <button class="btn btn-sm btn-danger"
+            hx-delete="/kb/qdrant/{{ collection }}"
+            hx-target="#delete-result"
+            hx-swap="innerHTML"
+            hx-confirm="DELETE collection '{{ collection }}' permanently? This cannot be undone.">
+      Delete collection
+    </button>
+  </div>
+</div>
+{% endif %}
+{% endif %}
+{% endblock %}

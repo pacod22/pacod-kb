@@ -1,0 +1,129 @@
+{
+ "created": "2026-10-18T11:51:28+00:00",
+ "cpu": "Apple M5",
+ "device": "cpu",
+ "torch": "2.14.1",
+ "torch_threads": 4,
+ "cells": [
+  {
+   "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+   "n": 10,
+   "max_length": 384,
+   "batch": 16,
+   "p50_ms": 237.4,
+   "p95_ms": 238.4,
+   "rss_mb": 1238,
+   "load_s": 50.4
+  },
+  {
+   "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+   "n": 20,
+   "max_length": 384,
+   "batch": 16,
+   "p50_ms": 395.2,
+   "p95_ms": 401.6,
+   "rss_mb": 1306,
+   "load_s": 50.4
+  },
+  {
+   "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+   "n": 30,
+   "max_length": 384,
+   "batch": 16,
+   "p50_ms": 489.5,
+   "p95_ms": 495.2,
+   "rss_mb": 1367,
+   "load_s": 50.4
+  },
+  {
+   "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+   "n": 10,
+   "max_length": 512,
+   "batch": 16,
+   "p50_ms": 351.6,
+   "p95_ms": 374.5,
+   "rss_mb": 1374,
+   "load_s": 50.4
+  },
+  {
+   "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+   "n": 20,
+   "max_length": 512,
+   "batch": 16,
+   "p50_ms": 590.9,
+   "p95_ms": 596.6,
+   "rss_mb": 1542,
+   "load_s": 50.4
+  },
+  {
+   "model": "cross-encoder/mmarco-mMiniLMv2-L12-H384-v1",
+   "n": 30,
+   "max_length": 512,
+   "batch": 16,
+   "p50_ms": 717.1,
+   "p95_ms": 750.6,
+   "rss_mb": 1556,
+   "load_s": 50.4
+  },
+  {
+   "model": "BAAI/bge-reranker-v2-m3",
+   "n": 10,
+   "max_length": 384,
+   "batch": 16,
+   "p50_ms": 1781.0,
+   "p95_ms": 1786.2,
+   "rss_mb": 2524,
+   "load_s": 178.5
+  },
+  {
+   "model": "BAAI/bge-reranker-v2-m3",
+   "n": 20,
+   "max_length": 384,
+   "batch": 16,
+   "p50_ms": 3045.8,
+   "p95_ms": 3102.4,
+   "rss_mb": 2934,
+   "load_s": 178.5
+  },
+  {
+   "model": "BAAI/bge-reranker-v2-m3",
+   "n": 30,
+   "max_length": 384,
+   "batch": 16,
+   "p50_ms": 3880.1,
+   "p95_ms": 4314.5,
+   "rss_mb": 2978,
+   "load_s": 178.5
+  },
+  {
+   "model": "BAAI/bge-reranker-v2-m3",
+   "n": 10,
+   "max_length": 512,
+   "batch": 16,
+   "p50_ms": 2536.2,
+   "p95_ms": 2541.6,
+   "rss_mb": 2978,
+   "load_s": 178.5
+  },
+  {
+   "model": "BAAI/bge-reranker-v2-m3",
+   "n": 20,
+   "max_length": 512,
+   "batch": 16,
+   "p50_ms": 4246.4,
+   "p95_ms": 4264.7,
+   "rss_mb": 3331,
+   "load_s": 178.5
+  },
+  {
+   "model": "BAAI/bge-reranker-v2-m3",
+   "n": 30,
+   "max_length": 512,
+   "batch": 16,
+   "p50_ms": 5210.8,
+   "p95_ms": 5493.5,
+   "rss_mb": 3449,
+   "load_s": 178.5
+  }
+ ]
+}

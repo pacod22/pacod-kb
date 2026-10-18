@@ -1,0 +1,43 @@
+# pacod-id for pacod-kb: one realm and the UI's two clients.
+#
+# pacod-id expands the variables below at start; an unset or empty one is fatal. docker-compose.yml
+# sets them from KB_ID_ISSUER and KB_UI_ORIGIN (development: http://127.0.0.1:18070 and
+# http://localhost:8080).
+#
+# Browser endpoints (sign-in, authorize, logout) answer only when the Host is the issuer's own, so
+# the issuer is the address people's browsers use. The UI calls the token, key, internal and admin
+# endpoints on the internal listener instead (http://id:8071), never through the issuer.
+
+[[realm]]
+name = "kb"
+issuer = "${KB_ID_ISSUER}"
+# pacod-id's built-in brand for the knowledge base: the pages' look and the name at the end of
+# every mail's subject ("pacod-kb"). pacod-id refuses a brand it does not know.
+brand = "kb"
+# Accounts come by invitation (the UI's members page); accepting one creates the account even
+# with sign-up closed. kb has no implicit role: an account without a kb role sees "no access".
+self_signup = false
+
+# The UI's sign-in. Authorization code with PKCE (pacod-id requires it of every client). The
+# redirect URIs are exact: the UI sends the ones built from KB_UI_ORIGIN, never from a request.
+[[client]]
+id = "pacod-kb-ui"
+realm = "kb"
+kind = "confidential"
+secret_env = "KB_ID_UI_SECRET"
+redirect_uris = ["${KB_UI_ORIGIN}/kb/auth/callback"]
+post_logout_redirect_uris = ["${KB_UI_ORIGIN}/kb/login?signed_out=1"]
+initiate_login_uri = "${KB_UI_ORIGIN}/kb/login"
+audience = "pacod-kb"
+
+# The UI as a service: pushes the kb catalogue, follows the authorization feed, exchanges a
+# person's token for the admin API (the members page), ends sessions at sign-out and confirms
+# deletions. Same audience as the UI client: token exchange accepts only user tokens issued for
+# the service client's own audience.
+[[client]]
+id = "pacod-kb-service"
+realm = "kb"
+kind = "service"
+product = "kb"
+secret_env = "KB_ID_SERVICE_SECRET"
+audience = "pacod-kb"

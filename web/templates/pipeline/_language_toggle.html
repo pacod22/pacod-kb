@@ -1,0 +1,19 @@
+{# Partial - rendered both on dashboard load and after toggle POST #}
+{% set on = settings.get('language_validation_enabled', true) %}
+<div id="language-toggle" class="config-row">
+  <div>
+    <div class="config-label">Language validation</div>
+    <div class="config-hint">Rejects unsupported detected languages during ingest. Toggle off only when intentionally ingesting other languages.</div>
+  </div>
+  <form hx-post="/kb/pipeline/settings/language"
+        hx-target="#language-toggle"
+        hx-swap="outerHTML">
+    <input type="hidden" name="enabled" value="{{ 'false' if on else 'true' }}">
+    <button type="submit"
+            class="btn btn-sm {{ 'btn-success' if on else 'btn-outline-secondary' }}"
+            title="{{ 'Language validation is ON - click to disable' if on else 'Language validation is OFF - click to enable' }}">
+      {% if on %}ON{% else %}OFF{% endif %}
+    </button>
+  </form>
+</div>
+

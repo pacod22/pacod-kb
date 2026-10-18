@@ -1,0 +1,53 @@
+{% extends "base.html" %}
+{% block title %}Home{% endblock %}
+{% block content %}
+<div class="d-flex flex-column align-items-center justify-content-center py-4 min-h-60vh">
+  <h1 class="fw-bold mb-2">Knowledge Base</h1>
+  <p class="text-muted mb-4 text-center">Mobile-friendly operations for ingest, search, and versioned knowledge workflows.</p>
+
+  <div class="row g-3 max-w-760 w-full">
+    <div class="col-sm-6">
+      <a href="/kb/pipeline/" class="text-decoration-none">
+        <div class="stat-card h-100">
+          <div class="fw-semibold mb-1">Dashboard</div>
+          <div class="text-muted small">Document counts, quick actions, job history.</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-6">
+      <a href="/kb/pipeline/ingest" class="text-decoration-none">
+        <div class="stat-card h-100">
+          <div class="fw-semibold mb-1">Ingest</div>
+          <div class="text-muted small">Add a URL or file to the knowledge base.</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-6">
+      <a href="/kb/pipeline/query" class="text-decoration-none">
+        <div class="stat-card h-100">
+          <div class="fw-semibold mb-1">Search</div>
+          <div class="text-muted small">Hybrid semantic + keyword search across all documents.</div>
+        </div>
+      </a>
+    </div>
+    <div class="col-sm-6">
+      <a href="/kb/pipeline/documents" class="text-decoration-none">
+        <div class="stat-card h-100">
+          <div class="fw-semibold mb-1">Documents</div>
+          <div class="text-muted small">Browse, filter, and re-index ingested documents.</div>
+        </div>
+      </a>
+    </div>
+    {% if qdrant_enabled %}
+    <div class="col-sm-6">
+      <a href="/kb/qdrant/" class="text-decoration-none">
+        <div class="stat-card h-100">
+          <div class="fw-semibold mb-1">Qdrant</div>
+          <div class="text-muted small">Manage collections, aliases, and snapshots.</div>
+        </div>
+      </a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

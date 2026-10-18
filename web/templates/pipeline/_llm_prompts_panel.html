@@ -1,0 +1,36 @@
+<div id="llm-prompts-panel" class="section-card mt-4">
+{%- if not user_can('admin') %}<div class="config-hint mb-2">Read-only — changing these settings requires the admin role.</div>{% endif %}
+<fieldset {% if not user_can('admin') %}disabled{% endif %}>
+  <div class="sc-header">Prompts</div>
+  <div class="sc-body">
+    {% if saved %}<div class="alert alert-success py-1 px-2 mb-2 small">Saved.</div>{% endif %}
+    {% if error %}<div class="alert alert-danger py-1 px-2 mb-2 small">{{ error }}</div>{% endif %}
+
+    <div class="config-hint mb-3">
+      Configure prompt templates used by the application. Placeholders shown in each description are required for that template.
+    </div>
+
+    {% for p in prompts_state.get('prompts', []) %}
+    <div class="opts-group mb-3">
+      <div class="opts-header d-flex justify-content-between align-items-center">
+        <span>{{ p.label }}</span>
+        <span class="badge {{ 'bg-primary' if p.overridden else 'bg-secondary' }}">{{ 'custom' if p.overridden else 'default' }}</span>
+      </div>
+      <div class="config-row align-items-start">
+        <div class="w-100">
+          <div class="config-hint mb-2">{{ p.description }}</div>
+          <form data-hx-post="/kb/pipeline/settings/llm-prompts/{{ p.id }}" data-hx-target="#llm-prompts-panel" data-hx-swap="outerHTML">
+            <label class="form-label form-label-sm" for="prompt-{{ p.id }}">Template</label>
+            <textarea id="prompt-{{ p.id }}" class="form-control form-control-sm font-monospace" rows="6" name="value">{{ p.value }}</textarea>
+            <div class="d-flex justify-content-end mt-2">
+              <button class="btn btn-sm btn-primary" type="submit">Save</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</fieldset>
+</div>
+

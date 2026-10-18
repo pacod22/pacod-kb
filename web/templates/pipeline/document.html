@@ -1,0 +1,254 @@
+{% extends "base.html" %}
+{% block title %}{{ manifest.title | truncate(40) }}{% endblock %}
+{% block content %}
+
+{# ── Header ─────────────────────────────────────────────────────────────── #}
+<div class="d-flex align-items-start gap-3 mb-4">
+  <div class="flex-grow-1">
+    <div class="text-muted small mb-1">
+      <a href="/kb/pipeline/documents" class="text-decoration-none text-muted">Documents</a>
+      <span class="mx-1">›</span>
+      <code class="text-s">{{ manifest.doc_id[:8] }}</code>
+    </div>
+    <h4 class="mb-1">{{ manifest.title }}</h4>
+    <div class="d-flex align-items-center gap-2 flex-wrap">
+      {% set st = manifest.get('status', '') %}
+      {% if st == 'ok' and not manifest.get('valid_until') %}
+        <span class="badge bg-success">active</span>
+      {% elif st == 'ok' and manifest.get('valid_until') %}
+        <span class="badge bg-secondary">superseded {{ manifest.valid_until }}</span>
+      {% elif st == 'review' %}
+        <span class="badge bg-warning text-dark">review</span>
+      {% else %}
+        <span class="badge bg-danger">{{ st or 'error' }}</span>
+      {% endif %}
+      <span class="badge bg-light text-dark border">{{ manifest.get('doc_type', '—') }}</span>
+      <span class="badge bg-light text-dark border">{{ manifest.get('language', '—') }}</span>
+      <span class="badge bg-light text-dark border">{{ manifest.get('extraction_method', '—') }}</span>
+    </div>
+  </div>
+  <div class="d-flex gap-2 flex-shrink-0">
+    <a href="/kb/pipeline/documents/{{ manifest.doc_id }}/download/original"
+       class="btn btn-sm btn-outline-secondary" title="Download original source file">
+      ⬇ Source
+    </a>
+    <a href="/kb/pipeline/documents/{{ manifest.doc_id }}/download/markdown"
+       class="btn btn-sm btn-outline-secondary" title="Download Markdown">
+      ⬇ MD
+    </a>
+    <button class="btn btn-sm btn-outline-primary"
+            hx-post="/kb/pipeline/reindex/{{ manifest.doc_id }}"
+            hx-target="#reindex-result"
+            hx-swap="innerHTML">
+      ↻ Re-index
+    </button>
+    <a href="/kb/pipeline/ingest?supersedes={{ manifest.doc_id }}"
+       class="btn btn-sm btn-outline-secondary">
+      ↑ New version
+    </a>
+    <button class="btn btn-sm btn-danger"
+            hx-delete="/kb/pipeline/documents/{{ manifest.doc_id }}"
+            hx-confirm="Delete this document permanently? All index data and files will be removed. This cannot be undone."
+            hx-target="body"
+            hx-swap="innerHTML">
+      Delete
+    </button>
+  </div>
+</div>
+<div id="reindex-result" class="mb-2"></div>
+
+{# ── Version chain notices ─────────────────────────────────────────────── #}
+{% if manifest.get('supersedes') %}
+<div class="alert alert-info py-2 mb-3">
+  This document supersedes
+  <a href="/kb/pipeline/documents/{{ manifest.supersedes }}" class="font-monospace">
+    {{ manifest.supersedes[:12] }}…
+  </a>
+</div>
+{% endif %}
+{% if superseded_by %}
+<div class="alert alert-warning py-2 mb-3">
+  Superseded by
+  <a href="/kb/pipeline/documents/{{ superseded_by.doc_id }}" class="font-monospace">
+    {{ superseded_by.doc_id[:12] }}…
+  </a>
+  — <em>{{ superseded_by.title | truncate(60) }}</em>
+</div>
+{% endif %}
+{% if manifest.get('error') %}
+<div class="alert alert-danger py-2 mb-3">
+  <strong>Error:</strong> {{ manifest.error }}
+</div>
+{% endif %}
+
+{# ── Metadata card ─────────────────────────────────────────────────────── #}
+<div class="card shadow-sm mb-4">
+  <div class="card-header small text-uppercase text-muted">Document metadata</div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <tbody>
+
+        <tr>
+          <th class="ps-3 meta-label-col">Doc ID</th>
+          <td>
+            <code class="text-s" id="doc-id-val">{{ manifest.doc_id }}</code>
+            <button class="btn btn-xs btn-outline-secondary ms-2 text-xxs"
+                    data-copy="{{ manifest.doc_id }}"
+                    onclick="navigator.clipboard.writeText(this.dataset.copy).then(()=>{this.textContent='✓';setTimeout(()=>{this.textContent='Copy'},1200)})">
+              Copy
+            </button>
+          </td>
+        </tr>
+
+        <tr>
+          <th class="ps-3 meta-label-col">Source</th>
+          <td>
+            {% if manifest.get('source_uri', '').startswith('http') %}
+              <a href="{{ manifest.source_uri }}" target="_blank" rel="noopener"
+                 class="small text-break">{{ manifest.source_uri }}</a>
+            {% else %}
+              <span class="small text-break">{{ manifest.get('source_uri', '—') }}</span>
+            {% endif %}
+          </td>
+        </tr>
+
+        {% if manifest.get('source_version') %}
+        <tr>
+          <th class="ps-3 meta-label-col">Version</th>
+          <td class="small">{{ manifest.source_version }}</td>
+        </tr>
+        {% endif %}
+
+        <tr>
+          <th class="ps-3 meta-label-col">SHA-256</th>
+          <td>
+            <code class="text-muted text-code">{{ manifest.get('source_sha256', '—') }}</code>
+          </td>
+        </tr>
+
+        <tr>
+          <th class="ps-3 meta-label-col">Converter</th>
+          <td class="small">{{ manifest.get('converter', '—') }}</td>
+        </tr>
+
+        <tr>
+          <th class="ps-3 meta-label-col">Chunks</th>
+          <td>
+            <strong>{{ manifest.get('chunk_count', 0) }}</strong>
+          </td>
+        </tr>
+
+        {% if source_size is not none %}
+        <tr>
+          <th class="ps-3 meta-label-col">Source size</th>
+          <td class="small text-muted">
+            {% if source_size >= 1048576 %}
+              {{ (source_size / 1048576) | round(2) }} MB
+            {% elif source_size >= 1024 %}
+              {{ (source_size / 1024) | round(1) }} KB
+            {% else %}
+              {{ source_size }} B
+            {% endif %}
+          </td>
+        </tr>
+        {% endif %}
+
+        <tr>
+          <th class="ps-3 meta-label-col">Retrieved at</th>
+          <td class="small text-muted">{{ manifest.get('retrieved_at', '—') }}</td>
+        </tr>
+
+        <tr>
+          <th class="ps-3 meta-label-col">Converted at</th>
+          <td class="small text-muted">{{ manifest.get('converted_at', '—') }}</td>
+        </tr>
+
+        {% if manifest.get('valid_until') %}
+        <tr>
+          <th class="ps-3 meta-label-col">Valid until</th>
+          <td>
+            <span class="badge bg-secondary">{{ manifest.valid_until }}</span>
+          </td>
+        </tr>
+        {% endif %}
+
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{# ── Lifecycle events ──────────────────────────────────────────────────── #}
+{% if manifest.get('events') %}
+<div class="card shadow-sm mb-4">
+  <div class="card-header small text-uppercase text-muted">Lifecycle events</div>
+  <div class="card-body p-0">
+    <table class="table table-sm mb-0">
+      <thead class="table-light">
+        <tr>
+          <th class="ps-3 text-s">Event</th>
+          <th class="text-s">When</th>
+          <th class="text-s">Detail</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for ev in manifest.events %}
+        <tr>
+          <td class="ps-3">
+            {% if ev.event == 'ingested' %}
+              <span class="badge bg-success btn-xs">ingested</span>
+            {% elif ev.event == 'superseded' %}
+              <span class="badge bg-secondary btn-xs">superseded</span>
+            {% elif ev.event == 'reindexed' %}
+              <span class="badge bg-info text-dark btn-xs">reindexed</span>
+            {% else %}
+              <span class="badge bg-light text-dark border btn-xs">{{ ev.event }}</span>
+            {% endif %}
+          </td>
+          <td class="text-muted small">{{ ev.at }}</td>
+          <td class="small">{{ ev.detail }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
+{# ── Document body ─────────────────────────────────────────────────────── #}
+<div class="card shadow-sm">
+  <div class="card-header small text-uppercase text-muted d-flex justify-content-between align-items-center">
+    <span>Document content</span>
+    <div class="d-flex align-items-center gap-3">
+        <span class="text-muted doc-content-stats">
+        {{ body | length }} chars · {{ body.splitlines() | length }} lines
+      </span>
+        <button class="btn btn-xs btn-outline-secondary"
+              onclick="(function(){var p=document.getElementById('doc-body');p.style.maxHeight=p.style.maxHeight?'':''})()">
+      </button>
+        <button class="btn btn-xs btn-outline-secondary"
+              onclick="toggleBodyExpand(this)">Expand</button>
+    </div>
+  </div>
+  <div class="card-body p-0">
+    {% if body %}
+    <pre id="doc-body" class="mb-0 p-3 doc-body-pre">{{ body }}</pre>
+    {% else %}
+    <p class="text-muted p-3 mb-0 small">No content available.</p>
+    {% endif %}
+  </div>
+</div>
+
+<script>
+function toggleBodyExpand(btn) {
+  var pre = document.getElementById('doc-body');
+  if (!pre) return;
+  if (pre.style.maxHeight === 'none') {
+    pre.style.maxHeight = '500px';
+    btn.textContent = 'Expand';
+  } else {
+    pre.style.maxHeight = 'none';
+    btn.textContent = 'Collapse';
+  }
+}
+</script>
+{% endblock %}

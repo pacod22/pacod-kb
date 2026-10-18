@@ -1,0 +1,231 @@
+{% extends "base.html" %}
+{% block title %}Documents{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Documents</h1>
+    {% if active_project %}
+    <p class="page-subtitle">Project: <strong>{{ active_project }}</strong></p>
+    {% else %}
+    <p class="page-subtitle">Browse, filter, and maintain ingested knowledge sources.</p>
+    {% endif %}
+  </div>
+  <div class="toolbar-actions">
+    <button type="button" id="bulk-delete-btn"
+            class="btn btn-sm btn-danger"
+            hidden
+            hx-post="/kb/pipeline/documents/delete-bulk"
+            hx-target="#bulk-delete-result"
+            hx-swap="innerHTML"
+            hx-confirm="Delete the selected documents? All index data and files will be permanently removed."
+            hx-include=".doc-check:checked">
+      Delete (<span id="sel-count">0</span>)
+    </button>
+    <a href="/kb/pipeline/export" class="btn btn-sm btn-outline-secondary">Export JSON</a>
+  </div>
+</div>
+
+<div class="section-card mb-3">
+  <div class="sc-body toolbar-wrap">
+    <div class="toolbar-row">
+      <div class="toolbar-actions">
+    <button type="button" id="export-sources-btn"
+            class="btn btn-sm btn-outline-secondary"
+            onclick="exportSources('json')">
+      Export Sources <span id="export-sel-label"></span>
+    </button>
+    <button type="button" id="export-sources-csv-btn"
+            class="btn btn-sm btn-outline-secondary"
+            onclick="exportSources('csv')">
+      Export Sources CSV <span id="export-sel-label-csv"></span>
+    </button>
+      </div>
+      <input type="text" id="doc-filter" class="form-control form-control-sm toolbar-grow"
+             placeholder="Filter visible rows..."
+             oninput="filterDocs(this.value)">
+    </div>
+
+    <div class="toolbar-row">
+      <div class="btn-group btn-group-sm" role="group" aria-label="Status filter">
+        <a href="/kb/pipeline/documents"
+           class="btn btn-outline-secondary {% if not status %}active{% endif %}">All</a>
+        <a href="/kb/pipeline/documents?status=active"
+           class="btn btn-outline-success {% if status == 'active' %}active{% endif %}">Active</a>
+        <a href="/kb/pipeline/documents?status=superseded"
+           class="btn btn-outline-secondary {% if status == 'superseded' %}active{% endif %}">Superseded</a>
+        <a href="/kb/pipeline/documents?status=error"
+           class="btn btn-outline-danger {% if status == 'error' %}active{% endif %}">Errors</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="bulk-delete-result"></div>
+
+{% if not manifests %}
+  <p class="text-muted">No documents found.</p>
+{% else %}
+<div class="table-shell">
+  <div class="table-responsive">
+  <table class="table table-sm table-hover stack-table docs-table">
+    <thead class="table-light">
+      <tr>
+        <th class="table-col-check">
+          <input type="checkbox" id="select-all" onclick="toggleAll(this)"
+                 title="Select all">
+        </th>
+        <th class="table-col-doc">Doc ID</th>
+        <th>Title</th>
+        <th class="table-col-type">Type</th>
+        <th class="table-col-lang">Lang</th>
+        <th class="table-col-chunks text-end">Chunks</th>
+        <th class="table-col-status">Status</th>
+        <th class="table-col-date">Ingested</th>
+        <th class="table-col-actions"></th>
+      </tr>
+    </thead>
+    <tbody id="docs-tbody">
+      {% for m in manifests %}
+      <tr class="doc-row table-click-row"
+          data-href="/kb/pipeline/documents/{{ m.doc_id }}"
+          tabindex="0"
+          role="link"
+          aria-label="Open document {{ m.get('title', 'Untitled') }}">
+        <td class="table-col-check" data-label="Select">
+          <input type="checkbox" class="doc-check" name="doc_ids" value="{{ m.doc_id }}"
+                 onchange="updateBulkActions()">
+        </td>
+        <td data-label="Doc ID">
+          <code class="text-muted text-code" title="{{ m.doc_id }}">
+            {{ m.doc_id[:8] }}
+          </code>
+        </td>
+        <td data-label="Title">
+          <span>
+            {{ m.get('title', '—') | truncate(70) }}
+          </span>
+          {% if m.get('valid_until') %}
+            <span class="badge badge-xxs bg-secondary ms-1">superseded</span>
+          {% endif %}
+        </td>
+        <td data-label="Type">
+          <span class="badge bg-light text-dark border btn-xs">
+            {{ m.get('doc_type', '—') }}
+          </span>
+        </td>
+        <td data-label="Lang" class="text-muted small">{{ m.get('language', '—') }}</td>
+        <td data-label="Chunks" class="text-end text-muted small">{{ m.get('chunk_count', 0) }}</td>
+        <td data-label="Status">
+          {% set st = m.get('status', '') %}
+          {% if st == 'ok' and not m.get('valid_until') %}
+            <span class="badge bg-success btn-xs">active</span>
+          {% elif st == 'ok' and m.get('valid_until') %}
+            <span class="badge bg-secondary btn-xs">superseded</span>
+          {% elif st == 'review' %}
+            <span class="badge bg-warning text-dark btn-xs">review</span>
+          {% else %}
+            <span class="badge bg-danger btn-xs">{{ st or 'error' }}</span>
+          {% endif %}
+        </td>
+        <td data-label="Ingested" class="text-muted small">
+          {{ (m.get('retrieved_at', '') or '')[:10] }}
+        </td>
+        <td data-label="Actions" class="text-end">
+          <div class="d-flex gap-1 justify-content-end">
+            <a href="/kb/pipeline/documents/{{ m.doc_id }}"
+               class="btn btn-xs btn-outline-secondary">View</a>
+            <a href="/kb/pipeline/documents/{{ m.doc_id }}/download/original"
+               class="btn btn-xs btn-outline-secondary">Src</a>
+            <a href="/kb/pipeline/documents/{{ m.doc_id }}/download/markdown"
+               class="btn btn-xs btn-outline-secondary">MD</a>
+            <button class="btn btn-xs btn-outline-primary"
+                    hx-post="/kb/pipeline/reindex/{{ m.doc_id }}"
+                    hx-target="#ri-{{ loop.index }}"
+                    hx-swap="innerHTML">↻</button>
+            <span id="ri-{{ loop.index }}"></span>
+          </div>
+        </td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  </div>
+</div>
+<div class="text-muted small mt-1">{{ manifests | length }} document{{ 's' if manifests | length != 1 }}</div>
+{% endif %}
+
+<script>
+function toggleAll(cb) {
+  document.querySelectorAll('#docs-tbody tr.doc-row:not([hidden]) .doc-check').forEach(c => {
+    c.checked = cb.checked;
+  });
+  updateBulkActions();
+}
+
+function updateBulkActions() {
+  const checked = document.querySelectorAll('.doc-check:checked').length;
+  const btn = document.getElementById('bulk-delete-btn');
+  const cnt = document.getElementById('sel-count');
+  if (cnt) cnt.textContent = checked;
+  if (btn) btn.hidden = checked === 0;
+  const sa = document.getElementById('select-all');
+  if (sa) {
+    const visible = document.querySelectorAll('#docs-tbody tr.doc-row:not([hidden]) .doc-check').length;
+    sa.indeterminate = checked > 0 && checked < visible;
+    sa.checked = visible > 0 && checked === visible;
+  }
+  const selLabel = checked > 0 ? '(' + checked + ' selected)' : '(all)';
+  const l1 = document.getElementById('export-sel-label');
+  const l2 = document.getElementById('export-sel-label-csv');
+  if (l1) l1.textContent = selLabel;
+  if (l2) l2.textContent = selLabel;
+}
+
+function exportSources(fmt) {
+  const ids = [...document.querySelectorAll('.doc-check:checked')].map(c => c.value);
+  const base = fmt === 'csv'
+    ? '/kb/pipeline/export/sources/csv'
+    : '/kb/pipeline/export/sources';
+  if (ids.length === 0) {
+    window.location.href = base;
+    return;
+  }
+  const url = new URL(base, window.location.origin);
+  ids.forEach(id => url.searchParams.append('doc_ids', id));
+  window.location.href = url.toString();
+}
+
+function filterDocs(q) {
+  const rows = document.querySelectorAll('#docs-tbody tr.doc-row');
+  const lq = q.toLowerCase();
+  rows.forEach(r => {
+    const hide = lq ? !r.textContent.toLowerCase().includes(lq) : false;
+    r.hidden = hide;
+    if (hide) {
+      const cb = r.querySelector('.doc-check');
+      if (cb) cb.checked = false;
+    }
+  });
+  updateBulkActions();
+}
+
+// set initial label on load
+updateBulkActions();
+
+document.querySelectorAll('#docs-tbody .doc-row').forEach(function(row) {
+  row.addEventListener('click', function(ev) {
+    if (ev.target.closest('a, button, input, label')) return;
+    const href = row.dataset.href;
+    if (href) window.location = href;
+  });
+  row.addEventListener('keydown', function(ev) {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    if (ev.target.closest('a, button, input, label')) return;
+    ev.preventDefault();
+    const href = row.dataset.href;
+    if (href) window.location = href;
+  });
+});
+</script>
+{% endblock %}

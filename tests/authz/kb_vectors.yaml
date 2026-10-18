@@ -1,0 +1,47 @@
+# What each kb role may do, as web/identity.py's role_of and the members page ask it.
+# Format: pacod-id's policy/engine-vectors/README.md; run by tests/test_authz_manifest.py.
+#
+#   role_of: admin   allowed kb.settings.manage at [platform]
+#            editor  allowed kb.docs.write at [platform]
+#            viewer  allowed kb.docs.read at [platform]
+#   members page     can_grant kb.<role> at [platform]
+manifests: [kb]
+cases:
+  - name: an admin does everything and grants every role
+    subject: { kind: user, bindings: [{ role: kb.admin, path: [platform] }] }
+    checks:
+      - { allowed: kb.docs.read, at: [platform], expect: true }
+      - { allowed: kb.docs.write, at: [platform], expect: true }
+      - { allowed: kb.settings.manage, at: [platform], expect: true }
+      - { allowed: kb.members.manage, at: [platform], expect: true }
+      - { can_grant: kb.admin, at: [platform], expect: ok }
+      - { can_grant: kb.editor, at: [platform], expect: ok }
+      - { can_grant: kb.viewer, at: [platform], expect: ok }
+
+  - name: an editor writes documents but changes no settings and grants nothing
+    subject: { kind: user, bindings: [{ role: kb.editor, path: [platform] }] }
+    checks:
+      - { allowed: kb.docs.read, at: [platform], expect: true }
+      - { allowed: kb.docs.write, at: [platform], expect: true }
+      - { allowed: kb.settings.manage, at: [platform], expect: false }
+      - { allowed: kb.members.manage, at: [platform], expect: false }
+      - { can_grant: kb.viewer, at: [platform], expect: not_permitted }
+
+  - name: a viewer only reads
+    subject: { kind: user, bindings: [{ role: kb.viewer, path: [platform] }] }
+    checks:
+      - { allowed: kb.docs.read, at: [platform], expect: true }
+      - { allowed: kb.docs.write, at: [platform], expect: false }
+      - { allowed: kb.settings.manage, at: [platform], expect: false }
+      - { can_grant: kb.viewer, at: [platform], expect: not_permitted }
+
+  - name: an account without a kb role may do nothing
+    subject: { kind: user, bindings: [] }
+    checks:
+      - { allowed: kb.docs.read, at: [platform], expect: false }
+      - { holds_any_at: platform, expect: false }
+
+  - name: another product's roles count for nothing in kb
+    subject: { kind: user, bindings: [{ role: id.admin, path: [platform] }] }
+    checks:
+      - { allowed: kb.docs.read, at: [platform], expect: false }

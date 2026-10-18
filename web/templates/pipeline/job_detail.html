@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+{% block title %}Job {{ job_id[:12] }}{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Job detail</h1>
+    <p class="page-subtitle"><code>{{ job_id }}</code></p>
+  </div>
+  <div class="d-flex gap-2">
+    <a class="btn btn-sm btn-outline-secondary" href="/kb/pipeline/jobs">Back to jobs</a>
+    {% if job and job.status != 'running' %}
+    <form method="post" action="/kb/pipeline/jobs/{{ job_id }}/restart">
+      <button class="btn btn-sm btn-outline-primary" type="submit">Restart</button>
+    </form>
+    {% endif %}
+    {% if job and job.status != 'running' %}
+    <form method="post" action="/kb/pipeline/jobs/{{ job_id }}/delete">
+      <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+    </form>
+    {% endif %}
+  </div>
+</div>
+
+<div class="section-card">
+  <div class="sc-body">
+    {% include "pipeline/job_status.html" %}
+  </div>
+</div>
+{% endblock %}
+

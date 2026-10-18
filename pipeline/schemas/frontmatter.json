@@ -1,0 +1,101 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "frontmatter.json",
+  "title": "Document Front Matter",
+  "type": "object",
+  "required": [
+    "doc_id",
+    "title",
+    "source_file",
+    "source_uri",
+    "source_sha256",
+    "retrieved_at",
+    "converted_at",
+    "converter",
+    "extraction_method",
+    "language",
+    "doc_type",
+    "supersedes",
+    "valid_until"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "doc_id": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "description": "SHA-256 hex digest of the source file"
+    },
+    "title": {
+      "type": "string",
+      "description": "Extracted or provided document title"
+    },
+    "source_file": {
+      "type": "string",
+      "description": "Original filename"
+    },
+    "source_uri": {
+      "type": "string",
+      "description": "URL or local path of the source"
+    },
+    "source_version": {
+      "type": "string",
+      "description": "Free-text version identifier, e.g. 'consolidated as of 2026-03-01'"
+    },
+    "source_sha256": {
+      "type": "string",
+      "minLength": 64,
+      "maxLength": 64,
+      "description": "SHA-256 hex digest of the source file (same as doc_id)"
+    },
+    "retrieved_at": {
+      "type": "string",
+      "description": "ISO 8601 UTC timestamp of retrieval"
+    },
+    "converted_at": {
+      "type": "string",
+      "description": "ISO 8601 UTC timestamp of conversion"
+    },
+    "converter": {
+      "type": "string",
+      "description": "Tool name and version used for conversion"
+    },
+    "extraction_method": {
+      "type": "string",
+      "enum": ["deterministic", "ocr", "vlm"],
+      "description": "How the text was extracted"
+    },
+    "language": {
+      "type": "string",
+      "description": "ISO 639-1 language code"
+    },
+    "doc_type": {
+      "type": "string",
+      "description": "Document type: generic, legal_code, web_page, etc."
+    },
+    "supersedes": {
+      "type": ["string", "null"],
+      "description": "doc_id of the prior version this document supersedes"
+    },
+    "valid_until": {
+      "type": ["string", "null"],
+      "description": "ISO 8601 date when this version was superseded; null = currently valid"
+    },
+    "project": {
+      "type": ["string", "null"],
+      "description": "Project slug (Qdrant collection name) this document belongs to"
+    },
+    "meta_author": {
+      "type": ["string", "null"],
+      "description": "Article author(s) extracted from HTML metadata (article doc_type only)"
+    },
+    "meta_published_date": {
+      "type": ["string", "null"],
+      "description": "Article publication date extracted from HTML metadata (article doc_type only)"
+    },
+    "meta_publication_venue": {
+      "type": ["string", "null"],
+      "description": "News outlet or site name extracted from HTML metadata (article doc_type only)"
+    }
+  }
+}

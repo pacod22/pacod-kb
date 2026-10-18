@@ -1,0 +1,3776 @@
+{
+ "openapi": {
+  "components": {
+   "schemas": {
+    "Body_bulk_delete_kb_qdrant__collection__delete_post": {
+     "properties": {
+      "doc_id": {
+       "default": "",
+       "title": "Doc Id",
+       "type": "string"
+      },
+      "mode": {
+       "title": "Mode",
+       "type": "string"
+      }
+     },
+     "required": [
+      "mode"
+     ],
+     "title": "Body_bulk_delete_kb_qdrant__collection__delete_post",
+     "type": "object"
+    },
+    "Body_change_role_kb_users__principal__role_post": {
+     "properties": {
+      "role": {
+       "title": "Role",
+       "type": "string"
+      }
+     },
+     "required": [
+      "role"
+     ],
+     "title": "Body_change_role_kb_users__principal__role_post",
+     "type": "object"
+    },
+    "Body_create_collection_kb_qdrant__post": {
+     "properties": {
+      "distance": {
+       "default": "Cosine",
+       "title": "Distance",
+       "type": "string"
+      },
+      "name": {
+       "title": "Name",
+       "type": "string"
+      },
+      "vector_size": {
+       "default": 1024,
+       "title": "Vector Size",
+       "type": "integer"
+      }
+     },
+     "required": [
+      "name"
+     ],
+     "title": "Body_create_collection_kb_qdrant__post",
+     "type": "object"
+    },
+    "Body_create_project_kb_pipeline_projects_post": {
+     "properties": {
+      "collection_name": {
+       "default": "",
+       "title": "Collection Name",
+       "type": "string"
+      },
+      "description": {
+       "default": "",
+       "title": "Description",
+       "type": "string"
+      },
+      "name": {
+       "title": "Name",
+       "type": "string"
+      }
+     },
+     "required": [
+      "name"
+     ],
+     "title": "Body_create_project_kb_pipeline_projects_post",
+     "type": "object"
+    },
+    "Body_edit_project_kb_pipeline_projects__slug__edit_post": {
+     "properties": {
+      "collection_name": {
+       "default": "",
+       "title": "Collection Name",
+       "type": "string"
+      }
+     },
+     "title": "Body_edit_project_kb_pipeline_projects__slug__edit_post",
+     "type": "object"
+    },
+    "Body_ingest_submit_kb_pipeline_ingest_post": {
+     "properties": {
+      "doc_type": {
+       "default": "generic",
+       "title": "Doc Type",
+       "type": "string"
+      },
+      "file": {
+       "anyOf": [
+        {
+         "contentMediaType": "application/octet-stream",
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "File"
+      },
+      "ingest_type": {
+       "default": "url",
+       "title": "Ingest Type",
+       "type": "string"
+      },
+      "json_convert": {
+       "default": "true",
+       "title": "Json Convert",
+       "type": "string"
+      },
+      "llm_convert": {
+       "default": "auto",
+       "title": "Llm Convert",
+       "type": "string"
+      },
+      "source_version": {
+       "default": "",
+       "title": "Source Version",
+       "type": "string"
+      },
+      "supersedes": {
+       "default": "",
+       "title": "Supersedes",
+       "type": "string"
+      },
+      "trusted": {
+       "default": "auto",
+       "title": "Trusted",
+       "type": "string"
+      },
+      "url": {
+       "default": "",
+       "title": "Url",
+       "type": "string"
+      },
+      "validate_language": {
+       "default": "auto",
+       "title": "Validate Language",
+       "type": "string"
+      }
+     },
+     "title": "Body_ingest_submit_kb_pipeline_ingest_post",
+     "type": "object"
+    },
+    "Body_ingest_urls_submit_kb_pipeline_ingest_urls_post": {
+     "properties": {
+      "doc_type": {
+       "default": "generic",
+       "title": "Doc Type",
+       "type": "string"
+      },
+      "llm_convert": {
+       "default": "auto",
+       "title": "Llm Convert",
+       "type": "string"
+      },
+      "source_version": {
+       "default": "",
+       "title": "Source Version",
+       "type": "string"
+      },
+      "trusted": {
+       "default": "auto",
+       "title": "Trusted",
+       "type": "string"
+      },
+      "urls_text": {
+       "default": "",
+       "title": "Urls Text",
+       "type": "string"
+      },
+      "validate_language": {
+       "default": "auto",
+       "title": "Validate Language",
+       "type": "string"
+      }
+     },
+     "title": "Body_ingest_urls_submit_kb_pipeline_ingest_urls_post",
+     "type": "object"
+    },
+    "Body_invite_kb_users_invite_post": {
+     "properties": {
+      "as_link": {
+       "default": "",
+       "title": "As Link",
+       "type": "string"
+      },
+      "email": {
+       "default": "",
+       "title": "Email",
+       "type": "string"
+      },
+      "role": {
+       "default": "viewer",
+       "title": "Role",
+       "type": "string"
+      }
+     },
+     "title": "Body_invite_kb_users_invite_post",
+     "type": "object"
+    },
+    "Body_ping_gateway_kb_pipeline_ai_ping_post": {
+     "properties": {
+      "mode": {
+       "default": "models",
+       "title": "Mode",
+       "type": "string"
+      }
+     },
+     "title": "Body_ping_gateway_kb_pipeline_ai_ping_post",
+     "type": "object"
+    },
+    "Body_query_submit_kb_pipeline_query_post": {
+     "properties": {
+      "query": {
+       "title": "Query",
+       "type": "string"
+      },
+      "top_k": {
+       "default": 5,
+       "title": "Top K",
+       "type": "integer"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "title": "Body_query_submit_kb_pipeline_query_post",
+     "type": "object"
+    },
+    "Body_rename_collection_kb_qdrant__collection__rename_post": {
+     "properties": {
+      "new_name": {
+       "title": "New Name",
+       "type": "string"
+      }
+     },
+     "required": [
+      "new_name"
+     ],
+     "title": "Body_rename_collection_kb_qdrant__collection__rename_post",
+     "type": "object"
+    },
+    "Body_restore_snapshot_kb_qdrant__collection__snapshots_restore_post": {
+     "properties": {
+      "file": {
+       "contentMediaType": "application/octet-stream",
+       "title": "File",
+       "type": "string"
+      }
+     },
+     "required": [
+      "file"
+     ],
+     "title": "Body_restore_snapshot_kb_qdrant__collection__snapshots_restore_post",
+     "type": "object"
+    },
+    "Body_search_kb_qdrant__collection__search_post": {
+     "properties": {
+      "include_historical": {
+       "default": false,
+       "title": "Include Historical",
+       "type": "boolean"
+      },
+      "query": {
+       "title": "Query",
+       "type": "string"
+      },
+      "top_k": {
+       "default": 10,
+       "title": "Top K",
+       "type": "integer"
+      }
+     },
+     "required": [
+      "query"
+     ],
+     "title": "Body_search_kb_qdrant__collection__search_post",
+     "type": "object"
+    },
+    "Body_switch_collection_kb_pipeline_settings_collection_post": {
+     "properties": {
+      "collection": {
+       "title": "Collection",
+       "type": "string"
+      }
+     },
+     "required": [
+      "collection"
+     ],
+     "title": "Body_switch_collection_kb_pipeline_settings_collection_post",
+     "type": "object"
+    },
+    "Body_switch_project_kb_pipeline_settings_project_post": {
+     "properties": {
+      "project": {
+       "title": "Project",
+       "type": "string"
+      },
+      "sidebar": {
+       "default": "",
+       "title": "Sidebar",
+       "type": "string"
+      }
+     },
+     "required": [
+      "project"
+     ],
+     "title": "Body_switch_project_kb_pipeline_settings_project_post",
+     "type": "object"
+    },
+    "Body_toggle_converter_kb_pipeline_settings_converter_post": {
+     "properties": {
+      "enabled": {
+       "default": "",
+       "title": "Enabled",
+       "type": "string"
+      }
+     },
+     "title": "Body_toggle_converter_kb_pipeline_settings_converter_post",
+     "type": "object"
+    },
+    "Body_toggle_language_validation_kb_pipeline_settings_language_post": {
+     "properties": {
+      "enabled": {
+       "default": "",
+       "title": "Enabled",
+       "type": "string"
+      }
+     },
+     "title": "Body_toggle_language_validation_kb_pipeline_settings_language_post",
+     "type": "object"
+    },
+    "Body_toggle_security_kb_pipeline_settings_security_post": {
+     "properties": {
+      "enabled": {
+       "default": "",
+       "title": "Enabled",
+       "type": "string"
+      }
+     },
+     "title": "Body_toggle_security_kb_pipeline_settings_security_post",
+     "type": "object"
+    },
+    "Body_update_llm_prompt_kb_pipeline_settings_llm_prompts__prompt_id__post": {
+     "properties": {
+      "value": {
+       "default": "",
+       "title": "Value",
+       "type": "string"
+      }
+     },
+     "title": "Body_update_llm_prompt_kb_pipeline_settings_llm_prompts__prompt_id__post",
+     "type": "object"
+    },
+    "HTTPValidationError": {
+     "properties": {
+      "detail": {
+       "items": {
+        "$ref": "#/components/schemas/ValidationError"
+       },
+       "title": "Detail",
+       "type": "array"
+      }
+     },
+     "title": "HTTPValidationError",
+     "type": "object"
+    },
+    "ValidationError": {
+     "properties": {
+      "ctx": {
+       "title": "Context",
+       "type": "object"
+      },
+      "input": {
+       "title": "Input"
+      },
+      "loc": {
+       "items": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "integer"
+         }
+        ]
+       },
+       "title": "Location",
+       "type": "array"
+      },
+      "msg": {
+       "title": "Message",
+       "type": "string"
+      },
+      "type": {
+       "title": "Error Type",
+       "type": "string"
+      }
+     },
+     "required": [
+      "loc",
+      "msg",
+      "type"
+     ],
+     "title": "ValidationError",
+     "type": "object"
+    }
+   }
+  },
+  "info": {
+   "title": "KB UI",
+   "version": "0.1.0"
+  },
+  "openapi": "3.1.0",
+  "paths": {
+   "/kb": {
+    "get": {
+     "operationId": "index_kb_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Index"
+    }
+   },
+   "/kb/auth/callback": {
+    "get": {
+     "operationId": "callback_kb_auth_callback_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "code",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Code",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "state",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "State",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "iss",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Iss",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "error",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Error",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Callback Kb Auth Callback Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Callback"
+    }
+   },
+   "/kb/login": {
+    "get": {
+     "description": "Sign in at pacod-id (also pacod-id's initiate_login_uri, after an invitation).",
+     "operationId": "login_kb_login_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "next",
+       "required": false,
+       "schema": {
+        "default": "/kb",
+        "title": "Next",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "signed_out",
+       "required": false,
+       "schema": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Signed Out"
+       }
+      },
+      {
+       "in": "query",
+       "name": "ended",
+       "required": false,
+       "schema": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Ended"
+       }
+      },
+      {
+       "in": "query",
+       "name": "error",
+       "required": false,
+       "schema": {
+        "anyOf": [
+         {
+          "type": "string"
+         },
+         {
+          "type": "null"
+         }
+        ],
+        "title": "Error"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Login"
+    }
+   },
+   "/kb/logout": {
+    "post": {
+     "description": "End the pacod-id session too: revoking the refresh token alone would leave it live.",
+     "operationId": "logout_kb_logout_post",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {}
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Logout"
+    }
+   },
+   "/kb/pipeline/": {
+    "get": {
+     "operationId": "dashboard_kb_pipeline__get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Dashboard"
+    }
+   },
+   "/kb/pipeline/ai-interactions": {
+    "get": {
+     "operationId": "ai_interactions_panel_kb_pipeline_ai_interactions_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "provider",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Provider",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "purpose",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Purpose",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "status",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Status",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "turn_id",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Turn Id",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "doc_id",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Doc Id",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "limit",
+       "required": false,
+       "schema": {
+        "default": 50,
+        "title": "Limit",
+        "type": "integer"
+       }
+      },
+      {
+       "in": "query",
+       "name": "offset",
+       "required": false,
+       "schema": {
+        "default": 0,
+        "title": "Offset",
+        "type": "integer"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Ai Interactions Panel"
+    }
+   },
+   "/kb/pipeline/ai-interactions/detail/{interaction_id}": {
+    "get": {
+     "operationId": "ai_interaction_detail_kb_pipeline_ai_interactions_detail__interaction_id__get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "interaction_id",
+       "required": true,
+       "schema": {
+        "title": "Interaction Id",
+        "type": "integer"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Ai Interaction Detail"
+    }
+   },
+   "/kb/pipeline/ai-management": {
+    "get": {
+     "operationId": "ai_management_kb_pipeline_ai_management_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Ai Management"
+    }
+   },
+   "/kb/pipeline/ai/ping": {
+    "post": {
+     "description": "Test the gateway: its model list, or one tiny completion through the converter.",
+     "operationId": "ping_gateway_kb_pipeline_ai_ping_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_ping_gateway_kb_pipeline_ai_ping_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Ping Gateway"
+    }
+   },
+   "/kb/pipeline/documents": {
+    "get": {
+     "operationId": "documents_kb_pipeline_documents_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "status",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Status",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Documents"
+    }
+   },
+   "/kb/pipeline/documents/delete-bulk": {
+    "post": {
+     "operationId": "delete_bulk_kb_pipeline_documents_delete_bulk_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Delete Bulk"
+    }
+   },
+   "/kb/pipeline/documents/{doc_id}": {
+    "delete": {
+     "operationId": "delete_document_route_kb_pipeline_documents__doc_id__delete",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "doc_id",
+       "required": true,
+       "schema": {
+        "title": "Doc Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Delete Document Route"
+    },
+    "get": {
+     "operationId": "document_detail_kb_pipeline_documents__doc_id__get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "doc_id",
+       "required": true,
+       "schema": {
+        "title": "Doc Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Document Detail"
+    }
+   },
+   "/kb/pipeline/documents/{doc_id}/download/markdown": {
+    "get": {
+     "operationId": "download_document_markdown_kb_pipeline_documents__doc_id__download_markdown_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "doc_id",
+       "required": true,
+       "schema": {
+        "title": "Doc Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Download Document Markdown Kb Pipeline Documents  Doc Id  Download Markdown Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Download Document Markdown"
+    }
+   },
+   "/kb/pipeline/documents/{doc_id}/download/original": {
+    "get": {
+     "operationId": "download_document_original_kb_pipeline_documents__doc_id__download_original_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "doc_id",
+       "required": true,
+       "schema": {
+        "title": "Doc Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Download Document Original Kb Pipeline Documents  Doc Id  Download Original Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Download Document Original"
+    }
+   },
+   "/kb/pipeline/dropzone/scan": {
+    "post": {
+     "operationId": "dropzone_scan_kb_pipeline_dropzone_scan_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Dropzone Scan"
+    }
+   },
+   "/kb/pipeline/export": {
+    "get": {
+     "operationId": "export_documents_kb_pipeline_export_get",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Export Documents Kb Pipeline Export Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Export Documents"
+    }
+   },
+   "/kb/pipeline/export/sources": {
+    "get": {
+     "operationId": "export_sources_kb_pipeline_export_sources_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "doc_ids",
+       "required": false,
+       "schema": {
+        "default": [],
+        "items": {
+         "type": "string"
+        },
+        "title": "Doc Ids",
+        "type": "array"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Export Sources Kb Pipeline Export Sources Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Export Sources"
+    }
+   },
+   "/kb/pipeline/export/sources/csv": {
+    "get": {
+     "operationId": "export_sources_csv_kb_pipeline_export_sources_csv_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "doc_ids",
+       "required": false,
+       "schema": {
+        "default": [],
+        "items": {
+         "type": "string"
+        },
+        "title": "Doc Ids",
+        "type": "array"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Export Sources Csv Kb Pipeline Export Sources Csv Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Export Sources Csv"
+    }
+   },
+   "/kb/pipeline/ingest": {
+    "get": {
+     "operationId": "ingest_form_kb_pipeline_ingest_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "supersedes",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Supersedes",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Ingest Form"
+    },
+    "post": {
+     "operationId": "ingest_submit_kb_pipeline_ingest_post",
+     "requestBody": {
+      "content": {
+       "multipart/form-data": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_ingest_submit_kb_pipeline_ingest_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Ingest Submit"
+    }
+   },
+   "/kb/pipeline/ingest/urls": {
+    "post": {
+     "operationId": "ingest_urls_submit_kb_pipeline_ingest_urls_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_ingest_urls_submit_kb_pipeline_ingest_urls_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Ingest Urls Submit"
+    }
+   },
+   "/kb/pipeline/jobs": {
+    "get": {
+     "operationId": "list_jobs_kb_pipeline_jobs_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "List Jobs"
+    }
+   },
+   "/kb/pipeline/jobs/{job_id}": {
+    "get": {
+     "operationId": "job_status_kb_pipeline_jobs__job_id__get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "job_id",
+       "required": true,
+       "schema": {
+        "title": "Job Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Job Status"
+    }
+   },
+   "/kb/pipeline/jobs/{job_id}/delete": {
+    "post": {
+     "operationId": "delete_job_kb_pipeline_jobs__job_id__delete_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "job_id",
+       "required": true,
+       "schema": {
+        "title": "Job Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Delete Job"
+    }
+   },
+   "/kb/pipeline/jobs/{job_id}/restart": {
+    "post": {
+     "operationId": "restart_job_kb_pipeline_jobs__job_id__restart_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "job_id",
+       "required": true,
+       "schema": {
+        "title": "Job Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Restart Job"
+    }
+   },
+   "/kb/pipeline/jobs/{job_id}/view": {
+    "get": {
+     "operationId": "job_detail_page_kb_pipeline_jobs__job_id__view_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "job_id",
+       "required": true,
+       "schema": {
+        "title": "Job Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Job Detail Page"
+    }
+   },
+   "/kb/pipeline/projects": {
+    "get": {
+     "operationId": "projects_page_kb_pipeline_projects_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Projects Page"
+    },
+    "post": {
+     "operationId": "create_project_kb_pipeline_projects_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_create_project_kb_pipeline_projects_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Create Project Kb Pipeline Projects Post"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Create Project"
+    }
+   },
+   "/kb/pipeline/projects/new": {
+    "get": {
+     "operationId": "project_create_view_kb_pipeline_projects_new_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Project Create View"
+    }
+   },
+   "/kb/pipeline/projects/{slug}/activate": {
+    "post": {
+     "operationId": "activate_project_kb_pipeline_projects__slug__activate_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Activate Project Kb Pipeline Projects  Slug  Activate Post"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Activate Project"
+    }
+   },
+   "/kb/pipeline/projects/{slug}/convert-without-index": {
+    "post": {
+     "description": "Convert documents without sending to the vector database.",
+     "operationId": "convert_without_index_kb_pipeline_projects__slug__convert_without_index_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Convert Without Index"
+    }
+   },
+   "/kb/pipeline/projects/{slug}/delete": {
+    "post": {
+     "operationId": "delete_project_kb_pipeline_projects__slug__delete_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Delete Project Kb Pipeline Projects  Slug  Delete Post"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Delete Project"
+    }
+   },
+   "/kb/pipeline/projects/{slug}/edit": {
+    "get": {
+     "operationId": "project_edit_view_kb_pipeline_projects__slug__edit_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Project Edit View"
+    },
+    "post": {
+     "operationId": "edit_project_kb_pipeline_projects__slug__edit_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_edit_project_kb_pipeline_projects__slug__edit_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Edit Project Kb Pipeline Projects  Slug  Edit Post"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Edit Project"
+    }
+   },
+   "/kb/pipeline/projects/{slug}/regenerate-from-vector-db": {
+    "post": {
+     "description": "Regenerate documents list based on data from Qdrant collection.",
+     "operationId": "regenerate_from_vector_db_kb_pipeline_projects__slug__regenerate_from_vector_db_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Regenerate From Vector Db"
+    }
+   },
+   "/kb/pipeline/projects/{slug}/view": {
+    "get": {
+     "description": "Display project detail page with all maintenance tasks.",
+     "operationId": "project_detail_view_kb_pipeline_projects__slug__view_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "slug",
+       "required": true,
+       "schema": {
+        "title": "Slug",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Project Detail View"
+    }
+   },
+   "/kb/pipeline/query": {
+    "get": {
+     "operationId": "query_form_kb_pipeline_query_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Query Form"
+    },
+    "post": {
+     "operationId": "query_submit_kb_pipeline_query_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_query_submit_kb_pipeline_query_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Query Submit"
+    }
+   },
+   "/kb/pipeline/rebuild": {
+    "post": {
+     "operationId": "rebuild_kb_pipeline_rebuild_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Rebuild"
+    }
+   },
+   "/kb/pipeline/reindex/{doc_id}": {
+    "post": {
+     "operationId": "reindex_kb_pipeline_reindex__doc_id__post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "doc_id",
+       "required": true,
+       "schema": {
+        "title": "Doc Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Reindex"
+    }
+   },
+   "/kb/pipeline/settings/collection": {
+    "post": {
+     "operationId": "switch_collection_kb_pipeline_settings_collection_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_switch_collection_kb_pipeline_settings_collection_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Switch Collection"
+    }
+   },
+   "/kb/pipeline/settings/converter": {
+    "post": {
+     "operationId": "toggle_converter_kb_pipeline_settings_converter_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_toggle_converter_kb_pipeline_settings_converter_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Toggle Converter"
+    }
+   },
+   "/kb/pipeline/settings/language": {
+    "post": {
+     "operationId": "toggle_language_validation_kb_pipeline_settings_language_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_toggle_language_validation_kb_pipeline_settings_language_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Toggle Language Validation"
+    }
+   },
+   "/kb/pipeline/settings/llm-config": {
+    "post": {
+     "operationId": "update_llm_config_kb_pipeline_settings_llm_config_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Update Llm Config"
+    }
+   },
+   "/kb/pipeline/settings/llm-prompts/{prompt_id}": {
+    "post": {
+     "operationId": "update_llm_prompt_kb_pipeline_settings_llm_prompts__prompt_id__post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "prompt_id",
+       "required": true,
+       "schema": {
+        "title": "Prompt Id",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_update_llm_prompt_kb_pipeline_settings_llm_prompts__prompt_id__post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Update Llm Prompt"
+    }
+   },
+   "/kb/pipeline/settings/project": {
+    "post": {
+     "operationId": "switch_project_kb_pipeline_settings_project_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_switch_project_kb_pipeline_settings_project_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Switch Project"
+    }
+   },
+   "/kb/pipeline/settings/security": {
+    "post": {
+     "operationId": "toggle_security_kb_pipeline_settings_security_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_toggle_security_kb_pipeline_settings_security_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Toggle Security"
+    }
+   },
+   "/kb/pipeline/usage/summary": {
+    "get": {
+     "operationId": "usage_summary_panel_kb_pipeline_usage_summary_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "bucket",
+       "required": false,
+       "schema": {
+        "default": "day",
+        "title": "Bucket",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "provider",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Provider",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "model",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Model",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "range_start",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Range Start",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "range_end",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Range End",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "metric",
+       "required": false,
+       "schema": {
+        "default": "cost",
+        "title": "Metric",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Usage Summary Panel"
+    }
+   },
+   "/kb/pipeline/watch": {
+    "post": {
+     "operationId": "watch_kb_pipeline_watch_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Watch"
+    }
+   },
+   "/kb/qdrant/": {
+    "get": {
+     "operationId": "list_collections_kb_qdrant__get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "List Collections"
+    },
+    "post": {
+     "operationId": "create_collection_kb_qdrant__post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_create_collection_kb_qdrant__post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Create Collection"
+    }
+   },
+   "/kb/qdrant/{collection}": {
+    "delete": {
+     "operationId": "delete_collection_kb_qdrant__collection__delete",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Delete Collection"
+    },
+    "get": {
+     "operationId": "collection_detail_kb_qdrant__collection__get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "tab",
+       "required": false,
+       "schema": {
+        "default": "browse",
+        "title": "Tab",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Collection Detail"
+    }
+   },
+   "/kb/qdrant/{collection}/browse": {
+    "get": {
+     "operationId": "browse_points_kb_qdrant__collection__browse_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "offset",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Offset",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "active_only",
+       "required": false,
+       "schema": {
+        "default": "true",
+        "title": "Active Only",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "doc_title",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Doc Title",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "page_size",
+       "required": false,
+       "schema": {
+        "default": "50",
+        "title": "Page Size",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Browse Points"
+    }
+   },
+   "/kb/qdrant/{collection}/delete": {
+    "post": {
+     "operationId": "bulk_delete_kb_qdrant__collection__delete_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_bulk_delete_kb_qdrant__collection__delete_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Bulk Delete"
+    }
+   },
+   "/kb/qdrant/{collection}/export": {
+    "get": {
+     "operationId": "export_points_kb_qdrant__collection__export_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "point_ids",
+       "required": false,
+       "schema": {
+        "default": [],
+        "items": {
+         "type": "string"
+        },
+        "title": "Point Ids",
+        "type": "array"
+       }
+      },
+      {
+       "in": "query",
+       "name": "doc_id",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Doc Id",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "doc_title",
+       "required": false,
+       "schema": {
+        "default": "",
+        "title": "Doc Title",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "title": "Response Export Points Kb Qdrant  Collection  Export Get"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Export Points"
+    }
+   },
+   "/kb/qdrant/{collection}/points/{point_id}": {
+    "delete": {
+     "operationId": "delete_point_kb_qdrant__collection__points__point_id__delete",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "path",
+       "name": "point_id",
+       "required": true,
+       "schema": {
+        "title": "Point Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Delete Point"
+    },
+    "get": {
+     "operationId": "point_detail_kb_qdrant__collection__points__point_id__get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "path",
+       "name": "point_id",
+       "required": true,
+       "schema": {
+        "title": "Point Id",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Point Detail"
+    }
+   },
+   "/kb/qdrant/{collection}/rename": {
+    "post": {
+     "operationId": "rename_collection_kb_qdrant__collection__rename_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_rename_collection_kb_qdrant__collection__rename_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Rename Collection"
+    }
+   },
+   "/kb/qdrant/{collection}/search": {
+    "post": {
+     "operationId": "search_kb_qdrant__collection__search_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_search_kb_qdrant__collection__search_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Search"
+    }
+   },
+   "/kb/qdrant/{collection}/snapshots": {
+    "post": {
+     "operationId": "create_snapshot_kb_qdrant__collection__snapshots_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Create Snapshot"
+    }
+   },
+   "/kb/qdrant/{collection}/snapshots/restore": {
+    "post": {
+     "operationId": "restore_snapshot_kb_qdrant__collection__snapshots_restore_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "multipart/form-data": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_restore_snapshot_kb_qdrant__collection__snapshots_restore_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Restore Snapshot"
+    }
+   },
+   "/kb/qdrant/{collection}/snapshots/{name}": {
+    "delete": {
+     "operationId": "delete_snapshot_kb_qdrant__collection__snapshots__name__delete",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "path",
+       "name": "name",
+       "required": true,
+       "schema": {
+        "title": "Name",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Delete Snapshot"
+    }
+   },
+   "/kb/qdrant/{collection}/snapshots/{name}/download": {
+    "get": {
+     "operationId": "download_snapshot_kb_qdrant__collection__snapshots__name__download_get",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "collection",
+       "required": true,
+       "schema": {
+        "title": "Collection",
+        "type": "string"
+       }
+      },
+      {
+       "in": "path",
+       "name": "name",
+       "required": true,
+       "schema": {
+        "title": "Name",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {}
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Download Snapshot"
+    }
+   },
+   "/kb/users": {
+    "get": {
+     "operationId": "members_page_kb_users_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Members Page"
+    }
+   },
+   "/kb/users/invitations/{invitation}/resend": {
+    "post": {
+     "operationId": "resend_invitation_kb_users_invitations__invitation__resend_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "invitation",
+       "required": true,
+       "schema": {
+        "title": "Invitation",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Resend Invitation"
+    }
+   },
+   "/kb/users/invitations/{invitation}/revoke": {
+    "post": {
+     "operationId": "revoke_invitation_kb_users_invitations__invitation__revoke_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "invitation",
+       "required": true,
+       "schema": {
+        "title": "Invitation",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Revoke Invitation"
+    }
+   },
+   "/kb/users/invite": {
+    "post": {
+     "operationId": "invite_kb_users_invite_post",
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_invite_kb_users_invite_post"
+        }
+       }
+      }
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Invite"
+    }
+   },
+   "/kb/users/{principal}/remove": {
+    "post": {
+     "operationId": "remove_member_kb_users__principal__remove_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "principal",
+       "required": true,
+       "schema": {
+        "title": "Principal",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Remove Member"
+    }
+   },
+   "/kb/users/{principal}/role": {
+    "post": {
+     "operationId": "change_role_kb_users__principal__role_post",
+     "parameters": [
+      {
+       "in": "path",
+       "name": "principal",
+       "required": true,
+       "schema": {
+        "title": "Principal",
+        "type": "string"
+       }
+      }
+     ],
+     "requestBody": {
+      "content": {
+       "application/x-www-form-urlencoded": {
+        "schema": {
+         "$ref": "#/components/schemas/Body_change_role_kb_users__principal__role_post"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Change Role"
+    }
+   }
+  }
+ },
+ "routes": [
+  [
+   "/openapi.json",
+   [
+    "GET",
+    "HEAD"
+   ],
+   "openapi"
+  ],
+  [
+   "/docs",
+   [
+    "GET",
+    "HEAD"
+   ],
+   "swagger_ui_html"
+  ],
+  [
+   "/docs/oauth2-redirect",
+   [
+    "GET",
+    "HEAD"
+   ],
+   "swagger_ui_redirect"
+  ],
+  [
+   "/redoc",
+   [
+    "GET",
+    "HEAD"
+   ],
+   "redoc_html"
+  ],
+  [
+   "/kb/static",
+   [],
+   "Mount"
+  ],
+  [
+   "/kb/login",
+   [
+    "GET"
+   ],
+   "login"
+  ],
+  [
+   "/kb/auth/callback",
+   [
+    "GET"
+   ],
+   "callback"
+  ],
+  [
+   "/kb/logout",
+   [
+    "POST"
+   ],
+   "logout"
+  ],
+  [
+   "/kb/healthz",
+   [
+    "GET"
+   ],
+   "healthz"
+  ],
+  [
+   "/kb/users",
+   [
+    "GET"
+   ],
+   "members_page"
+  ],
+  [
+   "/kb/users/invite",
+   [
+    "POST"
+   ],
+   "invite"
+  ],
+  [
+   "/kb/users/{principal}/role",
+   [
+    "POST"
+   ],
+   "change_role"
+  ],
+  [
+   "/kb/users/{principal}/remove",
+   [
+    "POST"
+   ],
+   "remove_member"
+  ],
+  [
+   "/kb/users/invitations/{invitation}/revoke",
+   [
+    "POST"
+   ],
+   "revoke_invitation"
+  ],
+  [
+   "/kb/users/invitations/{invitation}/resend",
+   [
+    "POST"
+   ],
+   "resend_invitation"
+  ],
+  [
+   "/kb/pipeline/",
+   [
+    "GET"
+   ],
+   "dashboard"
+  ],
+  [
+   "/kb/pipeline/ai-management",
+   [
+    "GET"
+   ],
+   "ai_management"
+  ],
+  [
+   "/kb/pipeline/settings/llm-config",
+   [
+    "POST"
+   ],
+   "update_llm_config"
+  ],
+  [
+   "/kb/pipeline/ai/ping",
+   [
+    "POST"
+   ],
+   "ping_gateway"
+  ],
+  [
+   "/kb/pipeline/settings/llm-prompts/{prompt_id}",
+   [
+    "POST"
+   ],
+   "update_llm_prompt"
+  ],
+  [
+   "/kb/pipeline/usage/summary",
+   [
+    "GET"
+   ],
+   "usage_summary_panel"
+  ],
+  [
+   "/kb/pipeline/ai-interactions",
+   [
+    "GET"
+   ],
+   "ai_interactions_panel"
+  ],
+  [
+   "/kb/pipeline/ai-interactions/detail/{interaction_id}",
+   [
+    "GET"
+   ],
+   "ai_interaction_detail"
+  ],
+  [
+   "/kb/pipeline/settings/security",
+   [
+    "POST"
+   ],
+   "toggle_security"
+  ],
+  [
+   "/kb/pipeline/settings/converter",
+   [
+    "POST"
+   ],
+   "toggle_converter"
+  ],
+  [
+   "/kb/pipeline/settings/language",
+   [
+    "POST"
+   ],
+   "toggle_language_validation"
+  ],
+  [
+   "/kb/pipeline/settings/collection",
+   [
+    "POST"
+   ],
+   "switch_collection"
+  ],
+  [
+   "/kb/pipeline/settings/project",
+   [
+    "POST"
+   ],
+   "switch_project"
+  ],
+  [
+   "/kb/pipeline/projects",
+   [
+    "GET"
+   ],
+   "projects_page"
+  ],
+  [
+   "/kb/pipeline/projects/new",
+   [
+    "GET"
+   ],
+   "project_create_view"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/edit",
+   [
+    "GET"
+   ],
+   "project_edit_view"
+  ],
+  [
+   "/kb/pipeline/projects",
+   [
+    "POST"
+   ],
+   "create_project"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/activate",
+   [
+    "POST"
+   ],
+   "activate_project"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/edit",
+   [
+    "POST"
+   ],
+   "edit_project"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/delete",
+   [
+    "POST"
+   ],
+   "delete_project"
+  ],
+  [
+   "/kb/pipeline/documents",
+   [
+    "GET"
+   ],
+   "documents"
+  ],
+  [
+   "/kb/pipeline/documents/{doc_id}",
+   [
+    "GET"
+   ],
+   "document_detail"
+  ],
+  [
+   "/kb/pipeline/documents/{doc_id}/download/original",
+   [
+    "GET"
+   ],
+   "download_document_original"
+  ],
+  [
+   "/kb/pipeline/documents/{doc_id}/download/markdown",
+   [
+    "GET"
+   ],
+   "download_document_markdown"
+  ],
+  [
+   "/kb/pipeline/documents/{doc_id}",
+   [
+    "DELETE"
+   ],
+   "delete_document_route"
+  ],
+  [
+   "/kb/pipeline/documents/delete-bulk",
+   [
+    "POST"
+   ],
+   "delete_bulk"
+  ],
+  [
+   "/kb/pipeline/ingest",
+   [
+    "GET"
+   ],
+   "ingest_form"
+  ],
+  [
+   "/kb/pipeline/ingest",
+   [
+    "POST"
+   ],
+   "ingest_submit"
+  ],
+  [
+   "/kb/pipeline/ingest/urls",
+   [
+    "POST"
+   ],
+   "ingest_urls_submit"
+  ],
+  [
+   "/kb/pipeline/query",
+   [
+    "GET"
+   ],
+   "query_form"
+  ],
+  [
+   "/kb/pipeline/query",
+   [
+    "POST"
+   ],
+   "query_submit"
+  ],
+  [
+   "/kb/pipeline/reindex/{doc_id}",
+   [
+    "POST"
+   ],
+   "reindex"
+  ],
+  [
+   "/kb/pipeline/rebuild",
+   [
+    "POST"
+   ],
+   "rebuild"
+  ],
+  [
+   "/kb/pipeline/dropzone/scan",
+   [
+    "POST"
+   ],
+   "dropzone_scan"
+  ],
+  [
+   "/kb/pipeline/watch",
+   [
+    "POST"
+   ],
+   "watch"
+  ],
+  [
+   "/kb/pipeline/jobs/{job_id}",
+   [
+    "GET"
+   ],
+   "job_status"
+  ],
+  [
+   "/kb/pipeline/jobs/{job_id}/view",
+   [
+    "GET"
+   ],
+   "job_detail_page"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/view",
+   [
+    "GET"
+   ],
+   "project_detail_view"
+  ],
+  [
+   "/kb/pipeline/jobs",
+   [
+    "GET"
+   ],
+   "list_jobs"
+  ],
+  [
+   "/kb/pipeline/jobs/{job_id}/restart",
+   [
+    "POST"
+   ],
+   "restart_job"
+  ],
+  [
+   "/kb/pipeline/jobs/{job_id}/delete",
+   [
+    "POST"
+   ],
+   "delete_job"
+  ],
+  [
+   "/kb/pipeline/export",
+   [
+    "GET"
+   ],
+   "export_documents"
+  ],
+  [
+   "/kb/pipeline/export/sources",
+   [
+    "GET"
+   ],
+   "export_sources"
+  ],
+  [
+   "/kb/pipeline/export/sources/csv",
+   [
+    "GET"
+   ],
+   "export_sources_csv"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/regenerate-from-vector-db",
+   [
+    "POST"
+   ],
+   "regenerate_from_vector_db"
+  ],
+  [
+   "/kb/pipeline/projects/{slug}/convert-without-index",
+   [
+    "POST"
+   ],
+   "convert_without_index"
+  ],
+  [
+   "/kb/qdrant/",
+   [
+    "GET"
+   ],
+   "list_collections"
+  ],
+  [
+   "/kb/qdrant/",
+   [
+    "POST"
+   ],
+   "create_collection"
+  ],
+  [
+   "/kb/qdrant/{collection}",
+   [
+    "GET"
+   ],
+   "collection_detail"
+  ],
+  [
+   "/kb/qdrant/{collection}/browse",
+   [
+    "GET"
+   ],
+   "browse_points"
+  ],
+  [
+   "/kb/qdrant/{collection}/points/{point_id}",
+   [
+    "GET"
+   ],
+   "point_detail"
+  ],
+  [
+   "/kb/qdrant/{collection}/export",
+   [
+    "GET"
+   ],
+   "export_points"
+  ],
+  [
+   "/kb/qdrant/{collection}/points/{point_id}",
+   [
+    "DELETE"
+   ],
+   "delete_point"
+  ],
+  [
+   "/kb/qdrant/{collection}/delete",
+   [
+    "POST"
+   ],
+   "bulk_delete"
+  ],
+  [
+   "/kb/qdrant/{collection}/search",
+   [
+    "POST"
+   ],
+   "search"
+  ],
+  [
+   "/kb/qdrant/{collection}",
+   [
+    "DELETE"
+   ],
+   "delete_collection"
+  ],
+  [
+   "/kb/qdrant/{collection}/rename",
+   [
+    "POST"
+   ],
+   "rename_collection"
+  ],
+  [
+   "/kb/qdrant/{collection}/snapshots",
+   [
+    "POST"
+   ],
+   "create_snapshot"
+  ],
+  [
+   "/kb/qdrant/{collection}/snapshots/{name}",
+   [
+    "DELETE"
+   ],
+   "delete_snapshot"
+  ],
+  [
+   "/kb/qdrant/{collection}/snapshots/{name}/download",
+   [
+    "GET"
+   ],
+   "download_snapshot"
+  ],
+  [
+   "/kb/qdrant/{collection}/snapshots/restore",
+   [
+    "POST"
+   ],
+   "restore_snapshot"
+  ],
+  [
+   "/kb",
+   [
+    "GET"
+   ],
+   "index"
+  ],
+  [
+   "/",
+   [
+    "GET"
+   ],
+   "root_redirect"
+  ],
+  [
+   "/favicon.ico",
+   [
+    "GET"
+   ],
+   "favicon_redirect"
+  ]
+ ]
+}

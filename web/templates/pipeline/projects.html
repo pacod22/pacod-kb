@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Projects{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Projects</h1>
+    <p class="page-subtitle">Switch context between isolated document collections.</p>
+  </div>
+  {% if user_can('editor') %}
+  <a href="/kb/pipeline/projects/new" class="btn btn-sm btn-primary">Create project</a>
+  {% endif %}
+</div>
+
+{% if error %}
+<div class="alert alert-danger py-2 mb-3 text-compact">{{ error }}</div>
+{% endif %}
+
+{% set projects = projects_data.get('projects', []) %}
+{% set active_slug = projects_data.get('active', '') %}
+
+{# ── Projects table ──────────────────────────────────────────────────── #}
+<div class="section-card mb-4">
+  <div class="sc-header">Projects</div>
+  {% if not projects %}
+    <div class="sc-body">
+      {% if user_can('editor') %}
+      <p class="text-muted mb-0">No projects defined yet. Use <a href="/kb/pipeline/projects/new">Create project</a> to add one.</p>
+      {% else %}
+      <p class="text-muted mb-0">No projects defined yet.</p>
+      {% endif %}
+    </div>
+  {% else %}
+    <div class="table-shell border-0 rounded-0 shadow-none">
+    <div class="table-responsive">
+      <table class="table table-sm table-hover mb-0">
+        <thead class="table-light">
+          <tr>
+            <th>Name</th>
+            <th>Collection</th>
+            <th class="text-end table-col-docs">Docs</th>
+            <th class="d-none d-sm-table-cell table-col-created">Created</th>
+            <th class="table-col-project-actions"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for p in projects %}
+          <tr>
+            <td>
+              <span>{{ p.name }}</span>
+              {% if p.slug == active_slug %}
+                <span class="badge bg-success ms-1 badge-xxs">active</span>
+              {% endif %}
+            </td>
+            <td><span class="fmt-badge">{{ p.collection_name or p.slug }}</span></td>
+            <td class="text-end text-muted small">{{ p.doc_count }}</td>
+            <td class="text-muted small d-none d-sm-table-cell">{{ (p.created_at or '')[:10] }}</td>
+            <td class="text-end">
+              <div class="d-flex gap-1 justify-content-end">
+                {% if user_can('editor') %}
+                {% if p.slug != active_slug %}
+                <form method="post" action="/kb/pipeline/projects/{{ p.slug }}/activate" class="inline-form">
+                  <button type="submit" class="btn btn-xs btn-outline-primary" title="Make this project active">
+                    Activate
+                  </button>
+                </form>
+                {% endif %}
+                <a href="/kb/pipeline/projects/{{ p.slug }}/view" class="btn btn-xs btn-outline-secondary" title="View project details and maintenance tasks">
+                  View
+                </a>
+                {% else %}
+                <span class="text-muted text-xs">Editor role required</span>
+                {% endif %}
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    </div>
+    <div class="px-3 py-2 border-top text-muted small projects-footnote">
+      {{ projects | length }} project{{ 's' if projects | length != 1 }}
+    </div>
+  {% endif %}
+</div>
+
+{% endblock %}

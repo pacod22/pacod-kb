@@ -1,0 +1,142 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.8"
+          python-version: "3.13"
+          enable-cache: true
+
+      - name: Install dependencies (lockfile must be up to date)
+        run: uv sync --locked
+
+      - name: Lint (ruff)
+        run: uv run ruff check .
+
+      - name: Type-check (mypy --strict)
+        run: |
+          uv run mypy --strict pipeline/
+          uv run mypy --strict web/
+
+      - name: Unit tests with coverage
+        run: uv run pytest tests/ -q --cov=pipeline --cov=web --cov-report=term-missing:skip-covered
+
+      - name: Eval harness smoke test
+        run: |
+          KB_ROOT=$(mktemp -d)
+          mkdir -p "$KB_ROOT/documents" "$KB_ROOT/index" "$KB_ROOT/review"
+          KB_ROOT="$KB_ROOT" GIT_AUTOCOMMIT=false QDRANT_MODE=embedded PYTHONHASHSEED=0 \
+            uv run python -m eval.run_eval \
+            --fixtures-dir tests/fixtures
+        # --min-recall is omitted: the MockEmbedder's vectors are not semantic,
+        # so recall only demonstrates that ingest + retrieval run end to end.
+
+      - name: Eval corpus and golden set integrity (v2 suite, mock embedder)
+        # Fails when a corpus file stops ingesting cleanly (status, language, chunks)
+        # or a golden label / must_contain no longer resolves after a chunker change.
+        run: |
+          PYTHONHASHSEED=0 uv run python -m eval.run_eval --suite v2 --embedder mock \
+            --no-latency --output "$RUNNER_TEMP/eval-results"
+
+  postgres-extra:
+    # psycopg2 is imported lazily (database mode only); make sure it installs
+    # and imports against the lockfile.
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.8"
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --locked --extra postgres
+      - run: uv run python -c "import psycopg2"
+
+  postgres-fts:
+    # The PostgreSQL keyword store (database mode): analysed OR search, ordering, as_of.
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_USER: kb
+          POSTGRES_PASSWORD: kb
+          POSTGRES_DB: kb
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U kb" --health-interval 5s --health-timeout 5s --health-retries 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.8"
+          python-version: "3.13"
+          enable-cache: true
+      - run: uv sync --locked --extra postgres
+      - run: uv run pytest tests/test_pg_fts.py -q
+        env:
+          KB_TEST_PG_URL: postgresql+psycopg2://kb:kb@localhost:5432/kb
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v6
+        with:
+          version: "0.11.8"
+          python-version: "3.13"
+          enable-cache: true
+      - name: Audit locked dependencies
+        run: |
+          uv export --frozen --all-extras --no-hashes --no-emit-project --no-emit-package pacod-id -o requirements.txt
+          uvx pip-audit --strict -r requirements.txt
+        continue-on-error: true  # report, don't block, until the baseline is clean
+
+  docker:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - name: Build UI image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile.ui
+          push: false
+          load: true
+          tags: kb-ui:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      - name: Smoke-test UI container (starts as non-root, answers its health check)
+        run: |
+          # No pacod-id here: the UI still starts, /kb/healthz says identity "off", and the
+          # login page answers 503 "sign-in is not set up".
+          docker run -d --name kb-ui-ci -p 8080:8080 \
+            -e UI_SESSION_SECRET=ci-secret -e PIPELINE_API_URL=http://127.0.0.1:9 kb-ui:ci
+          for i in $(seq 1 30); do
+            curl -sf http://127.0.0.1:8080/kb/healthz >/dev/null && break
+            sleep 1
+          done
+          docker logs kb-ui-ci
+          curl -sf http://127.0.0.1:8080/kb/healthz | grep -q '"identity":"off"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://127.0.0.1:8080/kb/login)" = "503"
+          test "$(docker top kb-ui-ci -o uid | tail -1 | tr -d ' ')" = "10001"
+      - name: Build pipeline image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: Dockerfile
+          push: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

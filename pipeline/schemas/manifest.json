@@ -1,0 +1,88 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "manifest.json",
+  "title": "Document Manifest",
+  "type": "object",
+  "required": [
+    "doc_id",
+    "title",
+    "source_file",
+    "source_uri",
+    "source_sha256",
+    "retrieved_at",
+    "converted_at",
+    "converter",
+    "extraction_method",
+    "language",
+    "doc_type",
+    "supersedes",
+    "valid_until",
+    "status",
+    "error",
+    "chunk_count"
+  ],
+  "additionalProperties": false,
+  "properties": {
+    "doc_id": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "title": { "type": "string" },
+    "source_file": { "type": "string" },
+    "source_uri": { "type": "string" },
+    "source_version": { "type": "string" },
+    "source_sha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "retrieved_at": { "type": "string" },
+    "converted_at": { "type": "string" },
+    "converter": { "type": "string" },
+    "extraction_method": {
+      "type": "string",
+      "enum": ["deterministic", "ocr", "vlm"]
+    },
+    "language": { "type": "string" },
+    "doc_type": { "type": "string" },
+    "supersedes": { "type": ["string", "null"] },
+    "valid_until": { "type": ["string", "null"] },
+    "status": {
+      "type": "string",
+      "enum": ["ok", "error", "review"],
+      "description": "Ingestion status"
+    },
+    "error": {
+      "type": ["string", "null"],
+      "description": "Error message if status is error"
+    },
+    "chunk_count": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "Number of chunks indexed (populated in Phase 2)"
+    },
+    "project": {
+      "type": ["string", "null"],
+      "description": "Project slug (Qdrant collection name) this document belongs to"
+    },
+    "meta_author": {
+      "type": ["string", "null"],
+      "description": "Article author(s) extracted from HTML metadata (article doc_type only)"
+    },
+    "meta_published_date": {
+      "type": ["string", "null"],
+      "description": "Article publication date extracted from HTML metadata (article doc_type only)"
+    },
+    "meta_publication_venue": {
+      "type": ["string", "null"],
+      "description": "News outlet or site name extracted from HTML metadata (article doc_type only)"
+    },
+    "events": {
+      "type": "array",
+      "description": "Structured lifecycle event log (ingested, superseded, etc.)",
+      "items": {
+        "type": "object",
+        "required": ["event", "at", "detail"],
+        "additionalProperties": false,
+        "properties": {
+          "event": { "type": "string" },
+          "at": { "type": "string" },
+          "detail": { "type": "string" }
+        }
+      }
+    }
+  }
+}

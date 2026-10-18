@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Search{% endblock %}
+{% block content %}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Search</h1>
+    <p class="page-subtitle">Hybrid semantic plus keyword retrieval across the active project scope.</p>
+  </div>
+</div>
+
+<div class="section-card mb-4">
+  <div class="sc-body">
+    <form hx-post="/kb/pipeline/query"
+          hx-target="#results"
+          hx-swap="innerHTML"
+          class="row g-2 align-items-end">
+      <div class="col-12 col-md">
+        <label class="form-label small fw-semibold mb-1">Query</label>
+        <input type="text" class="form-control" name="query" value="{{ query or '' }}" placeholder="Enter query..." required>
+      </div>
+      <div class="col-12 col-sm-4 col-md-2">
+        <label class="form-label small fw-semibold mb-1">Top K</label>
+        <input type="number" class="form-control" name="top_k" value="5" min="1" max="20" title="Top K">
+      </div>
+      <div class="col-12 col-md-auto">
+        <button type="submit" class="btn btn-primary w-100">
+          Search
+          <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="results">
+{% include "pipeline/_query_results.html" %}
+</div>
+{% endblock %}

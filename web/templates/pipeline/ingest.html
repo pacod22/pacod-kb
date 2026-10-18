@@ -1,0 +1,529 @@
+{% extends "base.html" %}
+{% block title %}Ingest{% endblock %}
+{% block content %}
+
+{# ── Header ──────────────────────────────────────────────────────────── #}
+<div class="page-header">
+  <div>
+    <h1 class="page-title">Ingest document</h1>
+    <p class="page-subtitle">Upload files, add URLs, or queue bulk URL ingestion with runtime-safe options.</p>
+  </div>
+  <a href="/kb/pipeline/" class="btn btn-sm btn-outline-secondary">← Dashboard</a>
+</div>
+
+{# ── Info strip: formats + languages ─────────────────────────────────── #}
+<div class="section-card mb-4">
+  <div class="sc-header">Supported inputs</div>
+  <div class="sc-body pb-3">
+    <div class="d-flex flex-wrap gap-3 align-items-start">
+      <div>
+        <div class="text-muted mb-1 micro-label">File formats</div>
+        <div class="d-flex flex-wrap gap-1">
+          <span class="fmt-badge">PDF</span>
+          <span class="fmt-badge">DOCX</span>
+          <span class="fmt-badge">DOC</span>
+          <span class="fmt-badge">HTML</span>
+          <span class="fmt-badge">MD</span>
+          <span class="fmt-badge">TXT</span>
+          <span class="fmt-badge">JSON</span>
+        </div>
+      </div>
+      <div class="vr mx-1 d-none d-md-block"></div>
+      <div>
+        <div class="text-muted mb-1 micro-label">Languages</div>
+        <div class="text-muted text-compact">BG · HR · DE · EN · MK · RU · SR · SL</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{# ── Tab buttons ──────────────────────────────────────────────────────── #}
+<ul class="nav nav-pills section-card mb-4 p-2 gap-1 ingest-tabs" id="ingestTabs">
+  <li class="nav-item">
+    <button class="nav-link active" onclick="switchTab('url', this)">
+      URL
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="switchTab('bulk', this)">
+      Bulk URLs
+    </button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="switchTab('file', this)">
+      File upload
+    </button>
+  </li>
+</ul>
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# Single URL form                                                         #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+<div id="tab-url" class="section-card mb-4">
+  <div class="section-card tab-panel-shell">
+    <div class="sc-body">
+      <form hx-post="/kb/pipeline/ingest"
+            hx-target="#ingest-result"
+            hx-swap="innerHTML"
+            hx-encoding="multipart/form-data">
+        <input type="hidden" name="ingest_type" value="url">
+
+        <div class="mb-3">
+          <label class="form-label fw-medium">URL</label>
+          <input type="url" class="form-control" name="url"
+                 placeholder="https://example.com/document"
+                 oninput="onUrlChange(this)">
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-7">
+            <label class="form-label fw-medium">Document type</label>
+            <select class="form-select" name="doc_type">
+              <optgroup label="Legal">
+                <option value="legal_code">legal_code</option>
+                <option value="regulation">regulation</option>
+                <option value="directive">directive</option>
+                <option value="decision">decision</option>
+                <option value="circular">circular</option>
+              </optgroup>
+              <optgroup label="Content">
+                <option value="article">article</option>
+                <option value="paper">paper</option>
+                <option value="report">report</option>
+                <option value="document">document</option>
+                <option value="guide">guide</option>
+              </optgroup>
+              <optgroup label="General">
+                <option value="generic" selected>generic</option>
+                <option value="web_page">web_page</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-medium">Source version</label>
+            <input type="text" class="form-control" name="source_version"
+                   placeholder="YYYY-MM" value="{{ today }}">
+          </div>
+        </div>
+
+        <div class="mb-1">
+          <label class="form-label fw-medium">
+            Supersedes
+            <span class="fw-normal text-muted text-compact">— leave blank for a new document</span>
+          </label>
+          <select class="form-select" name="supersedes">
+            <option value="">— New document —</option>
+            {% for doc in documents %}
+            <option value="{{ doc.doc_id }}"
+              {% if supersedes_prefill == doc.doc_id %}selected{% endif %}>
+              {{ doc.doc_id[:8] }} · {{ doc.title[:65] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Options group #}
+        <div class="opts-group mt-4">
+          <div class="opts-header">Options</div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Conversion</div>
+              <div class="config-hint">Auto follows the global dashboard setting.</div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="url-conv-auto" value="auto" checked>
+                <label class="form-check-label" for="url-conv-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="url-conv-det" value="false">
+                <label class="form-check-label" for="url-conv-det">Deterministic</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="url-conv-ai" value="true">
+                <label class="form-check-label" for="url-conv-ai">AI (LLM)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Security scan</div>
+              <div class="config-hint">
+                Auto: scan {% if settings.get('content_security_enabled', true) %}is ON{% else %}is OFF{% endif %} globally.
+                Bypass for known-safe content only.
+              </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="trusted" id="url-sec-auto" value="auto" checked>
+                <label class="form-check-label" for="url-sec-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="trusted" id="url-sec-bypass" value="true">
+                <label class="form-check-label" for="url-sec-bypass">Bypass (trusted)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Language validation</div>
+              <div class="config-hint">
+                Auto: validation {% if settings.get('language_validation_enabled', true) %}is ON{% else %}is OFF{% endif %} globally.
+              </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="url-lang-auto" value="auto" checked>
+                <label class="form-check-label" for="url-lang-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="url-lang-on" value="true">
+                <label class="form-check-label" for="url-lang-on">Enforce</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="url-lang-off" value="false">
+                <label class="form-check-label" for="url-lang-off">Skip</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row" id="url-json-opts" hidden>
+            <div>
+              <div class="config-label">JSON handling</div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="json_convert" id="url-json-md" value="true" checked>
+                <label class="form-check-label" for="url-json-md">Convert to Markdown</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="json_convert" id="url-json-raw" value="false">
+                <label class="form-check-label" for="url-json-raw">Store as raw JSON</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Ingest
+          <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# Bulk URLs form                                                          #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+<div id="tab-bulk" hidden>
+  <div class="section-card tab-panel-shell">
+    <div class="sc-body">
+      <form hx-post="/kb/pipeline/ingest/urls"
+            hx-target="#ingest-result"
+            hx-swap="innerHTML">
+
+        <div class="mb-3">
+          <label class="form-label fw-medium">URLs <span class="fw-normal text-muted">— one per line</span></label>
+          <textarea class="form-control font-monospace" name="urls_text" rows="8"
+                    placeholder="https://example.com/doc1&#10;https://example.com/doc2"></textarea>
+        </div>
+
+        <div class="row g-3 mb-4">
+          <div class="col-md-7">
+            <label class="form-label fw-medium">Document type</label>
+            <select class="form-select" name="doc_type">
+              <optgroup label="Legal">
+                <option value="legal_code">legal_code</option>
+                <option value="regulation">regulation</option>
+                <option value="directive">directive</option>
+                <option value="decision">decision</option>
+                <option value="circular">circular</option>
+              </optgroup>
+              <optgroup label="Content">
+                <option value="article">article</option>
+                <option value="paper">paper</option>
+                <option value="report">report</option>
+                <option value="document">document</option>
+                <option value="guide">guide</option>
+              </optgroup>
+              <optgroup label="General">
+                <option value="generic" selected>generic</option>
+                <option value="web_page">web_page</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-medium">Source version</label>
+            <input type="text" class="form-control" name="source_version"
+                   placeholder="YYYY-MM" value="{{ today }}">
+          </div>
+        </div>
+
+        {# Options group #}
+        <div class="opts-group">
+          <div class="opts-header">Options</div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Conversion</div>
+              <div class="config-hint">Applied to all URLs. Auto follows the global setting.</div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="bulk-conv-auto" value="auto" checked>
+                <label class="form-check-label" for="bulk-conv-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="bulk-conv-det" value="false">
+                <label class="form-check-label" for="bulk-conv-det">Deterministic</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="bulk-conv-ai" value="true">
+                <label class="form-check-label" for="bulk-conv-ai">AI (LLM)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Security scan</div>
+              <div class="config-hint">
+                Auto: scan {% if settings.get('content_security_enabled', true) %}is ON{% else %}is OFF{% endif %} globally.
+              </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="trusted" id="bulk-sec-auto" value="auto" checked>
+                <label class="form-check-label" for="bulk-sec-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="trusted" id="bulk-sec-bypass" value="true">
+                <label class="form-check-label" for="bulk-sec-bypass">Bypass (trusted)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Language validation</div>
+              <div class="config-hint">
+                Applied to all URLs. Auto follows the global dashboard setting.
+              </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="bulk-lang-auto" value="auto" checked>
+                <label class="form-check-label" for="bulk-lang-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="bulk-lang-on" value="true">
+                <label class="form-check-label" for="bulk-lang-on">Enforce</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="bulk-lang-off" value="false">
+                <label class="form-check-label" for="bulk-lang-off">Skip</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Ingest all
+          <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ═══════════════════════════════════════════════════════════════════════ #}
+{# File upload form                                                        #}
+{# ═══════════════════════════════════════════════════════════════════════ #}
+<div id="tab-file" hidden>
+  <div class="section-card tab-panel-shell">
+    <div class="sc-body">
+      <form hx-post="/kb/pipeline/ingest"
+            hx-target="#ingest-result"
+            hx-swap="innerHTML"
+            hx-encoding="multipart/form-data">
+        <input type="hidden" name="ingest_type" value="file">
+
+        <div class="mb-3">
+          <label class="form-label fw-medium">File</label>
+          <input type="file" class="form-control" name="file"
+                 accept=".pdf,.docx,.doc,.html,.htm,.md,.txt,.json"
+                 onchange="onFileChange(this)">
+          <div class="form-text">PDF · DOCX · DOC · HTML · MD · TXT · JSON</div>
+        </div>
+
+        <div class="row g-3 mb-3">
+          <div class="col-md-7">
+            <label class="form-label fw-medium">Document type</label>
+            <select class="form-select" name="doc_type">
+              <optgroup label="Legal">
+                <option value="legal_code">legal_code</option>
+                <option value="regulation">regulation</option>
+                <option value="directive">directive</option>
+                <option value="decision">decision</option>
+                <option value="circular">circular</option>
+              </optgroup>
+              <optgroup label="Content">
+                <option value="article">article</option>
+                <option value="paper">paper</option>
+                <option value="report">report</option>
+                <option value="document">document</option>
+                <option value="guide">guide</option>
+              </optgroup>
+              <optgroup label="General">
+                <option value="generic" selected>generic</option>
+                <option value="web_page">web_page</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="col-md-5">
+            <label class="form-label fw-medium">Source version</label>
+            <input type="text" class="form-control" name="source_version"
+                   placeholder="YYYY-MM" value="{{ today }}">
+          </div>
+        </div>
+
+        <div class="mb-1">
+          <label class="form-label fw-medium">
+            Supersedes
+            <span class="fw-normal text-muted text-compact">— leave blank for a new document</span>
+          </label>
+          <select class="form-select" name="supersedes">
+            <option value="">— New document —</option>
+            {% for doc in documents %}
+            <option value="{{ doc.doc_id }}"
+              {% if supersedes_prefill == doc.doc_id %}selected{% endif %}>
+              {{ doc.doc_id[:8] }} · {{ doc.title[:65] }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+
+        {# Options group #}
+        <div class="opts-group mt-4">
+          <div class="opts-header">Options</div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Conversion</div>
+              <div class="config-hint">Auto follows the global dashboard setting.</div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="file-conv-auto" value="auto" checked>
+                <label class="form-check-label" for="file-conv-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="file-conv-det" value="false">
+                <label class="form-check-label" for="file-conv-det">Deterministic</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="llm_convert" id="file-conv-ai" value="true">
+                <label class="form-check-label" for="file-conv-ai">AI (LLM)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Security scan</div>
+              <div class="config-hint">
+                Auto: scan {% if settings.get('content_security_enabled', true) %}is ON{% else %}is OFF{% endif %} globally.
+                Bypass for known-safe content only.
+              </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="trusted" id="file-sec-auto" value="auto" checked>
+                <label class="form-check-label" for="file-sec-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="trusted" id="file-sec-bypass" value="true">
+                <label class="form-check-label" for="file-sec-bypass">Bypass (trusted)</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row">
+            <div>
+              <div class="config-label">Language validation</div>
+              <div class="config-hint">
+                Auto: validation {% if settings.get('language_validation_enabled', true) %}is ON{% else %}is OFF{% endif %} globally.
+              </div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="file-lang-auto" value="auto" checked>
+                <label class="form-check-label" for="file-lang-auto">Auto</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="file-lang-on" value="true">
+                <label class="form-check-label" for="file-lang-on">Enforce</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="validate_language" id="file-lang-off" value="false">
+                <label class="form-check-label" for="file-lang-off">Skip</label>
+              </div>
+            </div>
+          </div>
+
+          <div class="config-row" id="file-json-opts" hidden>
+            <div>
+              <div class="config-label">JSON handling</div>
+            </div>
+            <div class="d-flex gap-3 flex-wrap">
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="json_convert" id="file-json-md" value="true" checked>
+                <label class="form-check-label" for="file-json-md">Convert to Markdown</label>
+              </div>
+              <div class="form-check mb-0">
+                <input class="form-check-input" type="radio" name="json_convert" id="file-json-raw" value="false">
+                <label class="form-check-label" for="file-json-raw">Store as raw JSON</label>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <button type="submit" class="btn btn-primary">
+          Ingest
+          <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+        </button>
+      </form>
+    </div>
+  </div>
+</div>
+
+{# ── Result area ──────────────────────────────────────────────────────── #}
+<div id="ingest-result" class="mt-4"></div>
+
+<script>
+function switchTab(tab, btn) {
+  ['url', 'bulk', 'file'].forEach(function(t) {
+    document.getElementById('tab-' + t).hidden = t !== tab;
+  });
+  document.querySelectorAll('#ingestTabs .nav-link').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  btn.classList.add('active');
+}
+
+function onFileChange(input) {
+  var isJson = input.files.length > 0 && input.files[0].name.toLowerCase().endsWith('.json');
+  document.getElementById('file-json-opts').hidden = !isJson;
+}
+
+function onUrlChange(input) {
+  var url = input.value.toLowerCase().split('?')[0];
+  var isJson = url.endsWith('.json');
+  document.getElementById('url-json-opts').hidden = !isJson;
+}
+</script>
+{% endblock %}

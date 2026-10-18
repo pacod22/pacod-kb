@@ -1,0 +1,60 @@
+{# Partial — the AI gateway's status; rendered on page load and after a test. #}
+<div id="gateway-status-panel" class="section-card">
+  <div class="sc-header">AI gateway</div>
+  <div class="config-row">
+    <div>
+      <div class="config-label">pacod-gw</div>
+      <div class="config-hint">
+        Every LLM call goes through the gateway: it holds the provider keys, routes and fails over,
+        and prices each call. Set <code>PACOD_GW_URL</code> and <code>PACOD_GW_API_KEY</code> for the pipeline.
+      </div>
+    </div>
+    {% if gateway_state.get('configured') %}
+      <span class="badge text-bg-success">set up</span>
+    {% else %}
+      <span class="badge text-bg-secondary">not set up</span>
+    {% endif %}
+  </div>
+  <div class="config-row">
+    <div class="config-label">Address</div>
+    <code>{{ gateway_state.get('url') or '—' }}</code>
+  </div>
+  <div class="config-row">
+    <div class="config-label">Models in use</div>
+    <div class="text-end small">
+      conversion <code>{{ gateway_state.get('converter_model') or '—' }}</code><br>
+      security screen <code>{{ gateway_state.get('security_model') or '—' }}</code>
+    </div>
+  </div>
+  <div class="config-row align-items-start">
+    <div class="w-100">
+      <div class="d-flex gap-2 justify-content-end">
+        <form hx-post="/kb/pipeline/ai/ping" hx-target="#gateway-status-panel" hx-swap="outerHTML">
+          <input type="hidden" name="mode" value="models">
+          <button class="btn btn-sm btn-outline-primary" type="submit" {% if not gateway_state.get('configured') %}disabled{% endif %}>Test connection</button>
+        </form>
+        <form hx-post="/kb/pipeline/ai/ping" hx-target="#gateway-status-panel" hx-swap="outerHTML">
+          <input type="hidden" name="mode" value="completion">
+          <button class="btn btn-sm btn-outline-primary" type="submit" {% if not gateway_state.get('configured') %}disabled{% endif %}
+                  title="One tiny call through the conversion model (recorded as usage)">Test model</button>
+        </form>
+      </div>
+      {% if ping %}
+        {% if ping.get('ok') %}
+          <div class="alert alert-success py-1 px-2 mt-2 mb-0 small">
+            {% if ping.get('mode') == 'models' %}
+              Connected in {{ ping.get('latency_ms', 0) }} ms — {{ ping.get('models', [])|length }} model(s):
+              {% for m in ping.get('models', []) %}<code>{{ m }}</code>{% if not loop.last %}, {% endif %}{% endfor %}
+            {% else %}
+              <code>{{ ping.get('model_served') or ping.get('model') }}</code> answered in {{ ping.get('latency_ms', 0) }} ms
+              {% if ping.get('cost') is not none %}· {{ '%.6f'|format(ping.get('cost')) }} {{ ping.get('currency') or 'USD' }}{% else %}· not priced{% endif %}
+              {% if ping.get('request_id') %}· request <code>{{ ping.get('request_id') }}</code>{% endif %}
+            {% endif %}
+          </div>
+        {% else %}
+          <div class="alert alert-danger py-1 px-2 mt-2 mb-0 small">{{ ping.get('error') or 'The test failed.' }}</div>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+</div>

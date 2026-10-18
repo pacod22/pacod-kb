@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}AI Management{% endblock %}
+{% block content %}
+
+<div class="page-header">
+  <div>
+    <h1 class="page-title">AI Management</h1>
+    <p class="page-subtitle">The AI gateway, the models kb uses, prompts, usage and costs.</p>
+  </div>
+</div>
+
+{# ── Tab buttons ─────────────────────────────────────────────────────── #}
+<ul class="nav nav-pills section-card mb-4 p-2 gap-1 ingest-tabs" id="aiMgmtTabs">
+  <li class="nav-item">
+    <button class="nav-link active" onclick="switchAiTab('gateway', this)">Gateway &amp; models</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="switchAiTab('usage-costs', this)">Usage &amp; costs</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="switchAiTab('interactions', this)">Interactions</button>
+  </li>
+  <li class="nav-item">
+    <button class="nav-link" onclick="switchAiTab('prompts', this)">Prompts</button>
+  </li>
+</ul>
+
+{# ── Gateway & models pane ───────────────────────────────────────────── #}
+<div id="ai-pane-gateway">
+  {% include "pipeline/_gateway_status_panel.html" %}
+  {% include "pipeline/_llm_config_panel.html" %}
+</div>
+
+{# ── Usage & costs pane ──────────────────────────────────────────────── #}
+<div id="ai-pane-usage-costs" hidden>
+  {% include "pipeline/_usage_costs_panel.html" %}
+</div>
+
+{# ── Interactions pane ───────────────────────────────────────────────── #}
+<div id="ai-pane-interactions" hidden>
+  {% include "pipeline/_ai_interactions_panel.html" %}
+</div>
+
+{# ── Prompts pane ─────────────────────────────────────────────────────── #}
+<div id="ai-pane-prompts" hidden>
+  {% include "pipeline/_llm_prompts_panel.html" %}
+</div>
+
+<script>
+var _aiTabs = ['gateway', 'usage-costs', 'interactions', 'prompts'];
+function switchAiTab(tab, btn) {
+  _aiTabs.forEach(function(t) {
+    var pane = document.getElementById('ai-pane-' + t);
+    if (pane) pane.hidden = t !== tab;
+  });
+  document.querySelectorAll('#aiMgmtTabs .nav-link').forEach(function(b) {
+    b.classList.remove('active');
+  });
+  btn.classList.add('active');
+}
+</script>
+
+{% endblock %}

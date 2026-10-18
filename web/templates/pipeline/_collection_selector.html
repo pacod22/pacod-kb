@@ -1,0 +1,25 @@
+{# Partial — rendered on dashboard load and after collection switch #}
+{% set active = cols.get('active') or settings.get('active_collection', '') %}
+<div id="collection-selector" class="config-row">
+  <div>
+    <div class="config-label">Active collection</div>
+    <div class="config-hint">Qdrant collection used for vector search. Switching does not affect the FTS5 keyword index.</div>
+  </div>
+  <form hx-post="/kb/pipeline/settings/collection"
+        hx-target="#collection-selector"
+        hx-swap="outerHTML"
+        class="d-flex align-items-center gap-2">
+    <select name="collection" class="form-select form-select-sm select-compact">
+      {% for col in cols.get('collections', []) %}
+        <option value="{{ col.name }}" {% if col.name == active %}selected{% endif %}>
+          {{ col.name }}{% if col.points_count is not none %} ({{ col.points_count }}){% endif %}
+        </option>
+      {% endfor %}
+      {% if not cols.get('collections') %}
+        <option value="{{ active }}" selected>{{ active or '(unknown)' }}</option>
+      {% endif %}
+    </select>
+    <button type="submit" class="btn btn-sm btn-outline-secondary">Switch</button>
+    {% if error %}<span class="text-danger small">{{ error }}</span>{% endif %}
+  </form>
+</div>

@@ -1,0 +1,275 @@
+<!-- Browse partial — loaded into #browse-content via HTMX -->
+<div>
+  {# Collect unique titles on this page for the datalist #}
+  {% set titles = points | map(attribute='title') | unique | list %}
+
+  <datalist id="doc-title-list">
+    {% for t in titles %}
+    <option value="{{ t }}">{{ t }}</option>
+    {% endfor %}
+  </datalist>
+
+  <!-- Filter bar -->
+  <form class="toolbar-wrap mb-3"
+        hx-get="/kb/qdrant/{{ collection }}/browse"
+        hx-target="#browse-content"
+        hx-swap="innerHTML">
+
+    <div class="toolbar-row">
+      <div class="form-check mb-0">
+      <input class="form-check-input" type="checkbox" id="active-only-chk"
+             name="active_only" value="true"
+             {% if active_only == "true" %}checked{% endif %}
+             onchange="this.form.requestSubmit()">
+      <label class="form-check-label small" for="active-only-chk">Active only</label>
+    </div>
+    </div>
+
+    <div class="toolbar-row">
+      <input type="text" class="form-control form-control-sm toolbar-grow text-s"
+             name="doc_title" id="doc-title-input"
+             value="{{ doc_title }}"
+             list="doc-title-list"
+             placeholder="Filter by document title…"
+             title="Enter or select a document title to filter its points">
+      {% if doc_title %}
+      <a class="btn btn-sm btn-outline-secondary"
+         hx-get="/kb/qdrant/{{ collection }}/browse?active_only={{ active_only }}"
+         hx-target="#browse-content"
+         hx-swap="innerHTML"
+         title="Clear document filter">✕</a>
+      {% endif %}
+      <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+    </div>
+
+    <div class="toolbar-row">
+      <select name="page_size" class="form-select form-select-sm w-inline-auto"
+              onchange="this.form.requestSubmit()" title="Points per page">
+      {% for opt in ["50", "100", "1000", "2000", "5000", "all"] %}
+      <option value="{{ opt }}" {% if page_size == opt %}selected{% endif %}>
+        {{ opt }}{% if opt != "all" %} pts{% endif %}
+      </option>
+      {% endfor %}
+    </select>
+
+    <input type="text" class="form-control form-control-sm w-inline-search" id="txt-filter"
+           placeholder="Search visible rows..."
+           oninput="filterBrowseRows(this.value)">
+
+    <span class="text-muted small">{{ points | length }} shown</span>
+    </div>
+  </form>
+
+  {% if doc_title %}
+  <div class="alert alert-info py-2 mb-3 d-flex align-items-center gap-2 search-row-note">
+    Filtered to document <strong class="ms-1">{{ doc_title }}</strong>
+  </div>
+  {% endif %}
+
+  {% if not points %}
+    <p class="text-muted small">No points found.</p>
+  {% else %}
+  <div class="table-shell">
+  <div class="table-responsive">
+    <table class="table table-sm table-hover stack-table browse-table">
+      <thead class="table-light">
+        <tr>
+          <th class="table-col-check">
+            <input type="checkbox" id="select-all-pts" onclick="toggleAllPts(this)" title="Select all on this page">
+          </th>
+          <th>Chunk ID</th>
+          <th>Document</th>
+          <th>Heading path</th>
+          <th class="d-none d-md-table-cell">Seq</th>
+          <th class="d-none d-md-table-cell">Method</th>
+          <th>Valid until</th>
+          <th></th>
+        </tr>
+      </thead>
+      <tbody id="points-tbody">
+        {% for p in points %}
+        <tr id="point-row-{{ p.id }}" class="browse-row table-click-row"
+            tabindex="0"
+            role="link"
+            data-href="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
+            aria-label="Open point {{ p.chunk_id }}">
+          <td class="table-col-check" data-label="Select">
+            <input type="checkbox" class="pt-check" value="{{ p.id }}"
+                   onchange="updatePointSel()">
+          </td>
+          <td data-label="Chunk ID">
+            <a href="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
+               class="font-monospace text-decoration-none text-xs"
+               title="{{ p.chunk_id }}">
+              {{ p.chunk_id[:28] }}{% if p.chunk_id | length > 28 %}…{% endif %}
+            </a>
+          </td>
+          <td data-label="Document">
+            <a class="text-decoration-none"
+               title="Filter to this document ({{ p.title }})"
+               hx-get="/kb/qdrant/{{ collection }}/browse?doc_title={{ p.title | urlencode }}&active_only={{ active_only }}"
+               hx-target="#browse-content"
+               hx-swap="innerHTML">
+              {{ p.title[:40] }}{% if p.title | length > 40 %}…{% endif %}
+            </a>
+          </td>
+          <td data-label="Heading path" class="heading-truncate"
+              title="{{ p.heading_path | join(' › ') }}">
+            <span class="small">{{ p.heading_path | join(' › ') }}</span>
+          </td>
+          <td data-label="Seq" class="text-muted small">{{ p.sequence }}</td>
+          <td data-label="Method">
+            {% if p.extraction_method == "ocr" %}
+              <span class="badge badge-xs bg-warning text-dark">OCR</span>
+            {% elif p.extraction_method == "vlm" %}
+              <span class="badge badge-xs bg-info text-dark">VLM</span>
+            {% else %}
+              <span class="badge badge-xs bg-light text-muted">det.</span>
+            {% endif %}
+          </td>
+          <td data-label="Valid until">
+            {% if p.valid_until %}
+              <span class="badge badge-xs bg-secondary">{{ p.valid_until }}</span>
+            {% else %}
+              <span class="badge badge-xs bg-success">active</span>
+            {% endif %}
+          </td>
+          <td data-label="Actions" class="text-end">
+            <div class="d-flex gap-1 justify-content-end">
+              <a href="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
+                 class="btn btn-xs btn-outline-secondary">View</a>
+              <button class="btn btn-xs btn-outline-danger"
+                      hx-delete="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
+                      hx-target="#point-row-{{ p.id }}"
+                      hx-swap="outerHTML"
+                      hx-confirm="Delete this point?">✕</button>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  </div>
+  {% endif %}
+
+  <!-- Export / selection bar -->
+  <div class="d-flex align-items-center gap-2 mt-2 mb-2 flex-wrap">
+    <button id="export-pts-btn"
+            class="btn btn-sm btn-outline-secondary"
+            onclick="exportPoints()"
+            disabled>
+      Export selected (<span id="pt-sel-count">0</span>)
+    </button>
+    {% if doc_title %}
+    <a href="/kb/qdrant/{{ collection }}/export?doc_title={{ doc_title | urlencode }}"
+       class="btn btn-sm btn-outline-primary">
+      Export all for this document
+    </a>
+    {% endif %}
+  </div>
+
+  <!-- Pagination -->
+  <div id="browse-pagination" class="d-flex align-items-center gap-3 mt-1 mb-4">
+    {% if has_more %}
+    <a class="btn btn-sm btn-outline-secondary"
+       hx-get="/kb/qdrant/{{ collection }}/browse?offset={{ next_offset }}&active_only={{ active_only }}&doc_title={{ doc_title | urlencode }}&page_size={{ page_size }}"
+       hx-target="#browse-content"
+       hx-swap="innerHTML">
+      Next {{ page_size }} →
+    </a>
+    {% else %}
+    <small class="text-muted">End of results.</small>
+    {% endif %}
+  </div>
+
+  <!-- Bulk delete -->
+  <div class="card shadow-sm mt-2 col-lg-6 px-0">
+    <div class="card-header text-muted small text-uppercase">Bulk delete</div>
+    <div class="card-body">
+      <div id="bulk-delete-result" class="mb-2"></div>
+      <form hx-post="/kb/qdrant/{{ collection }}/delete"
+            hx-target="#bulk-delete-result"
+            hx-swap="innerHTML"
+            hx-confirm="This will permanently delete matching points. Proceed?"
+            class="d-flex flex-column gap-2">
+        <input type="hidden" name="mode" id="bulk-mode" value="doc_id">
+        <div class="d-flex gap-2 align-items-center">
+          <input type="text" class="form-control form-control-sm font-monospace text-s" name="doc_id"
+                 placeholder="doc_id (full SHA-256 hex)">
+          <button type="submit" class="btn btn-sm btn-outline-danger"
+                  onclick="document.getElementById('bulk-mode').value='doc_id'">
+            Delete by doc_id
+          </button>
+        </div>
+        {% if user_can('admin') %}
+        <div class="d-flex">
+          <button type="submit" class="btn btn-sm btn-danger"
+                  onclick="document.getElementById('bulk-mode').value='superseded'">
+            Delete all superseded
+          </button>
+        </div>
+        {% endif %}
+      </form>
+    </div>
+  </div>
+</div>
+
+<script>
+function updatePointSel() {
+  const checked = document.querySelectorAll('.pt-check:checked').length;
+  const cnt = document.getElementById('pt-sel-count');
+  const btn = document.getElementById('export-pts-btn');
+  if (cnt) cnt.textContent = checked;
+  if (btn) btn.disabled = checked === 0;
+  const sa = document.getElementById('select-all-pts');
+  if (sa) {
+    const visible = document.querySelectorAll('#points-tbody tr.browse-row:not([hidden]) .pt-check').length;
+    sa.indeterminate = checked > 0 && checked < visible;
+    sa.checked = visible > 0 && checked === visible;
+  }
+}
+
+function toggleAllPts(cb) {
+  document.querySelectorAll('#points-tbody tr.browse-row:not([hidden]) .pt-check').forEach(function(c) {
+    c.checked = cb.checked;
+  });
+  updatePointSel();
+}
+
+function exportPoints() {
+  const ids = [...document.querySelectorAll('.pt-check:checked')].map(function(c) { return c.value; });
+  if (!ids.length) return;
+  const url = new URL({{ ('/kb/qdrant/' ~ (collection | urlencode) ~ '/export') | tojson }}, window.location.origin);
+  ids.forEach(function(id) { url.searchParams.append('point_ids', id); });
+  window.location.href = url.toString();
+}
+
+function filterBrowseRows(q) {
+  const rows = document.querySelectorAll('#points-tbody tr.browse-row');
+  const lq = q.toLowerCase();
+  rows.forEach(function(r) {
+    r.hidden = lq ? !r.textContent.toLowerCase().includes(lq) : false;
+    if (r.hidden) {
+      const cb = r.querySelector('.pt-check');
+      if (cb) cb.checked = false;
+    }
+  });
+  updatePointSel();
+}
+
+document.querySelectorAll('#points-tbody .browse-row').forEach(function(row) {
+  row.addEventListener('click', function(ev) {
+    if (ev.target.closest('a, button, input, label')) return;
+    const href = row.dataset.href;
+    if (href) window.location = href;
+  });
+  row.addEventListener('keydown', function(ev) {
+    if (ev.key !== 'Enter' && ev.key !== ' ') return;
+    if (ev.target.closest('a, button, input, label')) return;
+    ev.preventDefault();
+    const href = row.dataset.href;
+    if (href) window.location = href;
+  });
+});
+</script>

@@ -1,0 +1,17 @@
+Artificial Intelligence: A Modern Overview
+
+Artificial intelligence (AI) is intelligence demonstrated by machines, as opposed to the natural intelligence displayed by animals including humans. AI research has been defined as the field of study of intelligent agents, which refers to any system that perceives its environment and takes actions that maximize its chance of achieving its goals.
+
+The term "artificial intelligence" had previously been used to describe machines that mimic and display human cognitive skills associated with the human mind, such as learning and problem-solving. This definition has since been rejected by major AI researchers who now describe AI in terms of rationality and acting rationally, which does not limit how intelligence can be articulated.
+
+Approaches to AI Research
+
+AI research was founded as an academic discipline in 1956, and since then, it has experienced several waves of optimism, followed by disappointment and the loss of funding, followed by new approaches, success, and renewed funding. This pattern is referred to as the AI winter. The field has seen significant advances in the 21st century, particularly in machine learning and deep learning.
+
+Machine Learning
+
+Machine learning is a subfield of artificial intelligence that focuses on the development of algorithms and statistical models that enable computer systems to improve their performance on a specific task through experience. Unlike traditional rule-based systems, machine learning models can discover patterns in data and make predictions or decisions without being explicitly programmed for each task.
+
+Natural Language Processing
+
+Natural language processing (NLP) is a subfield of linguistics, computer science, and artificial intelligence concerned with the interactions between computers and human language, in particular how to program computers to process and analyze large amounts of natural language data. The goal is a computer capable of understanding the contents of documents, including the contextual nuances of the language within them.

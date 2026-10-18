@@ -1,0 +1,25 @@
+pacod-kb
+Copyright 2026 Paco (https://github.com/pacod22) and the pacod-kb contributors
+
+This product is licensed under the Apache License, Version 2.0 (see LICENSE).
+
+Third-party material in this repository
+---------------------------------------
+
+The retrieval evaluation corpus in eval/corpus/ is test data, not part of the product,
+and is NOT covered by the Apache License. Its sources and terms are listed in
+eval/corpus/SOURCES.md:
+
+- Regulation (EU) 2016/679 and Directive (EU) 2016/680: (c) European Union,
+  https://eur-lex.europa.eu. Reuse authorised under Commission Decision 2011/833/EU.
+- The constitutions of Bulgaria, Russia, Croatia and Slovenia: official texts, not
+  subject to copyright in their jurisdictions.
+- Four Wikipedia articles (eval/corpus/wiki_*.md): adapted from Wikipedia, licensed under
+  CC BY-SA 4.0 (https://creativecommons.org/licenses/by-sa/4.0/). Authors are listed in
+  each article's page history at the source URL.
+
+vendor/wheels/ contains a build of pacod-id (https://github.com/pacod22/pacod-id),
+distributed under its own license.
+
+Models used at runtime (downloaded, not distributed here) carry their own licenses,
+e.g. BAAI/bge-m3 and BAAI/bge-reranker-v2-m3 (Apache-2.0).
