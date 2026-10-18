@@ -30,6 +30,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 # 2. Source (after deps so this layer doesn't bust the deps cache)
 COPY pipeline/ ./pipeline/
 COPY eval/ ./eval/
+# hatchling validates pyproject's `readme` when building the project
+COPY README.md ./
 
 # 3. Install the project itself (generates .venv/bin/kb console script)
 RUN --mount=type=cache,target=/root/.cache/uv \
