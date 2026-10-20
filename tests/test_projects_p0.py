@@ -321,7 +321,7 @@ def test_lifespan_retags_legacy_default_documents(
         def __init__(self, _model: str) -> None:
             pass
 
-    monkeypatch.setattr(api, "BgeM3Embedder", _Embedder)
+    monkeypatch.setattr(api, "make_embedder", lambda _config: _Embedder("mock"))
     monkeypatch.setattr(api, "_PIPELINE_API_SECRET", "test-secret")
     monkeypatch.setattr(api, "_DROPZONE_INTERVAL", 0)
     saved_runtime, saved_jobs = dict(api._runtime), dict(api._jobs)

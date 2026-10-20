@@ -45,7 +45,7 @@ from pipeline.document_store import (
     InvalidDocPrefixError,
     make_document_store,
 )
-from pipeline.indexer import BgeM3Embedder, make_embedder, make_fts_db
+from pipeline.indexer import PipelineEmbedder, make_embedder, make_fts_db
 from pipeline.prompt_config import (
     configure_prompt_session_factory,
 )
@@ -589,7 +589,10 @@ def _require_write_target(request: Request) -> None:
 
 def _reranker_factory(config: Config) -> Callable[[], Reranker]:
     def build() -> Reranker:
-        from pipeline.reranker import CrossEncoderReranker
+        from pipeline.reranker import CrossEncoderReranker, RemoteReranker
+
+        if config.reranker_url:
+            return RemoteReranker(config.reranker_url, timeout_s=config.reranker_timeout_ms / 1000)
 
         return CrossEncoderReranker(
             config.reranker_model,
@@ -645,7 +648,7 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
             "PIPELINE_API_SECRET is empty — the pipeline API refuses every request "
             "except /health. Set it in .env (make setup generates one)."
         )
-    embedder: BgeM3Embedder = make_embedder(config)
+    embedder: PipelineEmbedder = make_embedder(config)
 
     # In server mode, qdrant may not be ready yet — retry with backoff.
     _vs_exc: Exception | None = None
@@ -689,7 +692,9 @@ async def _lifespan(app: FastAPI) -> AsyncIterator[None]:
     from pipeline.reranker import RerankerHolder
 
     app.state.config = config
-    app.state.reranker = RerankerHolder(config.reranker_model)
+    app.state.reranker = RerankerHolder(
+        f"{config.reranker_url}/rerank" if config.reranker_url else config.reranker_model
+    )
     if config.reranker_enabled:
         _ensure_reranker(app)  # loads in the background; searches use RRF until ready
     app.state.gateway = get_gateway(config)
@@ -816,7 +821,7 @@ def health(request: Request) -> dict[str, Any]:
 def _do_index(
     folder: Path | None,
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     supersedes: str | None,
     *,

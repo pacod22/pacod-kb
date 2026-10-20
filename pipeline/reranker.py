@@ -5,7 +5,8 @@ rank fusion only. A cross-encoder reads query and passage together and returns a
 relevance probability in [0, 1], which also makes a minimum score meaningful.
 Reranking is optional (RERANKER_ENABLED, per request ``rerank``), loads in the
 background at startup, shares the inference gate with the embedder, and fails open:
-on any error or timeout the fused order is kept.
+on any error or timeout the fused order is kept. With RERANKER_URL the shared embeddings
+service scores instead (``RemoteReranker``) and no model is loaded here.
 """
 
 from __future__ import annotations
@@ -81,6 +82,41 @@ class CrossEncoderReranker:
                 show_progress_bar=False,
             )
         return [float(x) for x in raw]
+
+
+class RemoteReranker:
+    """The shared embeddings service's cross-encoder (pacod-embeddings, ``POST /rerank``).
+
+    pacod-ap's service scores with bge-reranker-v2-m3 and returns sigmoid scores in [0, 1], the
+    same scale as ``CrossEncoderReranker``; nothing is loaded here and the inference gate is not
+    involved. One attempt within *timeout_s*: a slow or failed call raises, and the search keeps
+    its fused order (fail open).
+    """
+
+    model_name = "BAAI/bge-reranker-v2-m3"
+
+    def __init__(self, url: str, *, timeout_s: float = 5.0, transport: Any = None) -> None:
+        import httpx
+
+        self._endpoint = f"{url.rstrip('/')}/rerank"
+        self._client = httpx.Client(
+            timeout=httpx.Timeout(timeout_s, connect=min(timeout_s, 2.0)),
+            transport=transport,
+            follow_redirects=False,
+        )
+
+    def score(self, query: str, passages: Sequence[str]) -> list[float]:
+        if not passages:
+            return []
+        resp = self._client.post(self._endpoint, json={"query": query, "documents": list(passages)})
+        resp.raise_for_status()
+        scores = resp.json()["scores"]
+        if not isinstance(scores, list) or len(scores) != len(passages):
+            raise RerankUnavailableError("rerank service returned a score list of the wrong length")
+        return [float(x) for x in scores]
+
+    def close(self) -> None:
+        self._client.close()
 
 
 RerankerState = Literal["disabled", "loading", "ready", "failed"]

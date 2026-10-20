@@ -1,0 +1,247 @@
+# pacod-kb's own stack, standalone: its copies of the shared components kb needs, under their
+# shared names (pacod-demo/docs/NETWORK.md). Loaded together with docker-compose.yml by `make up`.
+# The full stack does not load this file; it runs one of each for every product and reuses these
+# definitions through "extends".
+#
+# Which of them run is COMPOSE_PROFILES (in .env; `make up` infers it when unset):
+#   server        pacod-qdrant
+#   db            pacod-postgres + pacod-db-init (kb's role and database, platform/postgres/kb-db.sh)
+#   id            pacod-id (sign-in); its database is on pacod-postgres too
+#   mailpit       pacod-mailpit, a mail catcher for pacod-id's mails
+#   dev-gateway   pacod-gw (gw-lite) in front of gw-mock, pacod-gw's mock providers (nothing leaves
+#                 the machine)
+#
+# Profile-gated services use :- defaults, never :? (compose would demand them with the profile
+# off); `make check-env` checks what the profiles need.
+#
+# Data: KB_QDRANT_DATA and KB_POSTGRES_DATA are bind mounts of host directories (/data/... by
+# default, as on a server). A value without a slash is a named volume instead (pacod-qdrant-data,
+# pacod-postgres-data): macOS, where /data cannot be shared, uses those.
+
+services:
+  pacod-qdrant:
+    # Pin QDRANT_IMAGE_TAG to the version you run: Qdrant storage cannot be
+    # opened by an older server, so an unpinned "latest" pull is one-way.
+    image: qdrant/qdrant:${QDRANT_IMAGE_TAG:-v1.19.2}
+    container_name: pacod-qdrant
+    profiles: [server]
+    restart: unless-stopped
+    volumes:
+      - ${KB_QDRANT_DATA:-/data/qdrant/storage}:/qdrant/storage
+    # Loopback only: other containers reach Qdrant over pacod-net.
+    ports:
+      - "127.0.0.1:6333:6333"
+      - "127.0.0.1:6334:6334"
+    healthcheck:
+      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 10s
+    networks:
+      - pacod-net
+
+  # PostgreSQL 16 for kb standalone, so existing data needs no migration. Its superuser is the
+  # role kb (KB_DATABASE_USER, KB_DATABASE_PASSWORD), as before; pacod-db-init creates pacod-id's
+  # database next to kb's.
+  pacod-postgres:
+    image: postgres:16-alpine
+    container_name: pacod-postgres
+    profiles: [db, id]
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${KB_DATABASE_NAME:-kb}
+      - POSTGRES_USER=${KB_DATABASE_USER:-kb}
+      - POSTGRES_PASSWORD=${KB_DATABASE_PASSWORD:-kb}
+    volumes:
+      - ${KB_POSTGRES_DATA:-/data/postgres}:/var/lib/postgresql/data
+    ports:
+      - "127.0.0.1:${KB_POSTGRES_PORT:-5432}:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${KB_DATABASE_USER:-kb} -d ${KB_DATABASE_NAME:-kb}"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 10s
+    networks:
+      - pacod-net
+
+  # Creates each product's role and database on pacod-postgres, at every start (idempotent): kb's
+  # (platform/postgres/kb-db.sh, which also applies kb's SQL) and, with the id profile, the bundled
+  # pacod-id's (docker/pacod-id/id-db.sh, a copy of pacod-id's platform/postgres/id-db.sh). The
+  # client is the server's own image (\getenv needs psql 15 or later).
+  pacod-db-init:
+    image: postgres:16-alpine
+    container_name: pacod-db-init
+    profiles: [db, id]
+    depends_on:
+      pacod-postgres:
+        condition: service_healthy
+    environment:
+      PGHOST: pacod-postgres
+      PGUSER: ${KB_DATABASE_USER:-kb}
+      PGPASSWORD: ${KB_DATABASE_PASSWORD:-kb}
+      KB_DATABASE_PASSWORD: ${KB_DATABASE_PASSWORD:-kb}
+      PID_DB_PASSWORD: ${PID_DB_PASSWORD:-}
+    volumes:
+      - ./docker/pacod-id/id-db.sh:/initdb.d/id/id-db.sh:ro
+      - ./platform/postgres:/initdb.d/kb:ro
+    # id-db.sh runs only when pacod-id's password is set (the id profile); kb-db.sh always.
+    entrypoint:
+      - sh
+      - -c
+      - |
+        set -e
+        for f in /initdb.d/*/*-db.sh; do
+          if [ "$${f##*/}" = id-db.sh ] && [ -z "$$PID_DB_PASSWORD" ]; then continue; fi
+          sh "$$f"
+        done
+    networks:
+      - pacod-net
+    restart: "no"
+
+  # ---- sign-in: pacod-id and a mail catcher (profiles id, mailpit) -----------------------------
+  #
+  # pacod-id owns accounts, sessions and role bindings; the UI signs people in through it (OIDC)
+  # and reads their kb roles from its feed.
+
+  pacod-id:
+    # Built from pacod-id's own sources by `make images` (only when missing): a Rust build, slow the
+    # first time. Not pacod-id:dev: pacod-gw builds that tag from its vendored copy, without the kb
+    # brand.
+    image: ${PACOD_ID_IMAGE:-pacod-kb-id:dev}
+    container_name: pacod-id
+    profiles: [id]
+    restart: unless-stopped
+    depends_on:
+      pacod-db-init:
+        condition: service_completed_successfully
+      pacod-mailpit:
+        condition: service_started
+        required: false
+    environment:
+      PID_DATABASE_URL: postgres://pacod_id:${PID_DB_PASSWORD:-}@pacod-postgres:5432/pacod_id
+      PID_KEK: ${PID_KEK:-}
+      PID_TOKEN_PEPPER: ${PID_TOKEN_PEPPER:-}
+      KB_ID_UI_SECRET: ${KB_ID_UI_SECRET:-}
+      KB_ID_SERVICE_SECRET: ${KB_ID_SERVICE_SECRET:-}
+      # The issuer is the address browsers use, and pacod-id answers its sign-in pages only on that
+      # exact host and port. Development: the published loopback port below.
+      KB_ID_ISSUER: ${KB_ID_ISSUER:-http://127.0.0.1:18070}
+      KB_UI_ORIGIN: ${KB_UI_ORIGIN:-http://localhost:8080}
+      # Behind a proxy (production), name it so sign-in throttling sees people's addresses.
+      PID_TRUSTED_PROXIES: ${PID_TRUSTED_PROXIES:-}
+      # The first account, created once: an identity admin and kb admin.
+      PID_BOOTSTRAP_ADMIN_EMAIL: ${ID_ADMIN_EMAIL:-admin@pacod-kb.test}
+      PID_BOOTSTRAP_ADMIN_PASSWORD: ${ID_ADMIN_PASSWORD:-}
+      PID_BOOTSTRAP_ADMIN_REALM: kb
+      PID_BOOTSTRAP_ADMIN_ROLES: id.admin,kb.admin
+      # Mail: pacod-mailpit unless PID_SMTP_HOST names a relay (production must). TLS: starttls,
+      # tls or none.
+      PID_SMTP_HOST: ${PID_SMTP_HOST:-pacod-mailpit}
+      PID_SMTP_PORT: ${PID_SMTP_PORT:-1025}
+      PID_SMTP_TLS: ${PID_SMTP_TLS:-none}
+      PID_SMTP_USERNAME: ${PID_SMTP_USERNAME:-}
+      PID_SMTP_PASSWORD: ${PID_SMTP_PASSWORD:-}
+      PID_EMAIL_FROM_ADDRESS: ${ID_MAIL_FROM:-id@pacod-kb.test}
+      PID_EMAIL_FROM_NAME: pacod-kb
+      PID_LOG_FORMAT: text
+    volumes:
+      - ./docker/pacod-id/pacod-id.toml:/etc/pacod-id/pacod-id.toml:ro
+    read_only: true
+    tmpfs:
+      - /tmp:size=16m
+    ports:
+      # The public listener (sign-in pages, authorize, logout). The internal listener (8071) and
+      # metrics (9170) are reached over pacod-net only.
+      - "127.0.0.1:${KB_ID_PORT:-18070}:8070"
+    networks:
+      - pacod-net
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:9170/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 30
+      start_period: 10s
+
+  # Every mail pacod-id sends (invitations, resets) ends here; none leaves the machine.
+  # Its page: http://127.0.0.1:${KB_MAILPIT_PORT:-18025}/
+  pacod-mailpit:
+    image: axllent/mailpit:v1.27
+    container_name: pacod-mailpit
+    profiles: [mailpit]
+    restart: unless-stopped
+    ports:
+      - "127.0.0.1:${KB_MAILPIT_PORT:-18025}:8025"
+    networks:
+      - pacod-net
+
+  # ---- AI: the development gateway (profile dev-gateway) -------------------------------------
+  #
+  # pacod-gw-lite in front of pacod-gw's mock providers: a chat answer is an echo of the last user
+  # message, a JSON-schema answer an instance of the schema, and nothing leaves the machine. The
+  # pipeline reaches it at http://pacod-gw:8080 with the key `make setup` wrote (PACOD_GW_API_KEY).
+  # Its models carry kb's default names, so the defaults work unchanged. A deployment drops the
+  # profile and points PACOD_GW_URL/PACOD_GW_API_KEY at a real gateway. Images: `make images`.
+  pacod-gw:
+    image: ${PACOD_GW_LITE_IMAGE:-pacod-gw-lite:dev}
+    container_name: pacod-gw
+    profiles: [dev-gateway]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    command: ["serve"]
+    environment:
+      PGW_LISTEN: 0.0.0.0:8080
+      PGW_LOG_FORMAT: text
+      PGW_EGRESS_ALLOW_PRIVATE: gw-mock
+      PGW_MAX_BODY_BYTES: "33554432"
+      PGW_PROVIDER_ANTHROPIC_KEY: dev-anthropic-key
+      PGW_PROVIDER_ANTHROPIC_BASE_URL: http://gw-mock:9000
+      PGW_PROVIDER_OPENAI_KEY: dev-openai-key
+      PGW_PROVIDER_OPENAI_BASE_URL: http://gw-mock:9000/v1
+      PGW_MODEL_OPUS: anthropic/claude-opus-5-5
+      PGW_MODEL_OPUS_PRICE: input=5,output=25
+      PGW_MODEL_HAIKU: anthropic/claude-haiku-4-5
+      PGW_MODEL_HAIKU_PRICE: input=1,output=5
+      PGW_MODEL_GPT: openai/gpt-dev
+      PGW_MODEL_GPT_PRICE: input=1.25,output=10
+      PGW_CLIENT_KB_KEY: ${PACOD_GW_API_KEY:-}
+    depends_on:
+      gw-mock:
+        condition: service_healthy
+    networks:
+      - pacod-net
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:8080/readyz"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+      start_period: 5s
+
+  gw-mock:
+    image: ${PACOD_GW_MOCK_IMAGE:-pacod-gw-mock:dev}
+    container_name: gw-mock
+    profiles: [dev-gateway]
+    restart: unless-stopped
+    read_only: true
+    cap_drop: [ALL]
+    security_opt: ["no-new-privileges:true"]
+    healthcheck:
+      test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:9000/healthz"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+      start_period: 20s
+    networks:
+      - pacod-net
+
+volumes:
+  # Used only when KB_QDRANT_DATA or KB_POSTGRES_DATA name them instead of a host directory.
+  pacod-qdrant-data:
+  pacod-postgres-data:
+
+networks:
+  pacod-net:
+    external: true

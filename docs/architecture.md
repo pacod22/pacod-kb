@@ -5,31 +5,37 @@ canonical Markdown, indexes them for hybrid search, and keeps every version. It 
 of the pacod family: people sign in through **pacod-id**, and every LLM call goes through
 **pacod-gw**. Deep implementation notes, module by module, are in [CLAUDE.md](../CLAUDE.md).
 
-## Containers and networks
+## Containers and the network
 
 ```
 Browser ─── sign-in pages, authorize, logout ───▶ pacod-id public listener (KB_ID_ISSUER)
    │ kb_session cookie: a server-side session's random secret, nothing else
    ▼
 kb-ui :8080  (web/)                       ── token, JWKS, feed, admin API ──▶ pacod-id :8071
-   │ X-API-Key + X-KB-Actor                                                    + its PostgreSQL
+   │ X-API-Key + X-KB-Actor
    ▼
 kb-pipeline :8000  (pipeline/)  ── Bearer pgw_kb_… ──▶ pacod-gw /v1/chat/completions ──▶ providers
    │
-   ├── Qdrant (embedded, or kb-qdrant :6333)       vectors
+   ├── Qdrant (embedded, or pacod-qdrant :6333)    vectors
+   ├── BGE-M3 in process, or pacod-embeddings      embeddings (EMBEDDINGS_URL)
    ├── SQLite FTS5 or PostgreSQL                   keyword index
-   └── filesystem archive or PostgreSQL            documents, the ledger
+   └── filesystem archive or PostgreSQL            documents, the ledger (pacod-postgres, db kb)
 ```
 
-| Network | Members | Why |
-|---|---|---|
-| `agent-net` (external) | pipeline, UI, Qdrant, PostgreSQL | kb itself, reachable by other agents |
-| `kb-id` | UI, pacod-id, its PostgreSQL, mailpit | the UI's calls to pacod-id's internal listener |
-| `kb-ai` | pipeline, gw, gw-mock | the pipeline's calls to the gateway |
+Every container joins one external Docker network, `pacod-net`, under a name that is unique
+across the pacod repositories (pacod-demo/docs/NETWORK.md): kb's own services are `kb-pipeline`
+and `kb-ui` (`docker-compose.yml`, the app file); the components other products share are
+`pacod-qdrant`, `pacod-postgres` (+ the one-shot `pacod-db-init`), `pacod-id`, `pacod-gw`
+(gw-lite here) with `gw-mock`, and `pacod-mailpit`. kb's own stack runs its copies of those
+(`docker-compose.standalone.yml`); the full stack (pacod-demo) runs one of each for every product
+and loads only kb's app file. In the full stack kb also shares Qdrant (its collections are
+`kb_*`; the UI's Qdrant pages show nothing else) and, with `EMBEDDINGS_URL`, pacod-ap's
+embeddings service.
 
-The pipeline parses untrusted documents and fetches arbitrary URLs, so it shares no network with
-pacod-id and receives none of its secrets; the UI never receives the gateway key. Each container
-gets an explicit environment (`tests/test_compose_env.py` checks this).
+One flat network gives up the separation kb had before (the pipeline shared no network with
+pacod-id). The pipeline still receives none of pacod-id's secrets, and the UI never receives
+the gateway key: each container gets an explicit environment (`tests/test_compose_env.py`
+checks this).
 
 The pipeline runs one worker (embedded Qdrant holds a file lock; the job store is in memory). The
 UI runs one worker too (session refresh locks, the pacod-id feed follower).

@@ -78,6 +78,17 @@ class Config:
     embed_reuse_untagged: bool = False
     rebuild_reuse_max_points: int = 100_000
     ocr_single_engine_confidence: float = 0.8
+    # The shared embeddings service (pacod-embeddings): blank = the model in this process
+    embeddings_url: str = ""
+    embeddings_timeout_secs: float = 120.0
+    # Its /rerank instead of a cross-encoder in this process (blank = local model)
+    reranker_url: str = ""
+    reranker_timeout_ms: int = 5000
+
+
+# Shared components on pacod-net (pacod-demo/docs/NETWORK.md).
+DEFAULT_QDRANT_URL = "http://pacod-qdrant:6333"
+DEFAULT_DATABASE_HOST = "pacod-postgres"
 
 
 # Model names are the gateway's: ``provider/model`` or a pool ``@name``.
@@ -159,7 +170,7 @@ def load_config() -> Config:
 
     qdrant_url: str | None = os.environ.get("QDRANT_URL", "").strip() or None
     if qdrant_mode == "server" and not qdrant_url:
-        raise SystemExit("QDRANT_URL is required when QDRANT_MODE=server")
+        qdrant_url = DEFAULT_QDRANT_URL
 
     log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
     logging.basicConfig(level=getattr(logging, log_level, logging.INFO))
@@ -192,7 +203,7 @@ def load_config() -> Config:
     storage_backend = _validate_storage_backend(
         os.environ.get("KB_STORAGE_BACKEND", "filesystem").strip()
     )
-    database_host = os.environ.get("KB_DATABASE_HOST", "").strip() or None
+    database_host = os.environ.get("KB_DATABASE_HOST", "").strip() or DEFAULT_DATABASE_HOST
     database_port = _int_env("KB_DATABASE_PORT", 5432)
     keyword_query_mode = os.environ.get("KEYWORD_QUERY_MODE", "legacy").strip().lower() or "legacy"
     if keyword_query_mode not in ("legacy", "or", "and_or"):
@@ -288,4 +299,8 @@ def load_config() -> Config:
         embed_reuse_untagged=os.environ.get("EMBED_REUSE_UNTAGGED", "false").lower() == "true",
         rebuild_reuse_max_points=max(0, _int_env("REBUILD_REUSE_MAX_POINTS", 100_000)),
         ocr_single_engine_confidence=_float_env("OCR_SINGLE_ENGINE_CONFIDENCE", 0.8),
+        embeddings_url=os.environ.get("EMBEDDINGS_URL", "").strip().rstrip("/"),
+        embeddings_timeout_secs=max(1.0, _float_env("EMBEDDINGS_TIMEOUT_SECS", 120.0)),
+        reranker_url=os.environ.get("RERANKER_URL", "").strip().rstrip("/"),
+        reranker_timeout_ms=max(1, _int_env("RERANKER_TIMEOUT_MS", 5000)),
     )

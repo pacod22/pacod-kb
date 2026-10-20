@@ -27,7 +27,7 @@ from pipeline.config import Config
 from pipeline.document_store import (
     DocumentStore,
 )
-from pipeline.indexer import BgeM3Embedder
+from pipeline.indexer import PipelineEmbedder
 from pipeline.vectorstore import QdrantVectorStore
 
 logger = logging.getLogger(__name__)
@@ -309,7 +309,7 @@ def _run_convert_without_index(
     job_id: str,
     project_slug: str | None,
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     store: DocumentStore,
 ) -> None:
     """Convert documents without sending to vector database."""

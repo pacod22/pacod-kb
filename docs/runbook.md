@@ -14,15 +14,34 @@ make setup     # .env from .env.example, every secret generated (none printed); 
 make up        # builds pacod-id's and the dev gateway's images the first time (Rust: slow once)
 ```
 
-The default profiles (`COMPOSE_PROFILES` in `.env`) run everything: the pipeline, the UI,
-Qdrant, PostgreSQL, pacod-id with its PostgreSQL, mailpit, and the development gateway
-(gw-lite in front of pacod-gw's mock providers — nothing leaves the machine).
+Every container joins the shared Docker network `pacod-net` (`make network`, run by `make setup`
+and `make up`) under the names of the pacod convention (pacod-demo/docs/NETWORK.md). kb itself,
+`kb-pipeline` and `kb-ui`, always runs (`docker-compose.yml`). The default profiles
+(`COMPOSE_PROFILES` in `.env`) add kb's copies of the shared components
+(`docker-compose.standalone.yml`): `pacod-qdrant` (server), `pacod-postgres` with the one-shot
+`pacod-db-init` (db), `pacod-id` (id; its database is on pacod-postgres), `pacod-mailpit`
+(mailpit), and the development gateway `pacod-gw` (gw-lite in front of pacod-gw's mock
+providers, `gw-mock` — nothing leaves the machine) (dev-gateway). Only one copy of each shared
+component may run on a machine: stop another pacod stack before `make up`.
+
+**Data.** On a server the data stays in host directories: `KB_ROOT` (`/data/kb`),
+`KB_MODEL_CACHE` (`/data/model-cache`), `KB_QDRANT_DATA` (`/data/qdrant/storage`) and
+`KB_POSTGRES_DATA` (`/data/postgres`); `make setup` creates them. A value without a slash names
+a Docker volume instead (`KB_DATA` overrides `KB_ROOT` as the pipeline's mount). macOS cannot
+share `/data`, so there `make setup` writes a new `.env` with the volumes `kb-data`,
+`kb-model-cache`, `pacod-qdrant-data` and `pacod-postgres-data`.
 
 | What | Address |
 |---|---|
 | The UI | http://localhost:8080/kb |
 | pacod-id's sign-in pages (the issuer) | http://127.0.0.1:18070 |
 | Mail pacod-id sends (invitations, resets) | http://127.0.0.1:18025 |
+| PostgreSQL (db profile), for psql and backups | 127.0.0.1:`${KB_POSTGRES_PORT:-5432}` |
+| Qdrant (server profile) | http://127.0.0.1:6333 |
+
+When a PostgreSQL installed on the host already holds 5432, `make up` stops with "port is already
+allocated": set `KB_POSTGRES_PORT` (e.g. `25432`) in `.env`. Containers always reach it on
+`pacod-postgres:5432`.
 
 Sign in with `ID_ADMIN_EMAIL` and `ID_ADMIN_PASSWORD` from `.env` (`grep ID_ADMIN_ .env`): that
 account is an identity admin and a kb admin. Change its password at pacod-id
@@ -32,8 +51,8 @@ The development gateway's mock echoes the prompt, so `.env.example` leaves conve
 (`LLM_CONVERTER_ENABLED=false`). **AI Management → Test connection / Test model** still exercises
 the whole path, cost included.
 
-Useful targets: `make ps`, `make logs S=ui|pipeline|id|gw`, `make shell S=pipeline`,
-`make check-env`, `make down` (stops every profile).
+Useful targets: `make ps`, `make logs S=kb-ui|kb-pipeline|pacod-id|pacod-gw`,
+`make shell S=kb-pipeline`, `make db-shell`, `make check-env`, `make down` (stops every profile).
 
 ## 2. Production
 
@@ -42,7 +61,7 @@ Useful targets: `make ps`, `make logs S=ui|pipeline|id|gw`, `make shell S=pipeli
 Point kb at a real gateway and drop the `dev-gateway` profile:
 
 ```sh
-PACOD_GW_URL=https://gw.example.com      # or http://<gateway>:8080 on a shared network
+PACOD_GW_URL=https://gw.example.com      # or http://pacod-gw:8080, the shared one on pacod-net
 PACOD_GW_API_KEY=pgw_kb_…                # a key for kb, created in the gateway
 LLM_CONVERTER_ENABLED=true
 LLM_CONVERTER_MODEL=anthropic/claude-opus-5-5   # a model (or @pool) the key may use
@@ -67,7 +86,7 @@ Either keep the bundled pacod-id (profile `id`) behind TLS, or use an existing o
 an https address behind your proxy:
 
 ```sh
-KB_ID_ISSUER=https://id.example.com   # the proxy forwards it to kb-id:8070 (Host unchanged)
+KB_ID_ISSUER=https://id.example.com   # the proxy forwards it to pacod-id:8070 (Host unchanged)
 KB_UI_ORIGIN=https://kb.example.com   # the proxy forwards it to kb-ui:8080
 UI_SESSION_HTTPS_ONLY=true
 UI_BIND=127.0.0.1                     # the proxy runs on this host; or an internal address
@@ -79,7 +98,9 @@ ID_MAIL_FROM=id@example.com
 
 Drop `mailpit` from the profiles. After the first sign-in, remove `ID_ADMIN_PASSWORD` from
 `.env` (pacod-id creates the bootstrap admin once; see pacod-id's runbook, section 9). **Back up
-`PID_KEK`** separately from the database backups: it seals what pacod-id stores.
+`PID_KEK`** separately from the database backups: it seals what pacod-id stores. pacod-id's
+database (`pacod_id`, role `pacod_id`) is on `pacod-postgres`, next to kb's; `pacod-db-init`
+creates it (`docker/pacod-id/id-db.sh`).
 
 **An existing pacod-id** (for example one shared with pacod-gw): add kb's realm and clients from
 [`docker/pacod-id/pacod-id.toml`](../docker/pacod-id/pacod-id.toml) to its configuration (the `kb`
@@ -91,7 +112,23 @@ as the UI reaches it), `KB_ID_UI_SECRET` and `KB_ID_SERVICE_SECRET` (the clients
 
 - `WEB_FETCH_ALLOW_PRIVATE=false` refuses URL ingests that resolve to private addresses (an
   SSRF guard); recommended wherever the pipeline can reach internal services.
-- Pin `QDRANT_IMAGE_TAG`: Qdrant storage cannot be opened by an older server.
+- Pin `QDRANT_IMAGE_TAG` (default `v1.19.2`): Qdrant storage cannot be opened by an older
+  server.
+- **A shared Qdrant.** On a Qdrant other products use too (`pacod-qdrant` in the full stack),
+  kb's collections are those named `KB_QDRANT_COLLECTION_PREFIX…` (default `kb_`; the default
+  collection is `kb_chunks`) plus its projects' own. The UI's Qdrant pages list, browse, export,
+  search and delete only those (anything else is a 404) and create only prefixed ones. Name new
+  projects' collections with the prefix too. The pipeline's `GET /collections` still lists every
+  collection on the server.
+- **A shared embeddings service.** `EMBEDDINGS_URL=http://pacod-embeddings:8080` makes the
+  pipeline embed through pacod-ap's embeddings service (`POST /embed`, the same BGE-M3 dense
+  vectors, normalized) instead of loading the model: only the tokenizer is loaded, which saves
+  about 2 GB of RAM. Existing vectors stay valid. Requests are retried on connection errors and
+  5xx (`EMBEDDINGS_TIMEOUT_SECS`, 120 s each); a vector that is not 1024-dimensional is refused.
+  `RERANKER_URL` (the same service's `/rerank`, bge-reranker-v2-m3) does the same for the
+  reranker, with `RERANKER_TIMEOUT_MS` (5 s) per call. If that service's bi-encoder is ever
+  replaced (pacod-ap's fine-tuning and `/reload`), kb's index must be rebuilt
+  (`kb rebuild --all-projects`).
 - `make upgrade` pulls, rebuilds kb's images and restarts; `make images FORCE=1` rebuilds
   pacod-id's and the dev gateway's.
 
@@ -119,7 +156,7 @@ Measurements and the reasoning behind the defaults are in [retrieval-eval.md](re
   overrides the setting for that request only while the model is loaded; a request never loads
   it. Latency grows with `max(top_k, RERANK_TOP_N)`: every returned result is reranked.
 - **Models offline.** Run the pipeline once with network access, or run the probe, so the
-  embedder and reranker land in the model cache (`/data/model-cache`). Then set
+  embedder and reranker land in the model cache (`KB_MODEL_CACHE`). Then set
   `HF_HUB_OFFLINE=1`. A model that needs remote code (`RERANKER_TRUST_REMOTE_CODE=true`)
   should also pin `RERANKER_REVISION` and `RERANKER_CODE_REVISION`.
 - **Keyword half of hybrid search.** `KEYWORD_QUERY_MODE=legacy` requires every query word to
@@ -200,18 +237,18 @@ sign-in methods are each person's own, at pacod-id (**My account**).
 
 | What | Where |
 |---|---|
-| Documents (filesystem mode), keyword index, ledger | `KB_ROOT` (`/data/kb`) |
-| Documents, keyword index, ledger, jobs (database mode) | PostgreSQL (`/data/postgres`) |
-| Vectors | Qdrant storage (`/data/qdrant/storage`), or rebuild with `kb rebuild --all-projects` |
-| UI sessions | volume `kb_ui_data` (losing it signs everyone out, nothing more) |
-| Accounts, roles, sessions | pacod-id's PostgreSQL (volume `kb-id-pg-data`) — and `PID_KEK` |
+| Documents (filesystem mode), keyword index, ledger | `KB_DATA` / `KB_ROOT` (`/data/kb`) |
+| Documents, keyword index, ledger, jobs (database mode) | pacod-postgres, database `kb` (`KB_POSTGRES_DATA`, `/data/postgres`) |
+| Vectors | Qdrant storage (`KB_QDRANT_DATA`, `/data/qdrant/storage`), or rebuild with `kb rebuild --all-projects` |
+| UI sessions | volume `kb-ui-data` (losing it signs everyone out, nothing more) |
+| Accounts, roles, sessions | pacod-postgres, database `pacod_id` — and `PID_KEK` |
 | Secrets | `.env` |
 
 ## 5. When something is wrong
 
 | Symptom | Cause | What to do |
 |---|---|---|
-| Every page says "pacod-id cannot be reached" (503) | The UI's copy of pacod-id's decisions is older than 60 s | `make logs S=id`; `curl localhost:8080/kb/healthz` shows `identity: stale`. Pages recover by themselves once pacod-id answers |
+| Every page says "pacod-id cannot be reached" (503) | The UI's copy of pacod-id's decisions is older than 60 s | `make logs S=pacod-id`; `curl localhost:8080/kb/healthz` shows `identity: stale`. Pages recover by themselves once pacod-id answers |
 | "Sign-in is not set up on this server" | `PACOD_ID_ISSUER`, `KB_UI_ORIGIN` or a client secret is blank in the UI | `make check-env`, then `make up` |
 | pacod-id shows an error about the redirect URI | `KB_UI_ORIGIN` differs from the address used in the browser | Use exactly `KB_UI_ORIGIN`; the UI moves `/kb/login` there, but bookmarks to another host do not match |
 | "No role in the knowledge base" | The account has no kb role | An admin invites the address or gives it a role in Members |
@@ -221,3 +258,7 @@ sign-in methods are each person's own, at pacod-id (**My account**).
 | "The AI budget is used up" | The gateway's budget for kb's key | Raise it in the gateway |
 | The pipeline answers 503 to everything but `/health` | `PIPELINE_API_SECRET` is blank | `make setup` (it generates one), then `make up` |
 | `make up` stops with "missing for profiles …" | A secret the profiles need is blank | `make setup` |
+| `make up` stops with "hosts from before the shared network" | `.env` still names `postgres`, `kb-qdrant`, `gw`, `id` or `mailpit` | Use the `pacod-*` names ([MIGRATIONS.md](../MIGRATIONS.md)) |
+| `make up` stops about `kb-id-pg-data` | pacod-id's data is still in its old volume | Move it to pacod-postgres ([MIGRATIONS.md](../MIGRATIONS.md)), then remove the volume |
+| "container name … is already in use" | Another pacod stack runs its copy of a shared component (`pacod-postgres`, `pacod-id`, …) | Stop that stack, or run kb inside the full stack |
+| `pacod-db-init` exits 1 | Wrong `KB_DATABASE_PASSWORD` for the existing PostgreSQL, or tables owned by a role other than `kb` | `make logs S=pacod-db-init` |

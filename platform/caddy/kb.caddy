@@ -1,0 +1,28 @@
+# kb's UI behind the shared edge (pacod-caddy). Imported by a Caddyfile that holds the global
+# options; KB_SITE is the UI's address, e.g. http://kb.localhost:8800, and KB_UI_ORIGIN must be the
+# same. kb's own stack has no Caddy: it publishes kb-ui directly.
+#
+# Caddy sends X-Forwarded-For/-Proto/-Host and keeps the Host. kb-ui (uvicorn --proxy-headers)
+# believes them only from UI_FORWARDED_ALLOW_IPS, so the full stack sets that to pacod-caddy's
+# address (or *, as nothing else reaches kb-ui there). The pipeline API is never routed.
+{$KB_SITE:http://kb.localhost} {
+	reverse_proxy kb-ui:8080
+
+	log {
+		output stdout
+		format filter {
+			wrap console
+			fields {
+				request>uri query {
+					delete code
+					delete state
+					delete next
+				}
+				request>headers>Referer delete
+				# The redirects carry the same values: to pacod-id with the state, back to /kb/login
+				# with the page to return to.
+				resp_headers>Location delete
+			}
+		}
+	}
+}

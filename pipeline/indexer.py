@@ -1,4 +1,4 @@
-"""Embedder protocol, BGE-M3 implementation, keyword stores, and index_document."""
+"""Embedder protocol, BGE-M3 embedders (in-process, remote), keyword stores, index_document."""
 
 from __future__ import annotations
 
@@ -7,6 +7,7 @@ import logging
 import re
 import sqlite3
 import threading
+import time
 from collections import OrderedDict
 from collections.abc import Callable, Mapping, Sequence
 from pathlib import Path
@@ -140,6 +141,23 @@ class FtsStore(Protocol):
 _MAX_EMBED_BATCH = 32  # sequences per model call, whatever the token budget
 
 
+def _micro_batches(lengths: list[int], batch_tokens: int) -> list[list[int]]:
+    """Indices of texts with these token *lengths* in micro-batches: ascending length, at most
+    *batch_tokens* padded tokens and _MAX_EMBED_BATCH sequences each."""
+    batches: list[list[int]] = []
+    current: list[int] = []
+    for i in sorted(range(len(lengths)), key=lengths.__getitem__):
+        # Ascending order: the newcomer is the longest, so it sets the padded size.
+        full = len(current) >= _MAX_EMBED_BATCH
+        if current and (full or lengths[i] * (len(current) + 1) > batch_tokens):
+            batches.append(current)
+            current = []
+        current.append(i)
+    if current:
+        batches.append(current)
+    return batches
+
+
 class BgeM3Embedder:
     """BGE-M3 via sentence-transformers (multilingual, 1024-dim).
 
@@ -184,19 +202,7 @@ class BgeM3Embedder:
         """Indices in micro-batches: ascending length, padded size within the budget."""
         with self._tokenizer_lock:
             ids = self._tokenizer(texts, truncation=True, max_length=self._max_len)["input_ids"]
-        lengths = [len(x) for x in ids]
-        batches: list[list[int]] = []
-        current: list[int] = []
-        for i in sorted(range(len(texts)), key=lengths.__getitem__):
-            # Ascending order: the newcomer is the longest, so it sets the padded size.
-            full = len(current) >= _MAX_EMBED_BATCH
-            if current and (full or lengths[i] * (len(current) + 1) > self._batch_tokens):
-                batches.append(current)
-                current = []
-            current.append(i)
-        if current:
-            batches.append(current)
-        return batches
+        return _micro_batches([len(x) for x in ids], self._batch_tokens)
 
     def encode(
         self, texts: list[str], *, progress_cb: EmbedProgressCb | None = None
@@ -247,11 +253,166 @@ class BgeM3Embedder:
         return len(ids)
 
 
-def make_embedder(config: Config) -> BgeM3Embedder:
-    """The embedder configured by *config*, after setting the inference thread count."""
+class EmbeddingServiceError(RuntimeError):
+    """The embeddings service failed, or answered something that is not this model's vectors."""
+
+
+class RemoteEmbedder:
+    """BGE-M3 vectors from the shared embeddings service (pacod-embeddings, ``POST /embed``).
+
+    The service (pacod-ap's ``embeddings_service``) returns BGE-M3's dense vectors, normalized,
+    the same space the in-process embedder writes, so one collection may hold both. Only the
+    tokenizer is loaded here (no model weights): it counts tokens for the chunker and plans the
+    same token-budgeted micro-batches as ``BgeM3Embedder``, so a job reports progress and a
+    request stays small. No inference gate: the service schedules its own work. Connection errors,
+    timeouts and 5xx answers are retried with backoff; a 4xx, a missing vector or one of the wrong
+    length raises ``EmbeddingServiceError``.
+    """
+
+    VECTOR_DIM: int = 1024
+
+    def __init__(
+        self,
+        url: str,
+        model_name: str = "BAAI/bge-m3",
+        *,
+        batch_tokens: int = 1024,
+        query_cache_size: int = 256,
+        timeout_s: float = 120.0,
+        attempts: int = 3,
+        tokenizer: Any = None,
+        transport: Any = None,
+    ) -> None:
+        import httpx
+
+        if tokenizer is None:
+            from transformers import AutoTokenizer
+
+            # Tokenizer files only, from the model cache (HF_HUB_OFFLINE is honoured).
+            tokenizer = AutoTokenizer.from_pretrained(model_name)
+        self.model_name = model_name  # tagged on every vector (embedding reuse)
+        self._endpoint = f"{url.rstrip('/')}/embed"
+        self._tokenizer: Any = tokenizer
+        self._tokenizer_lock = threading.Lock()
+        # model_max_length is a huge sentinel for tokenizers without a limit.
+        self._max_len = min(int(getattr(tokenizer, "model_max_length", 0) or 8192), 8192)
+        self._batch_tokens = max(1, batch_tokens)
+        self._attempts = max(1, attempts)
+        self._client = httpx.Client(
+            timeout=httpx.Timeout(timeout_s, connect=min(timeout_s, 5.0)),
+            transport=transport,
+            follow_redirects=False,
+        )
+        self._cache_size = max(0, query_cache_size)
+        self._cache: OrderedDict[str, list[float]] = OrderedDict()
+        self._cache_lock = threading.Lock()
+
+    def _embed(self, texts: list[str]) -> list[list[float]]:
+        import httpx
+
+        delay = 1.0
+        for attempt in range(1, self._attempts + 1):
+            try:
+                resp = self._client.post(self._endpoint, json={"texts": texts})
+            except httpx.TransportError as exc:  # connect error or timeout: try again
+                if attempt == self._attempts:
+                    raise EmbeddingServiceError(
+                        f"embeddings service unreachable: {type(exc).__name__}"
+                    ) from exc
+            else:
+                if resp.status_code < 500 or attempt == self._attempts:
+                    break
+            logger.warning("Embeddings service attempt %d/%d failed", attempt, self._attempts)
+            time.sleep(delay)
+            delay *= 2
+        if resp.status_code != 200:
+            raise EmbeddingServiceError(f"embeddings service answered HTTP {resp.status_code}")
+        try:
+            vectors = resp.json()["embeddings"]
+        except (ValueError, KeyError, TypeError) as exc:
+            raise EmbeddingServiceError("embeddings service answered without embeddings") from exc
+        if not isinstance(vectors, list) or len(vectors) != len(texts):
+            raise EmbeddingServiceError(
+                f"embeddings service returned {len(vectors) if isinstance(vectors, list) else 0}"
+                f" vectors for {len(texts)} texts"
+            )
+        out: list[list[float]] = []
+        for vector in vectors:
+            # The collections are created with VECTOR_DIM (pipeline/vectorstore.py).
+            if not isinstance(vector, list) or len(vector) != self.VECTOR_DIM:
+                size = len(vector) if isinstance(vector, list) else 0
+                raise EmbeddingServiceError(
+                    f"embeddings service returned a {size}-dimensional vector,"
+                    f" the collection holds {self.VECTOR_DIM}"
+                )
+            out.append([float(x) for x in vector])
+        return out
+
+    def encode(
+        self, texts: list[str], *, progress_cb: EmbedProgressCb | None = None
+    ) -> list[list[float]]:
+        total = len(texts)
+        out: list[list[float]] = [[] for _ in range(total)]
+        if not texts:
+            return out
+        with self._tokenizer_lock:
+            ids = self._tokenizer(texts, truncation=True, max_length=self._max_len)["input_ids"]
+        done = reported = 0
+        for batch in _micro_batches([len(x) for x in ids], self._batch_tokens):
+            part = self._embed([texts[i] for i in batch])
+            for i, vector in zip(batch, part, strict=True):
+                out[i] = vector
+            done += len(batch)
+            if progress_cb is not None and (done - reported >= _MAX_EMBED_BATCH or done == total):
+                progress_cb(done, total)
+                reported = done
+        return out
+
+    def encode_query(self, text: str) -> list[float]:
+        """Embed one search query (LRU-cached, like the in-process embedder)."""
+        if self._cache_size:
+            with self._cache_lock:
+                hit = self._cache.get(text)
+                if hit is not None:
+                    self._cache.move_to_end(text)
+                    return hit
+        vector = self._embed([text])[0]
+        if self._cache_size:
+            with self._cache_lock:
+                self._cache[text] = vector
+                if len(self._cache) > self._cache_size:
+                    self._cache.popitem(last=False)
+        return vector
+
+    def count_tokens(self, text: str) -> int:
+        with self._tokenizer_lock:
+            ids: list[int] = self._tokenizer.encode(text, add_special_tokens=False)
+        return len(ids)
+
+    def close(self) -> None:
+        self._client.close()
+
+
+# What the pipeline API and the CLI embed with: make_embedder() picks one.
+PipelineEmbedder = BgeM3Embedder | RemoteEmbedder
+
+
+def make_embedder(config: Config) -> PipelineEmbedder:
+    """The embedder configured by *config*, after setting the inference thread count (docling
+    parses PDFs here either way): the embeddings service when EMBEDDINGS_URL is set, else the
+    model in this process."""
     from pipeline.inference import configure_threads
 
     configure_threads(config.torch_num_threads)
+    if config.embeddings_url:
+        logger.info("Embeddings from %s (tokenizer only in this process)", config.embeddings_url)
+        return RemoteEmbedder(
+            config.embeddings_url,
+            config.embedding_model,
+            batch_tokens=config.embed_batch_tokens,
+            query_cache_size=config.query_embed_cache_size,
+            timeout_s=config.embeddings_timeout_secs,
+        )
     return BgeM3Embedder(
         config.embedding_model,
         device=None if config.inference_device == "auto" else config.inference_device,

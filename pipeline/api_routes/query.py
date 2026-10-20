@@ -20,7 +20,7 @@ from pipeline.api import (
     _runtime,
 )
 from pipeline.config import Config
-from pipeline.indexer import BgeM3Embedder, make_fts_db
+from pipeline.indexer import PipelineEmbedder, make_fts_db
 from pipeline.retrieval import SearchOptions, SearchTrace
 from pipeline.retrieval import search as _retrieval_search
 from pipeline.vectorstore import QdrantVectorStore
@@ -88,7 +88,7 @@ def _query_target(
 @router.post("/query")
 def query(req: QueryRequest, request: Request, _auth: AuthDep) -> dict[str, Any]:
     config: Config = request.app.state.config
-    embedder: BgeM3Embedder = request.app.state.embedder
+    embedder: PipelineEmbedder = request.app.state.embedder
     vector_store, project = _query_target(request, req.collection)
     use_rerank = req.rerank if req.rerank is not None else bool(_runtime.get("reranker_enabled"))
     holder = getattr(request.app.state, "reranker", None)

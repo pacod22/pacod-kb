@@ -67,7 +67,7 @@ class SessionRecord:
 
 
 def db_url() -> str:
-    """UI_DB_URL, else SQLite at UI_DB_PATH (the kb_ui_data volume in Docker)."""
+    """UI_DB_URL, else SQLite at UI_DB_PATH (the kb-ui-data volume in Docker)."""
     override = os.environ.get("UI_DB_URL", "").strip()
     if override:
         return override

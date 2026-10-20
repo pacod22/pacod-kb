@@ -42,7 +42,7 @@ from pipeline.document_store import (
     DocumentStore,
 )
 from pipeline.gateway import Attribution
-from pipeline.indexer import BgeM3Embedder
+from pipeline.indexer import PipelineEmbedder
 from pipeline.parsers.web import require_http_url
 from pipeline.vectorstore import QdrantVectorStore
 
@@ -99,7 +99,7 @@ def _run_ingest_url(
     job_id: str,
     params: dict[str, Any],
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
 ) -> None:
@@ -185,7 +185,7 @@ def _run_ingest_urls(
     job_id: str,
     params: dict[str, Any],
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
 ) -> None:
@@ -285,7 +285,7 @@ def _run_ingest_file(
     tmp_path: str,
     params: dict[str, Any],
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
 ) -> None:

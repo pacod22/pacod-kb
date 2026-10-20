@@ -6,6 +6,30 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+### Changed
+
+- The shared network pacod-net (pacod-demo/docs/NETWORK.md): every container joins it alone, under
+  the convention's names (`kb-pipeline`, `kb-ui`; `pacod-qdrant`, `pacod-postgres`, `pacod-id`,
+  `pacod-gw`, `pacod-mailpit`, `gw-mock`). `docker-compose.yml` holds kb's own services, the new
+  `docker-compose.standalone.yml` its copies of the shared components. The bundled pacod-id keeps
+  its database on `pacod-postgres` (one-shot `pacod-db-init`, `platform/postgres/kb-db.sh`). See
+  MIGRATIONS.md.
+- The `/data/...` bind mounts are variables (`KB_DATA`/`KB_ROOT`, `KB_MODEL_CACHE`,
+  `KB_QDRANT_DATA`, `KB_POSTGRES_DATA`); a name is a Docker volume (macOS).
+- `QDRANT_IMAGE_TAG` defaults to `v1.19.2`.
+
+### Added
+
+- `EMBEDDINGS_URL`: embed through the shared embeddings service (tokenizer only in the pipeline).
+- `RERANKER_URL`: rerank through the same service's `/rerank`.
+- `KB_QDRANT_COLLECTION_PREFIX`: the UI's Qdrant pages show and touch only kb's collections.
+- `platform/caddy/kb.caddy`: the UI behind the shared edge (`KB_SITE`).
+
+### Fixed
+
+- `02-migrate-kb-jobs-index.sql` no longer fails on an empty database; the pipeline creates the
+  index with `kb_jobs`.
+
 ## [1.0.0] — 2026-10-18
 
 First public release.

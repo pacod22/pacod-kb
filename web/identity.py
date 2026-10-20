@@ -74,7 +74,7 @@ class IdSettings:
 
         settings = cls(
             issuer=env("PACOD_ID_ISSUER").rstrip("/"),
-            internal_url=env("PACOD_ID_INTERNAL_URL", "http://id:8071").rstrip("/"),
+            internal_url=env("PACOD_ID_INTERNAL_URL", "http://pacod-id:8071").rstrip("/"),
             ui_origin=env("KB_UI_ORIGIN").rstrip("/"),
             ui_client_id=env("PACOD_ID_UI_CLIENT_ID", "pacod-kb-ui"),
             ui_client_secret=env("PACOD_ID_UI_SECRET"),

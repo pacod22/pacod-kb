@@ -5,24 +5,31 @@
 SHELL := /bin/bash
 
 # ── Which services run ──────────────────────────────────────────────────────────
-# Set COMPOSE_PROFILES in .env (comma-separated): pipeline, server (Qdrant), db
-# (PostgreSQL), ui, id (bundled pacod-id), mailpit (its mail catcher), dev-gateway (gw-lite
-# + mock providers). When unset, it is inferred from .env: pipeline + ui; server when
-# QDRANT_MODE=server; db when the bundled postgres is the DB host; id (+ mailpit) unless
-# PACOD_ID_INTERNAL_URL names another pacod-id; dev-gateway when PACOD_GW_URL=http://gw:8080.
-# Override per command: make up PROFILES=pipeline,ui
+# kb itself (kb-pipeline, kb-ui: docker-compose.yml, the app file) always runs. Its copies of
+# the shared components (docker-compose.standalone.yml) are COMPOSE_PROFILES in .env
+# (comma-separated): server (pacod-qdrant), db (pacod-postgres), id (bundled pacod-id),
+# mailpit (its mail catcher), dev-gateway (pacod-gw, gw-lite + mock providers). When unset, it
+# is inferred from .env: server when QDRANT_MODE=server; db when pacod-postgres is the DB host;
+# id (+ mailpit) unless PACOD_ID_INTERNAL_URL names another pacod-id; dev-gateway unless
+# PACOD_GW_URL names another gateway. The old names pipeline and ui are accepted and ignored.
+# Override per command: make up PROFILES=server,db
+# All of it joins the shared network pacod-net (pacod-demo/docs/NETWORK.md).
 comma := ,
 hash  := \#
 env_get = $(shell sed -n 's/^$(1)=\([^ $(hash)]*\).*/\1/p' .env 2>/dev/null | tail -n 1)
-INFERRED_ID = $(if $(filter-out http://id:8071,$(call env_get,PACOD_ID_INTERNAL_URL)),,$(comma)id$(if $(filter-out mailpit,$(call env_get,PID_SMTP_HOST)),,$(comma)mailpit))
-INFERRED_PROFILES = pipeline$(if $(filter server,$(call env_get,QDRANT_MODE)),$(comma)server)$(if $(filter postgres kb-postgres,$(call env_get,KB_DATABASE_HOST)),$(comma)db)$(comma)ui$(INFERRED_ID)$(if $(filter http://gw:8080,$(call env_get,PACOD_GW_URL)),$(comma)dev-gateway)
-PROFILES ?= $(or $(COMPOSE_PROFILES),$(call env_get,COMPOSE_PROFILES),$(INFERRED_PROFILES))
+INFERRED_ID = $(if $(filter-out http://pacod-id:8071,$(call env_get,PACOD_ID_INTERNAL_URL)),,$(comma)id$(if $(filter-out pacod-mailpit,$(call env_get,PID_SMTP_HOST)),,$(comma)mailpit))
+INFERRED_PROFILES = $(if $(filter server,$(call env_get,QDRANT_MODE)),server)$(if $(filter pacod-postgres,$(call env_get,KB_DATABASE_HOST)),$(comma)db)$(INFERRED_ID)$(if $(filter-out http://pacod-gw:8080,$(call env_get,PACOD_GW_URL)),,$(comma)dev-gateway)
+PROFILES ?= $(or $(COMPOSE_PROFILES),$(call env_get,COMPOSE_PROFILES),$(patsubst $(comma)%,%,$(INFERRED_PROFILES)))
 PROFILE_LIST = $(subst $(comma), ,$(PROFILES))
 
-DC     := COMPOSE_PROFILES=$(PROFILES) docker compose
-DC_ALL := docker compose --profile pipeline --profile server --profile db --profile ui \
+# The app file plus kb's copies of the shared components; .env is read for interpolation.
+COMPOSE_FILES := -f docker-compose.yml -f docker-compose.standalone.yml
+DC     := COMPOSE_PROFILES=$(PROFILES) docker compose $(COMPOSE_FILES)
+DC_ALL := COMPOSE_PROFILES= docker compose $(COMPOSE_FILES) --profile server --profile db \
           --profile id --profile mailpit --profile dev-gateway
 RUN    := docker exec kb-pipeline
+# Compose's project name: named volumes are <project>_<name>.
+PROJECT := $(shell printf '%s' "$${COMPOSE_PROJECT_NAME:-$(notdir $(CURDIR))}" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')
 
 # pacod-id and the development gateway run from images built out of their own checkouts.
 PACOD_ID_SRC        ?= ../pacod-id
@@ -33,21 +40,29 @@ PACOD_GW_MOCK_IMAGE ?= pacod-gw-mock:dev
 
 # What the configured profiles cannot start without (make check-env), and variables of the
 # direct-provider era that nothing reads any more.
-REQUIRED_ENV = $(if $(filter pipeline ui,$(PROFILE_LIST)),PIPELINE_API_SECRET) \
-  $(if $(filter ui,$(PROFILE_LIST)),UI_SESSION_SECRET KB_ID_UI_SECRET KB_ID_SERVICE_SECRET) \
-  $(if $(filter id,$(PROFILE_LIST)),PID_PG_SUPERUSER_PASSWORD PID_DB_PASSWORD PID_KEK PID_TOKEN_PEPPER \
-    KB_ID_UI_SECRET KB_ID_SERVICE_SECRET ID_ADMIN_PASSWORD) \
+REQUIRED_ENV = PIPELINE_API_SECRET UI_SESSION_SECRET KB_ID_UI_SECRET KB_ID_SERVICE_SECRET \
+  $(if $(filter db id,$(PROFILE_LIST)),KB_DATABASE_PASSWORD) \
+  $(if $(filter id,$(PROFILE_LIST)),PID_DB_PASSWORD PID_KEK PID_TOKEN_PEPPER ID_ADMIN_PASSWORD) \
   $(if $(filter dev-gateway,$(PROFILE_LIST)),PACOD_GW_API_KEY)
 LEGACY_ENV = ANTHROPIC_API_KEY LLM_CONVERTER_API_KEY LLM_CONVERTER_BASE_URL SECRETS_KEY \
   TABLE_RECONSTRUCTION_MODEL VLM_TABLE_RECONSTRUCTION_ENABLED ADMIN_PASSWORD UI_SECRET \
-  GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET OAUTH_REDIRECT_BASE_URL
+  GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET OAUTH_REDIRECT_BASE_URL \
+  PID_PG_SUPERUSER_PASSWORD
+# Values from before the shared network: these hosts no longer exist on pacod-net.
+STALE_HOSTS = KB_DATABASE_HOST=postgres KB_DATABASE_HOST=kb-postgres PID_SMTP_HOST=mailpit \
+  QDRANT_URL=http://kb-qdrant:6333 QDRANT_URL=http://qdrant:6333 PACOD_GW_URL=http://gw:8080 \
+  PACOD_ID_INTERNAL_URL=http://id:8071
+# The data mounts' sources (docker-compose*.yml): a host directory, made by make setup, or a
+# value without a slash, a named volume <project>_<name>. KB_DATA falls back to KB_ROOT.
+DATA_ENV = KB_DATA=/data/kb KB_MODEL_CACHE=/data/model-cache KB_QDRANT_DATA=/data/qdrant/storage \
+  KB_POSTGRES_DATA=/data/postgres
 
 # Per-target variables (e.g. make ingest URL="https://..." DOC_TYPE=legal_code)
 URL      ?=
 FILE     ?=
 DOC      ?=
 Q        ?=
-S        ?= pipeline
+S        ?= kb-pipeline
 OUT      ?= /data/kb
 DOC_TYPE ?= web_page
 TOP_K    ?= 5
@@ -55,7 +70,8 @@ INTERVAL ?= 3600
 # Retrieval evaluation (make eval / eval-docker / rerank-probe)
 EVAL_ARGS   ?=
 CPUS        ?= 4
-MODEL_CACHE ?= /data/model-cache
+KB_MODEL_CACHE_V = $(or $(call env_get,KB_MODEL_CACHE),/data/model-cache)
+MODEL_CACHE ?= $(if $(findstring /,$(KB_MODEL_CACHE_V)),$(KB_MODEL_CACHE_V),$(PROJECT)_$(KB_MODEL_CACHE_V))
 
 .PHONY: help setup network images check-env up down restart ps logs shell db-shell \
         build build-fresh update upgrade upgrade-db upgrade-ui clean \
@@ -66,11 +82,21 @@ MODEL_CACHE ?= /data/model-cache
 
 setup: network ## Write or complete .env (generated secrets, never printed); create host directories
 	@COMPOSE_PROFILES="$(PROFILES)" scripts/init-env.sh
-	@mkdir -p /data/kb /data/model-cache /data/qdrant/storage /data/postgres
-	@echo "Host directories: /data/kb  /data/model-cache  /data/qdrant/storage  /data/postgres"
+	@get() { sed -n "s/^$$1=\([^ #]*\).*/\1/p" .env 2>/dev/null | tail -n 1; }; \
+	for pair in $(DATA_ENV); do \
+		key=$${pair%%=*}; dir=$$(get $$key); \
+		[ "$$key" != KB_DATA ] || dir=$${dir:-$$(get KB_ROOT)}; \
+		dir=$${dir:-$${pair#*=}}; \
+		case "$$dir" in \
+			*/*) mkdir -p "$$dir" 2>/dev/null && echo "Host directory: $$dir ($$key)" \
+				|| echo "note: cannot create $$dir ($$key); create it, or name a volume (see .env.example)";; \
+			*) echo "Named volume: $(PROJECT)_$$dir ($$key)";; \
+		esac; \
+	done
 
-network: ## Create the external Docker network agent-net, if missing
-	@docker network inspect agent-net >/dev/null 2>&1 || docker network create agent-net >/dev/null
+# The shared network every pacod stack joins; created once, kept by "down".
+network: ## Create the shared Docker network pacod-net, if missing
+	@docker network inspect pacod-net >/dev/null 2>&1 || docker network create pacod-net >/dev/null
 
 images: ## Build pacod-id's image (profile id) and the dev gateway's (dev-gateway) if missing; FORCE=1 rebuilds
 	@case " $(PROFILE_LIST) " in *" id "*) ;; *) exit 0;; esac; \
@@ -101,7 +127,24 @@ check-env: ## Check that .env holds what the configured services need (and name 
 	done; \
 	if [ -n "$$missing" ]; then \
 		echo "missing for profiles $(PROFILES):$$missing -- run make setup"; exit 1; \
-	fi
+	fi; \
+	stale=""; \
+	for pair in $(STALE_HOSTS); do \
+		k=$${pair%%=*}; v=$$(sed -n "s/^$$k=\([^ #]*\).*/\1/p" .env 2>/dev/null | tail -n 1); \
+		[ "$$v" != "$${pair#*=}" ] || stale="$$stale $$pair"; \
+	done; \
+	if [ -n "$$stale" ]; then \
+		echo "in .env, hosts from before the shared network pacod-net:$$stale"; \
+		echo "use pacod-postgres, pacod-mailpit, http://pacod-qdrant:6333, http://pacod-gw:8080, http://pacod-id:8071 (MIGRATIONS.md)"; \
+		exit 1; \
+	fi; \
+	case " $(PROFILE_LIST) " in *" id "*) \
+		if docker volume inspect "$(PROJECT)_kb-id-pg-data" >/dev/null 2>&1; then \
+			echo "pacod-id's old database volume $(PROJECT)_kb-id-pg-data still exists: pacod-id now keeps"; \
+			echo "its data on pacod-postgres. Move it first (MIGRATIONS.md), then docker volume rm it."; \
+			exit 1; \
+		fi;; \
+	esac
 
 ##@ Lifecycle (services = PROFILES)
 
@@ -117,14 +160,14 @@ restart: down up ## Stop everything, then start the configured services
 ps: ## List containers and their status
 	$(DC_ALL) ps -a
 
-logs: ## Follow logs of one service — make logs [S=pipeline|ui|qdrant|postgres|id|gw]
+logs: ## Follow logs of one service — make logs [S=kb-pipeline|kb-ui|pacod-qdrant|pacod-postgres|pacod-id|pacod-gw]
 	$(DC_ALL) logs -f $(S)
 
-shell: ## Open a shell in a running service — make shell [S=pipeline|ui]
+shell: ## Open a shell in a running service — make shell [S=kb-pipeline|kb-ui]
 	$(DC_ALL) exec $(S) /bin/bash
 
-db-shell: ## Open psql in the running PostgreSQL container
-	docker exec -it kb-postgres psql -U $${KB_DATABASE_USER:-kb} -d $${KB_DATABASE_NAME:-kb}
+db-shell: ## Open psql in the running PostgreSQL container (pacod-postgres)
+	docker exec -it pacod-postgres psql -U $${KB_DATABASE_USER:-kb} -d $${KB_DATABASE_NAME:-kb}
 
 ##@ Build & upgrade
 
@@ -147,12 +190,12 @@ upgrade: update check-env network ## Upgrade: stop all, rebuild kb's images, pul
 	@echo "pacod-id and the dev gateway keep their images; make images FORCE=1 rebuilds them"
 
 upgrade-db: update ## Upgrade only PostgreSQL: pull its image and recreate the container
-	$(DC_ALL) pull postgres
-	$(DC_ALL) up -d --no-deps --force-recreate postgres
+	$(DC_ALL) pull pacod-postgres
+	$(DC_ALL) up -d --no-deps --force-recreate pacod-postgres
 
 upgrade-ui: update ## Upgrade only the UI: rebuild its image and recreate the container
-	$(DC_ALL) build --pull ui
-	$(DC_ALL) up -d --no-deps --force-recreate ui
+	$(DC_ALL) build --pull kb-ui
+	$(DC_ALL) up -d --no-deps --force-recreate kb-ui
 
 clean: ## Remove the kb-pipeline and kb-ui images
 	-docker rmi kb-pipeline kb-ui
@@ -230,7 +273,7 @@ eval: ## Multilingual retrieval eval with BGE-M3 on CPU — make eval [EVAL_ARGS
 	uv run python -m eval.run_eval --suite v2 --embedder bge-m3 --device cpu $(EVAL_ARGS)
 
 eval-docker: ## The same eval inside the pipeline image, CPU-capped — make eval-docker [CPUS=4]
-	docker run --rm --cpus $(CPUS) -e HF_HOME=/model-cache -v $(MODEL_CACHE):/model-cache \
+	docker run --rm --cpus $(CPUS) -e HF_HOME=/model-cache -v "$(MODEL_CACHE):/model-cache" \
 	  -v $(CURDIR)/eval:/app/eval kb-pipeline \
 	  python -m eval.run_eval --suite v2 --embedder bge-m3 --device cpu --threads $(CPUS) $(EVAL_ARGS)
 

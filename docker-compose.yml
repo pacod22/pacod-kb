@@ -1,21 +1,24 @@
-# pacod-kb: the pipeline API, the UI, Qdrant and PostgreSQL, plus — for a development or
-# self-contained install — pacod-id (sign-in) and a development AI gateway.
+# pacod-kb on the shared network pacod-net: the app file. It holds kb's own services, the
+# pipeline API and the UI; the shared components they use (pacod-postgres, pacod-db-init,
+# pacod-qdrant, pacod-id, pacod-gw, pacod-mailpit) come from docker-compose.standalone.yml in kb's
+# own stack, or from the full stack (pacod-demo), which loads this file and provides them once.
+# The naming convention is in pacod-demo/docs/NETWORK.md.
 #
-# Which services run is COMPOSE_PROFILES (in .env; `make up` infers it when unset):
-#   pipeline, ui         kb itself
-#   server, db           bundled Qdrant and PostgreSQL
-#   id, mailpit          bundled pacod-id with its PostgreSQL, and a mail catcher for its mails
-#   dev-gateway          pacod-gw-lite in front of pacod-gw's mock providers (nothing leaves the machine)
+#   make up      this file + docker-compose.standalone.yml, with the profiles in COMPOSE_PROFILES
+#
+# Both services always run (no profile). Every depends_on on a shared component carries
+# required: false, so this file works whichever stack provides it.
 #
 # Secrets have no defaults here — `make setup` generates them into .env — and every service gets an
 # explicit environment: the pipeline (which parses untrusted documents) never sees pacod-id's
 # secrets, the UI never sees the gateway key.
 #
-# Networks: agent-net (external) joins kb to other agents; kb-id carries the UI's calls to pacod-id,
-# kb-ai the pipeline's calls to the gateway. The pipeline shares no network with pacod-id.
+# Data: KB_ROOT and KB_MODEL_CACHE are bind mounts of host directories (/data/... by default, as on
+# a server). A value without a slash is a named volume instead (kb-data, kb-model-cache): macOS,
+# where /data cannot be shared, and the full stack use those.
 
 services:
-  pipeline:
+  kb-pipeline:
     build:
       context: .
       args:
@@ -27,11 +30,11 @@ services:
     restart: unless-stopped
     command: uvicorn pipeline.api:app --host 0.0.0.0 --port 8000 --workers 1
     volumes:
-      - ${KB_ROOT:-/data/kb}:/data/kb
-      - /data/model-cache:/model-cache
+      # KB_DATA names the mount source when KB_ROOT must stay a path (local `uv run` reads .env).
+      - ${KB_DATA:-${KB_ROOT:-/data/kb}}:/data/kb
+      - ${KB_MODEL_CACHE:-/data/model-cache}:/model-cache
     networks:
-      - agent-net
-      - kb-ai
+      - pacod-net
     environment:
       - KB_ROOT=/data/kb
       - KB_DROPZONE=${KB_DROPZONE:-}
@@ -43,10 +46,14 @@ services:
       - PIPELINE_API_SECRET=${PIPELINE_API_SECRET:-}
       # Vector store and embeddings
       - QDRANT_MODE=${QDRANT_MODE:-embedded}
-      - QDRANT_URL=${QDRANT_URL:-}
+      - QDRANT_URL=${QDRANT_URL:-http://pacod-qdrant:6333}
       - QDRANT_API_KEY=${QDRANT_API_KEY:-}
       - QDRANT_COLLECTION=${QDRANT_COLLECTION:-kb_chunks}
       - EMBEDDING_MODEL=${EMBEDDING_MODEL:-BAAI/bge-m3}
+      # The shared embeddings service (pacod-embeddings, e.g. http://pacod-embeddings:8080):
+      # blank = the model in this process. Only the tokenizer is loaded here then.
+      - EMBEDDINGS_URL=${EMBEDDINGS_URL:-}
+      - EMBEDDINGS_TIMEOUT_SECS=${EMBEDDINGS_TIMEOUT_SECS:-120}
       # Inference (docs/retrieval-eval.md): threads 0 = derived from the container's CPU quota
       - TORCH_NUM_THREADS=${TORCH_NUM_THREADS:-0}
       - EMBED_BATCH_TOKENS=${EMBED_BATCH_TOKENS:-1024}
@@ -56,7 +63,10 @@ services:
       - KEYWORD_PG_TIMEOUT_MS=${KEYWORD_PG_TIMEOUT_MS:-1500}
       # Second-stage reranker: off until measured on this CPU (docs/retrieval-eval.md).
       # bge-reranker-v2-m3 adds ~2.3 GB of RAM (fp32), gte-multilingual-reranker-base ~1.2 GB.
+      # RERANKER_URL (the embeddings service's /rerank, bge-reranker-v2-m3) loads nothing here.
       - RERANKER_ENABLED=${RERANKER_ENABLED:-false}
+      - RERANKER_URL=${RERANKER_URL:-}
+      - RERANKER_TIMEOUT_MS=${RERANKER_TIMEOUT_MS:-5000}
       - RERANKER_MODEL=${RERANKER_MODEL:-}
       - RERANKER_REVISION=${RERANKER_REVISION:-}
       - RERANKER_TRUST_REMOTE_CODE=${RERANKER_TRUST_REMOTE_CODE:-false}
@@ -74,12 +84,12 @@ services:
       - EMBED_REUSE=${EMBED_REUSE:-true}
       - EMBED_REUSE_UNTAGGED=${EMBED_REUSE_UNTAGGED:-false}
       - REBUILD_REUSE_MAX_POINTS=${REBUILD_REUSE_MAX_POINTS:-100000}
-      # Document store
+      # Document store (database: the role and database kb on pacod-postgres, platform/postgres/kb-db.sh)
       - KB_STORAGE_BACKEND=${KB_STORAGE_BACKEND:-filesystem}
-      - KB_DATABASE_HOST=${KB_DATABASE_HOST:-}
+      - KB_DATABASE_HOST=${KB_DATABASE_HOST:-pacod-postgres}
       - KB_DATABASE_PORT=${KB_DATABASE_PORT:-5432}
       - KB_DATABASE_NAME=${KB_DATABASE_NAME:-kb}
-      - KB_DATABASE_USER=${KB_DATABASE_USER:-}
+      - KB_DATABASE_USER=${KB_DATABASE_USER:-kb}
       - KB_DATABASE_PASSWORD=${KB_DATABASE_PASSWORD:-}
       # Ingest checks
       - CONTENT_SECURITY_ENABLED=${CONTENT_SECURITY_ENABLED:-true}
@@ -94,8 +104,8 @@ services:
       - OCR_SINGLE_ENGINE_CONFIDENCE=${OCR_SINGLE_ENGINE_CONFIDENCE:-0.8}
       # accurate | fast: TableFormer mode for PDF tables (fast trades accuracy for speed)
       - DOCLING_TABLE_MODE=${DOCLING_TABLE_MODE:-accurate}
-      # AI: every LLM call goes through the gateway (pacod-gw); blank URL or key = AI off.
-      - PACOD_GW_URL=${PACOD_GW_URL:-}
+      # AI: every LLM call goes through the gateway (pacod-gw); a blank key = AI off.
+      - PACOD_GW_URL=${PACOD_GW_URL:-http://pacod-gw:8080}
       - PACOD_GW_API_KEY=${PACOD_GW_API_KEY:-}
       - PACOD_GW_IDLE_TIMEOUT_SECS=${PACOD_GW_IDLE_TIMEOUT_SECS:-120}
       - LLM_CONVERTER_ENABLED=${LLM_CONVERTER_ENABLED:-true}
@@ -121,19 +131,20 @@ services:
       retries: 12
       start_period: 60s
     depends_on:
-      qdrant:
+      pacod-qdrant:
         condition: service_healthy
         required: false
-      postgres:
+      # The role and database kb exist once pacod-db-init has run (it waits for pacod-postgres).
+      pacod-db-init:
+        condition: service_completed_successfully
+        required: false
+      # No pacod-embeddings here: kb's own stack has none, and compose refuses a dependency on a
+      # service no loaded file defines. The full stack adds it where it sets EMBEDDINGS_URL.
+      pacod-gw:
         condition: service_healthy
         required: false
-      gw:
-        condition: service_healthy
-        required: false
-    profiles:
-      - pipeline
 
-  ui:
+  kb-ui:
     build:
       context: .
       dockerfile: Dockerfile.ui
@@ -143,253 +154,52 @@ services:
     # The UI never reads KB_ROOT (it goes through the pipeline API), so the
     # archive is not mounted here.
     volumes:
-      - kb_ui_data:/data/kb-ui
+      - kb-ui-data:/data/kb-ui
     networks:
-      - agent-net
-      - kb-id
+      - pacod-net
     ports:
-      # Loopback by default; a server behind a proxy, or a LAN install, sets UI_BIND.
+      # Loopback by default; a server behind a proxy, or a LAN install, sets UI_BIND. The full
+      # stack publishes nothing (its edge, pacod-caddy, serves platform/caddy/kb.caddy).
       - "${UI_BIND:-127.0.0.1}:${UI_PORT:-8080}:8080"
     environment:
       - QDRANT_MODE=${QDRANT_MODE:-embedded}
-      - QDRANT_URL=${QDRANT_URL:-}
+      - QDRANT_URL=${QDRANT_URL:-http://pacod-qdrant:6333}
       - QDRANT_API_KEY=${QDRANT_API_KEY:-}
+      # The Qdrant pages show and touch only collections with this prefix (or a kb project's):
+      # Qdrant may be shared with other products.
+      - KB_QDRANT_COLLECTION_PREFIX=${KB_QDRANT_COLLECTION_PREFIX:-kb_}
       - PIPELINE_API_URL=${PIPELINE_API_URL:-http://kb-pipeline:8000}
       - PIPELINE_API_SECRET=${PIPELINE_API_SECRET:-}
       - UI_SESSION_SECRET=${UI_SESSION_SECRET:-}
       - UI_SESSION_HTTPS_ONLY=${UI_SESSION_HTTPS_ONLY:-false}
       - UI_SESSION_MAX_AGE_SECS=${UI_SESSION_MAX_AGE_SECS:-43200}
       - UI_DB_PATH=${UI_DB_PATH:-/data/kb-ui/users.db}
+      # Proxies whose X-Forwarded-* the UI believes (behind pacod-caddy: its address, or *)
       - FORWARDED_ALLOW_IPS=${UI_FORWARDED_ALLOW_IPS:-127.0.0.1}
-      # Sign-in: pacod-id (the bundled one by default). The browser goes to the issuer; the UI
-      # calls the internal listener. KB_UI_ORIGIN is the UI's address as browsers use it.
+      # Sign-in: pacod-id. The browser goes to the issuer; the UI calls the internal listener.
+      # KB_UI_ORIGIN is the UI's address as browsers use it.
       - KB_UI_ORIGIN=${KB_UI_ORIGIN:-http://localhost:8080}
       - PACOD_ID_ISSUER=${KB_ID_ISSUER:-http://127.0.0.1:18070}
-      - PACOD_ID_INTERNAL_URL=${PACOD_ID_INTERNAL_URL:-http://id:8071}
+      - PACOD_ID_INTERNAL_URL=${PACOD_ID_INTERNAL_URL:-http://pacod-id:8071}
       - PACOD_ID_UI_CLIENT_ID=pacod-kb-ui
       - PACOD_ID_UI_SECRET=${KB_ID_UI_SECRET:-}
       - PACOD_ID_SERVICE_CLIENT_ID=pacod-kb-service
       - PACOD_ID_SERVICE_SECRET=${KB_ID_SERVICE_SECRET:-}
       - LOG_LEVEL=${LOG_LEVEL:-INFO}
     depends_on:
-      pipeline:
+      kb-pipeline:
         condition: service_healthy
         required: false
-      id:
+      pacod-id:
         condition: service_healthy
         required: false
-    profiles:
-      - ui
-
-  qdrant:
-    # Pin QDRANT_IMAGE_TAG to the version you run: Qdrant storage cannot be
-    # opened by an older server, so an unpinned "latest" pull is one-way.
-    image: qdrant/qdrant:${QDRANT_IMAGE_TAG:-latest}
-    container_name: kb-qdrant
-    profiles:
-      - server
-    volumes:
-      - /data/qdrant/storage:/qdrant/storage
-    # Loopback only: other containers reach Qdrant over agent-net.
-    ports:
-      - "127.0.0.1:6333:6333"
-      - "127.0.0.1:6334:6334"
-    healthcheck:
-      test: ["CMD-SHELL", "bash -c ':> /dev/tcp/127.0.0.1/6333' || exit 1"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 10s
-    networks:
-      - agent-net
-
-  postgres:
-    image: postgres:16-alpine
-    container_name: kb-postgres
-    profiles:
-      - db
-    environment:
-      - POSTGRES_DB=${KB_DATABASE_NAME:-kb}
-      - POSTGRES_USER=${KB_DATABASE_USER:-kb}
-      - POSTGRES_PASSWORD=${KB_DATABASE_PASSWORD:-kb}
-    volumes:
-      - /data/postgres:/var/lib/postgresql/data
-      - ./docker/postgres/init:/docker-entrypoint-initdb.d:ro
-    ports:
-      - "127.0.0.1:5432:5432"
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${KB_DATABASE_USER:-kb} -d ${KB_DATABASE_NAME:-kb}"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 10s
-    networks:
-      - agent-net
-
-  # ---- sign-in: pacod-id, its PostgreSQL, and a mail catcher (profiles id, mailpit) -------------
-  #
-  # pacod-id owns accounts, sessions and role bindings; the UI signs people in through it (OIDC)
-  # and reads their kb roles from its feed. Profile-gated services use :- defaults, never :?
-  # (compose would demand them with the profile off); `make check-env` checks what is needed.
-
-  id-postgres:
-    image: postgres:18.6-alpine3.24
-    container_name: kb-id-postgres
-    profiles: [id]
-    restart: unless-stopped
-    environment:
-      POSTGRES_PASSWORD: ${PID_PG_SUPERUSER_PASSWORD:-}
-      PID_DB_PASSWORD: ${PID_DB_PASSWORD:-}
-    volumes:
-      - kb-id-pg-data:/var/lib/postgresql
-      - ./docker/pacod-id/initdb:/docker-entrypoint-initdb.d:ro
-    networks:
-      - kb-id
-    healthcheck:
-      test: ["CMD", "pg_isready", "-U", "postgres", "-d", "pacod_id"]
-      interval: 2s
-      timeout: 3s
-      retries: 30
-
-  id:
-    # Built from pacod-id's own sources by `make images` (only when missing): a Rust build, slow the
-    # first time. Not pacod-id:dev: pacod-gw builds that tag from its vendored copy, without the kb
-    # brand.
-    image: ${PACOD_ID_IMAGE:-pacod-kb-id:dev}
-    container_name: kb-id
-    profiles: [id]
-    restart: unless-stopped
-    depends_on:
-      id-postgres:
-        condition: service_healthy
-      mailpit:
-        condition: service_started
-        required: false
-    environment:
-      PID_DATABASE_URL: postgres://pacod_id:${PID_DB_PASSWORD:-}@id-postgres:5432/pacod_id
-      PID_KEK: ${PID_KEK:-}
-      PID_TOKEN_PEPPER: ${PID_TOKEN_PEPPER:-}
-      KB_ID_UI_SECRET: ${KB_ID_UI_SECRET:-}
-      KB_ID_SERVICE_SECRET: ${KB_ID_SERVICE_SECRET:-}
-      # The issuer is the address browsers use, and pacod-id answers its sign-in pages only on that
-      # exact host and port. Development: the published loopback port below.
-      KB_ID_ISSUER: ${KB_ID_ISSUER:-http://127.0.0.1:18070}
-      KB_UI_ORIGIN: ${KB_UI_ORIGIN:-http://localhost:8080}
-      # Behind a proxy (production), name it so sign-in throttling sees people's addresses.
-      PID_TRUSTED_PROXIES: ${PID_TRUSTED_PROXIES:-}
-      # The first account, created once: an identity admin and kb admin.
-      PID_BOOTSTRAP_ADMIN_EMAIL: ${ID_ADMIN_EMAIL:-admin@pacod-kb.test}
-      PID_BOOTSTRAP_ADMIN_PASSWORD: ${ID_ADMIN_PASSWORD:-}
-      PID_BOOTSTRAP_ADMIN_REALM: kb
-      PID_BOOTSTRAP_ADMIN_ROLES: id.admin,kb.admin
-      # Mail: mailpit unless PID_SMTP_HOST names a relay (production must). TLS: starttls, tls or none.
-      PID_SMTP_HOST: ${PID_SMTP_HOST:-mailpit}
-      PID_SMTP_PORT: ${PID_SMTP_PORT:-1025}
-      PID_SMTP_TLS: ${PID_SMTP_TLS:-none}
-      PID_SMTP_USERNAME: ${PID_SMTP_USERNAME:-}
-      PID_SMTP_PASSWORD: ${PID_SMTP_PASSWORD:-}
-      PID_EMAIL_FROM_ADDRESS: ${ID_MAIL_FROM:-id@pacod-kb.test}
-      PID_EMAIL_FROM_NAME: pacod-kb
-      PID_LOG_FORMAT: text
-    volumes:
-      - ./docker/pacod-id/pacod-id.toml:/etc/pacod-id/pacod-id.toml:ro
-    read_only: true
-    tmpfs:
-      - /tmp:size=16m
-    ports:
-      # The public listener (sign-in pages, authorize, logout). The internal listener (8071) and
-      # metrics (9170) stay inside kb-id.
-      - "127.0.0.1:${KB_ID_PORT:-18070}:8070"
-    networks:
-      - kb-id
-    healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:9170/readyz"]
-      interval: 5s
-      timeout: 3s
-      retries: 30
-      start_period: 10s
-
-  # Every mail pacod-id sends (invitations, resets) ends here; none leaves the machine.
-  # Its page: http://127.0.0.1:${KB_MAILPIT_PORT:-18025}/
-  mailpit:
-    image: axllent/mailpit:v1.27
-    container_name: kb-mailpit
-    profiles: [mailpit]
-    restart: unless-stopped
-    ports:
-      - "127.0.0.1:${KB_MAILPIT_PORT:-18025}:8025"
-    networks:
-      - kb-id
-
-  # ---- AI: the development gateway (profile dev-gateway) -------------------------------------
-  #
-  # pacod-gw-lite in front of pacod-gw's mock providers: a chat answer is an echo of the last user
-  # message, a JSON-schema answer an instance of the schema, and nothing leaves the machine. The
-  # pipeline reaches it at http://gw:8080 with the key `make setup` wrote (PACOD_GW_API_KEY). Its
-  # models carry kb's default names, so the defaults work unchanged. A deployment drops the profile
-  # and points PACOD_GW_URL/PACOD_GW_API_KEY at a real gateway. Images: `make images`.
-  gw:
-    image: ${PACOD_GW_LITE_IMAGE:-pacod-gw-lite:dev}
-    container_name: kb-gw
-    profiles: [dev-gateway]
-    restart: unless-stopped
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: ["no-new-privileges:true"]
-    command: ["serve"]
-    environment:
-      PGW_LISTEN: 0.0.0.0:8080
-      PGW_LOG_FORMAT: text
-      PGW_EGRESS_ALLOW_PRIVATE: gw-mock
-      PGW_MAX_BODY_BYTES: "33554432"
-      PGW_PROVIDER_ANTHROPIC_KEY: dev-anthropic-key
-      PGW_PROVIDER_ANTHROPIC_BASE_URL: http://gw-mock:9000
-      PGW_PROVIDER_OPENAI_KEY: dev-openai-key
-      PGW_PROVIDER_OPENAI_BASE_URL: http://gw-mock:9000/v1
-      PGW_MODEL_OPUS: anthropic/claude-opus-5-5
-      PGW_MODEL_OPUS_PRICE: input=5,output=25
-      PGW_MODEL_HAIKU: anthropic/claude-haiku-4-5
-      PGW_MODEL_HAIKU_PRICE: input=1,output=5
-      PGW_MODEL_GPT: openai/gpt-dev
-      PGW_MODEL_GPT_PRICE: input=1.25,output=10
-      PGW_CLIENT_KB_KEY: ${PACOD_GW_API_KEY:-}
-    depends_on:
-      gw-mock:
-        condition: service_healthy
-    networks:
-      - kb-ai
-    healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:8080/readyz"]
-      interval: 5s
-      timeout: 3s
-      retries: 20
-      start_period: 5s
-
-  gw-mock:
-    image: ${PACOD_GW_MOCK_IMAGE:-pacod-gw-mock:dev}
-    container_name: kb-gw-mock
-    profiles: [dev-gateway]
-    restart: unless-stopped
-    read_only: true
-    cap_drop: [ALL]
-    security_opt: ["no-new-privileges:true"]
-    healthcheck:
-      test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:9000/healthz"]
-      interval: 5s
-      timeout: 3s
-      retries: 10
-      start_period: 20s
-    networks:
-      - kb-ai
 
 volumes:
-  kb_ui_data:
-  kb-id-pg-data:
+  kb-ui-data:
+  # Used only when KB_DATA / KB_ROOT or KB_MODEL_CACHE name them instead of a host directory.
+  kb-data:
+  kb-model-cache:
 
 networks:
-  agent-net:
-    name: agent-net
+  pacod-net:
     external: true
-  # Plain bridges: an internal network could neither publish ports nor reach a provider.
-  kb-id: {}
-  kb-ai: {}

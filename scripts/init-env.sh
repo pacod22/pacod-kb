@@ -6,12 +6,18 @@
 # value is ever printed.
 #
 # It refuses to invent a secret that data already depends on, and writes nothing then: the kb
-# database password once /data/postgres holds data (PostgreSQL took it on its first start), and
-# pacod-id's while its database volume exists (its role was created with them, and what it
-# stored is sealed under PID_KEK).
+# database password once pacod-postgres's data (KB_POSTGRES_DATA: /data/postgres, or a named
+# volume) exists (PostgreSQL took it on its first start; it is the superuser's), and pacod-id's
+# sealing secrets while pacod-id's data may exist: on pacod-postgres, or in the volume of its
+# own PostgreSQL from before the shared network (what it stored is sealed under PID_KEK).
+# KB_SETUP_NEW_ID_SECRETS=1 generates pacod-id's anyway, for a PostgreSQL pacod-id never used.
 #
-# Which secrets: always the pipeline's and the UI's; pacod-id's when the id profile runs; the
-# development gateway's key when dev-gateway runs (COMPOSE_PROFILES, from the environment or .env).
+# Which secrets: always the pipeline's and the UI's and the kb database password; pacod-id's when
+# the id profile runs; the development gateway's key when dev-gateway runs (COMPOSE_PROFILES,
+# from the environment or .env).
+#
+# On macOS a new .env keeps its data in named volumes (KB_DATA, KB_MODEL_CACHE, KB_QDRANT_DATA,
+# KB_POSTGRES_DATA): Docker Desktop cannot share /data.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 
@@ -23,6 +29,16 @@ if [ ! -f .env ]; then
   umask 077
   cp .env.example .env
   new_file=1
+  if [ "$(uname -s)" = Darwin ]; then
+    for pair in KB_DATA=kb-data KB_MODEL_CACHE=kb-model-cache KB_QDRANT_DATA=pacod-qdrant-data \
+      KB_POSTGRES_DATA=pacod-postgres-data; do
+      key=${pair%%=*}
+      awk -v k="$key" -v v="${pair#*=}" 'index($0, k "=") == 1 { print k "=" v; next } { print }' \
+        .env > .env.tmp && mv .env.tmp .env
+    done
+    chmod 600 .env
+    echo "setup: macOS -- data in Docker named volumes (KB_DATA, KB_MODEL_CACHE, KB_QDRANT_DATA, KB_POSTGRES_DATA)"
+  fi
 fi
 
 # The last value KEY is given in .env, as written ("" when blank or absent).
@@ -49,24 +65,36 @@ has_profile() { case ",$profiles," in *,"$1",*) return 0 ;; *) return 1 ;; esac;
 
 # ---- what data exists ----------------------------------------------------------------------------
 project=${COMPOSE_PROJECT_NAME:-$(basename "$PWD" | tr '[:upper:]' '[:lower:]' | tr -cd 'a-z0-9_-')}
-id_data=
-if docker info >/dev/null 2>&1; then
-  if docker volume inspect "${project}_kb-id-pg-data" >/dev/null 2>&1; then
-    id_data="volume ${project}_kb-id-pg-data"
-  fi
-fi
+have_docker=
+docker info >/dev/null 2>&1 && have_docker=1
+pg_source=$(value_of KB_POSTGRES_DATA)
+pg_source=${pg_source:-/data/postgres}
 pg_data=
-if [ -d /data/postgres ] && [ -n "$(ls -A /data/postgres 2>/dev/null)" ]; then
-  pg_data="the folder /data/postgres"
+case "$pg_source" in
+  */*)
+    if [ -d "$pg_source" ] && [ -n "$(ls -A "$pg_source" 2>/dev/null)" ]; then
+      pg_data="the folder $pg_source"
+    fi ;;
+  *)
+    if [ -n "$have_docker" ] && docker volume inspect "${project}_${pg_source}" >/dev/null 2>&1; then
+      pg_data="volume ${project}_${pg_source}"
+    fi ;;
+esac
+id_data=
+if [ -n "$have_docker" ] && docker volume inspect "${project}_kb-id-pg-data" >/dev/null 2>&1; then
+  id_data="volume ${project}_kb-id-pg-data"
+elif [ -n "$pg_data" ] && [ "${KB_SETUP_NEW_ID_SECRETS:-}" != 1 ]; then
+  id_data="pacod-postgres's data, $pg_data"
 fi
 
 # ---- the secrets this machine lacks ----------------------------------------------------------------
 # KEY:kind:guard -- guard names the data the value is bound to once it exists.
 SECRETS="PIPELINE_API_SECRET:hex24: UI_SESSION_SECRET:hex32: KB_DATABASE_PASSWORD:hex16:pg"
 if has_profile id; then
-  SECRETS="$SECRETS PID_PG_SUPERUSER_PASSWORD:hex16:id PID_DB_PASSWORD:hex16:id
-  PID_KEK:b64:id PID_TOKEN_PEPPER:b64:id KB_ID_UI_SECRET:hex32:id KB_ID_SERVICE_SECRET:hex32:id
-  ID_ADMIN_PASSWORD:password:id"
+  # id-db.sh resets its role's password and pacod-id reads the client secrets at every
+  # start: only the sealing secrets and the first admin's password are bound to its data.
+  SECRETS="$SECRETS PID_DB_PASSWORD:hex16: PID_KEK:b64:id PID_TOKEN_PEPPER:b64:id
+  KB_ID_UI_SECRET:hex32: KB_ID_SERVICE_SECRET:hex32: ID_ADMIN_PASSWORD:password:id"
 fi
 if has_profile dev-gateway; then
   SECRETS="$SECRETS PACOD_GW_API_KEY:gw:"
@@ -93,8 +121,9 @@ if [ ${#blocked[@]} -gt 0 ]; then
   printf '  %s\n' "${blocked[@]}" >&2
   cat >&2 <<END
 A new value would not match it: PostgreSQL keeps the password of its first start, and pacod-id's
-database and sealed data the values they were created with. Put the old values back into .env
-(from a backup of it). Nothing was written.
+sealed data the values it was created with. Put the old values back into .env (from a backup of
+it). If pacod-id never ran on this PostgreSQL: KB_SETUP_NEW_ID_SECRETS=1 make setup. Nothing was
+written.
 END
   [ -z "$new_file" ] || rm -f .env
   exit 1

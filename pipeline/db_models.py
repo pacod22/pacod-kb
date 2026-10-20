@@ -7,7 +7,7 @@ Tables:
 
 from __future__ import annotations
 
-from sqlalchemy import Float, ForeignKey, Integer, LargeBinary, String, Text
+from sqlalchemy import Float, ForeignKey, Index, Integer, LargeBinary, String, Text
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 
@@ -89,6 +89,11 @@ class KbJob(Base):
     result_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     progress_json: Mapped[str | None] = mapped_column(Text, nullable=True)
     error: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
+# The Jobs page lists the newest jobs first. platform/postgres/kb/02-migrate-kb-jobs-index.sql
+# adds the same index to databases whose kb_jobs predates it (create_all skips existing tables).
+Index("ix_kb_jobs_created_at_status", KbJob.created_at.desc(), KbJob.status)
 
 
 class AppSetting(Base):

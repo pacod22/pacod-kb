@@ -2625,19 +2625,19 @@
      "parameters": [
       {
        "in": "path",
-       "name": "collection",
+       "name": "point_id",
        "required": true,
        "schema": {
-        "title": "Collection",
+        "title": "Point Id",
         "type": "string"
        }
       },
       {
        "in": "path",
-       "name": "point_id",
+       "name": "collection",
        "required": true,
        "schema": {
-        "title": "Point Id",
+        "title": "Collection",
         "type": "string"
        }
       }
@@ -2671,19 +2671,19 @@
      "parameters": [
       {
        "in": "path",
-       "name": "collection",
+       "name": "point_id",
        "required": true,
        "schema": {
-        "title": "Collection",
+        "title": "Point Id",
         "type": "string"
        }
       },
       {
        "in": "path",
-       "name": "point_id",
+       "name": "collection",
        "required": true,
        "schema": {
-        "title": "Point Id",
+        "title": "Collection",
         "type": "string"
        }
       }
@@ -2905,19 +2905,19 @@
      "parameters": [
       {
        "in": "path",
-       "name": "collection",
+       "name": "name",
        "required": true,
        "schema": {
-        "title": "Collection",
+        "title": "Name",
         "type": "string"
        }
       },
       {
        "in": "path",
-       "name": "name",
+       "name": "collection",
        "required": true,
        "schema": {
-        "title": "Name",
+        "title": "Collection",
         "type": "string"
        }
       }
@@ -2953,19 +2953,19 @@
      "parameters": [
       {
        "in": "path",
-       "name": "collection",
+       "name": "name",
        "required": true,
        "schema": {
-        "title": "Collection",
+        "title": "Name",
         "type": "string"
        }
       },
       {
        "in": "path",
-       "name": "name",
+       "name": "collection",
        "required": true,
        "schema": {
-        "title": "Name",
+        "title": "Collection",
         "type": "string"
        }
       }

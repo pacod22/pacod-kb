@@ -11,9 +11,19 @@
 -- This composite index allows the database optimizer to satisfy both the
 -- ORDER BY and any future filtering on status in a single index scan.
 --
+-- kb_jobs is created by the pipeline (SQLAlchemy create_all, with this index:
+-- pipeline/db_models.py), so on a new database the table does not exist yet
+-- when platform/postgres/kb-db.sh first runs: then this does nothing, and the
+-- next run adds the index to a database whose table predates it.
+--
 -- Applied: June 2026
 -- Status: Safe to apply to existing databases (idempotent)
 
-CREATE INDEX IF NOT EXISTS ix_kb_jobs_created_at_status
-    ON kb_jobs (created_at DESC, status);
-
+DO $$
+BEGIN
+    IF to_regclass('kb_jobs') IS NOT NULL THEN
+        CREATE INDEX IF NOT EXISTS ix_kb_jobs_created_at_status
+            ON kb_jobs (created_at DESC, status);
+    END IF;
+END
+$$;

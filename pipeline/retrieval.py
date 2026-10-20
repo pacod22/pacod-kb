@@ -136,7 +136,7 @@ def search(
         fetch_k *= 3
 
     t0 = time.perf_counter()
-    # encode_query (BgeM3Embedder) overtakes waiting ingest batches and is cached.
+    # encode_query (both pipeline embedders) is cached; in process it overtakes ingest batches.
     encode_query = getattr(embedder, "encode_query", None)
     query_vector = encode_query(query) if encode_query is not None else embedder.encode([query])[0]
     t1 = time.perf_counter()

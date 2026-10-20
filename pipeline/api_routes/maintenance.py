@@ -30,7 +30,7 @@ from pipeline.config import Config
 from pipeline.document_store import (
     DocumentStore,
 )
-from pipeline.indexer import BgeM3Embedder, make_fts_db
+from pipeline.indexer import PipelineEmbedder, make_fts_db
 from pipeline.vectorstore import QdrantVectorStore
 
 logger = logging.getLogger(__name__)
@@ -46,7 +46,7 @@ def _run_reindex(
     job_id: str,
     doc_id: str,
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
 ) -> None:
@@ -122,7 +122,7 @@ def reindex(
 def _run_rebuild(
     job_id: str,
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
     project: str | None = None,
@@ -225,7 +225,7 @@ def _run_watch(
     job_id: str,
     watch_file: str | None,
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
     project: str | None = None,
@@ -294,7 +294,7 @@ def watch(
 def _run_dropzone_scan(
     job_id: str,
     config: Config,
-    embedder: BgeM3Embedder,
+    embedder: PipelineEmbedder,
     vector_store: QdrantVectorStore,
     store: DocumentStore,
     project: str | None = None,

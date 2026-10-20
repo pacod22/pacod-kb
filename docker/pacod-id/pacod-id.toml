@@ -6,7 +6,7 @@
 #
 # Browser endpoints (sign-in, authorize, logout) answer only when the Host is the issuer's own, so
 # the issuer is the address people's browsers use. The UI calls the token, key, internal and admin
-# endpoints on the internal listener instead (http://id:8071), never through the issuer.
+# endpoints on the internal listener instead (http://pacod-id:8071), never through the issuer.
 
 [[realm]]
 name = "kb"

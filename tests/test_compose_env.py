@@ -1,4 +1,8 @@
-"""docker-compose.yml gives each service its own environment, and nothing else."""
+"""The compose files: each service its own environment and nothing else, on pacod-net alone.
+
+docker-compose.yml is the app file (kb-pipeline, kb-ui), docker-compose.standalone.yml kb's own
+copies of the shared components (pacod-demo/docs/NETWORK.md).
+"""
 
 from __future__ import annotations
 
@@ -10,8 +14,12 @@ from typing import Any
 import yaml
 
 _ROOT = Path(__file__).parent.parent
-_COMPOSE = yaml.safe_load((_ROOT / "docker-compose.yml").read_text(encoding="utf-8"))
-_SERVICES: dict[str, Any] = _COMPOSE["services"]
+_FILES = ("docker-compose.yml", "docker-compose.standalone.yml")
+_COMPOSE = {name: yaml.safe_load((_ROOT / name).read_text(encoding="utf-8")) for name in _FILES}
+_APP: dict[str, Any] = _COMPOSE["docker-compose.yml"]["services"]
+_SERVICES: dict[str, Any] = {
+    name: service for doc in _COMPOSE.values() for name, service in doc["services"].items()
+}
 
 # Read by the pipeline only to warn that they are ignored (config.LEGACY_ENV); never passed.
 _LEGACY = {
@@ -62,34 +70,58 @@ def test_no_service_receives_the_whole_env_file() -> None:
 
 
 def test_the_pipeline_receives_every_variable_it_reads() -> None:
-    missing = _variables_read("pipeline") - _env_names("pipeline") - _LEGACY
+    missing = _variables_read("pipeline") - _env_names("kb-pipeline") - _LEGACY
     assert not missing, sorted(missing)
 
 
 def test_the_pipeline_never_sees_identity_secrets() -> None:
-    names = _env_names("pipeline")
+    names = _env_names("kb-pipeline")
     assert not {n for n in names if n.startswith(("PID_", "KB_ID_", "ID_ADMIN"))}
     assert not names & _LEGACY
 
 
 def test_the_ui_never_sees_the_gateway_or_identity_server_secrets() -> None:
-    names = _env_names("ui")
+    names = _env_names("kb-ui")
     assert "PACOD_GW_API_KEY" not in names
     assert not {n for n in names if n.startswith(("PGW_", "PID_"))}
 
 
 def test_profile_gated_services_never_demand_variables() -> None:
     # ${VAR:?} is interpolated even with the service's profile off; `make check-env` checks.
-    text = (_ROOT / "docker-compose.yml").read_text(encoding="utf-8")
-    assert not re.search(r"\$\{[A-Z0-9_]+:?\?", text)
+    for name in _FILES:
+        text = (_ROOT / name).read_text(encoding="utf-8")
+        assert not re.search(r"\$\{[A-Z0-9_]+:?\?", text), name
 
 
-def test_pacod_id_reaches_no_pipeline_network() -> None:
-    nets = {name: set(_SERVICES[name].get("networks", [])) for name in _SERVICES}
-    assert not nets["pipeline"] & nets["id"]
-    assert not nets["pipeline"] & nets["id-postgres"]
-    assert nets["ui"] & nets["id"]
-    assert nets["pipeline"] & nets["gw"]
+def test_every_service_joins_pacod_net_alone() -> None:
+    for doc in _COMPOSE.values():
+        assert doc["networks"] == {"pacod-net": {"external": True}}
+    for name, service in _SERVICES.items():
+        assert service["networks"] == ["pacod-net"], name
+        assert service["container_name"] == name
+
+
+def test_the_app_file_holds_kb_alone_and_runs_without_a_profile() -> None:
+    assert set(_APP) == {"kb-pipeline", "kb-ui"}
+    for name, service in _APP.items():
+        assert "profiles" not in service, name
+        # Shared components come from either stack: never a hard dependency.
+        for dep, spec in (service.get("depends_on") or {}).items():
+            if dep not in _APP:
+                assert spec.get("required") is False, (name, dep)
+
+
+def test_shared_components_carry_their_shared_names() -> None:
+    standalone = set(_COMPOSE["docker-compose.standalone.yml"]["services"])
+    assert standalone == {
+        "pacod-qdrant",
+        "pacod-postgres",
+        "pacod-db-init",
+        "pacod-id",
+        "pacod-mailpit",
+        "pacod-gw",
+        "gw-mock",
+    }
 
 
 def test_env_example_has_no_comment_compose_would_read_as_a_value() -> None:

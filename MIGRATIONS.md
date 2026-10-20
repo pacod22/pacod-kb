@@ -7,9 +7,71 @@ first public release, and later releases add theirs at the top. Version history 
 
 ## Overview
 
-Migrations are applied automatically when the bundled PostgreSQL container initializes a fresh data directory (init scripts run in lexicographic order from `docker/postgres/init/`). When upgrading an existing database, you can apply migrations manually by connecting to PostgreSQL and running the scripts in order.
+Migrations are applied automatically at every start of the bundled stack: `pacod-db-init` runs `platform/postgres/kb-db.sh`, which applies the scripts in `platform/postgres/kb/` in lexicographic order (each is idempotent). For an external database, apply them manually by connecting to PostgreSQL and running the scripts in order.
 
 For SQLAlchemy-backed tables (tables defined in `pipeline/db_models.py`), the pipeline always calls `Base.metadata.create_all()` on startup, so table creation is automatic. Migrations here focus on **index optimization** and **schema improvements** that require manual application to existing deployments.
+
+---
+
+## Upgrade notes: October 2026 — the shared network pacod-net
+
+kb now follows the pacod network convention (pacod-demo/docs/NETWORK.md), so it can run on its
+own or as part of the full stack. Pull, then:
+
+1. **Network and names.** Every container joins the external network `pacod-net` only (`make
+   network`, run by `make up` and `make setup`); `agent-net`, `kb-id` and `kb-ai` are gone. The
+   services are renamed: `pipeline` → `kb-pipeline`, `ui` → `kb-ui`, `qdrant` (`kb-qdrant`) →
+   `pacod-qdrant`, `postgres` (`kb-postgres`) → `pacod-postgres`, `id` (`kb-id`) → `pacod-id`,
+   `mailpit` → `pacod-mailpit`, `gw` → `pacod-gw`, `kb-gw-mock` → `gw-mock`; `id-postgres` is
+   gone. `make logs S=…` / `make shell S=…` take the new names. Anything outside kb that reached
+   `kb-qdrant` or `kb-postgres` over `agent-net` must use `pacod-qdrant` / `pacod-postgres` on
+   `pacod-net`.
+2. **`.env`.** `make check-env` (run by `make up`) stops on the old hosts. Change them:
+   `KB_DATABASE_HOST=pacod-postgres`, `QDRANT_URL=http://pacod-qdrant:6333`,
+   `PACOD_GW_URL=http://pacod-gw:8080`, `PID_SMTP_HOST=pacod-mailpit` (or blank),
+   `PACOD_ID_INTERNAL_URL=http://pacod-id:8071` (or blank). `COMPOSE_PROFILES` no longer needs
+   `pipeline` and `ui` (kb itself always runs; the names are ignored). `PID_PG_SUPERUSER_PASSWORD`
+   is no longer read.
+3. **Compose files.** `docker-compose.yml` holds kb-pipeline and kb-ui only; kb's copies of the
+   shared components are in `docker-compose.standalone.yml`. `make` loads both; a hand-run
+   compose needs `-f docker-compose.yml -f docker-compose.standalone.yml`.
+4. **Qdrant image.** `QDRANT_IMAGE_TAG` now defaults to `v1.19.2` instead of `latest`. If your
+   `.env` says `latest`, pin it to the version your server already runs (`curl
+   127.0.0.1:6333`): storage cannot be opened by an older server.
+5. **PostgreSQL** keeps version 16 and its data (`KB_POSTGRES_DATA`, default `/data/postgres`):
+   no migration. Its init scripts moved from `docker/postgres/init/` to `platform/postgres/kb/`
+   and run at every start (`pacod-db-init`), no longer only on a fresh data directory.
+6. **pacod-id's data moves.** The bundled pacod-id now keeps its database (`pacod_id`, role
+   `pacod_id`) on `pacod-postgres` next to kb's, not in its own PostgreSQL 18 (volume
+   `<project>_kb-id-pg-data`, project = the checkout's directory name, `pacod-kb` by default).
+   `make check-env` stops while that volume exists, because pacod-id would otherwise start empty
+   (no accounts, no roles). Move the data once, before `make up`:
+   ```sh
+   # 1. Dump from the old PostgreSQL 18 (plain SQL: the target is version 16).
+   docker run -d --name kb-id-old -v pacod-kb_kb-id-pg-data:/var/lib/postgresql \
+     -e POSTGRES_PASSWORD=unused postgres:18.6-alpine3.24
+   until docker exec kb-id-old pg_isready -U postgres -d pacod_id; do sleep 1; done
+   docker exec kb-id-old pg_dump -U postgres --no-owner --no-privileges -d pacod_id > pacod_id.sql
+   docker rm -f kb-id-old
+   # 2. Start pacod-postgres and pacod-db-init (creates the empty database pacod_id and its role).
+   docker compose -f docker-compose.yml -f docker-compose.standalone.yml --profile db \
+     up -d pacod-db-init
+   # 3. Restore as pacod_id. A PostgreSQL 18 dump may set parameters 16 does not know
+   #    (transaction_timeout): those lines fail harmlessly; nothing else may.
+   docker exec -i pacod-postgres psql -U pacod_id -d pacod_id < pacod_id.sql
+   # 4. Then: docker volume rm pacod-kb_kb-id-pg-data; make up
+   ```
+   Keep `PID_KEK` and `PID_TOKEN_PEPPER` in `.env` unchanged: they unseal the restored data.
+   Without the bundled pacod-id (no `id` profile) there is nothing to move.
+7. **macOS.** The `/data/...` bind mounts are now variables (`KB_DATA`, falling back to
+   `KB_ROOT`, `KB_MODEL_CACHE`, `KB_QDRANT_DATA`, `KB_POSTGRES_DATA`), with the same defaults. A
+   value without a slash is a named volume; `make setup` writes those on macOS for a new `.env`.
+
+New, optional: `EMBEDDINGS_URL` (the shared embeddings service instead of the in-process model;
+the same BGE-M3 vectors, no re-embedding), `RERANKER_URL` (its `/rerank` instead of a local
+cross-encoder), `KB_QDRANT_COLLECTION_PREFIX` (default `kb_`: the UI's Qdrant pages show only
+those collections and kb projects' own). New collections created from the Qdrant pages must carry
+the prefix.
 
 ---
 
@@ -159,7 +221,7 @@ What changes:
 
 ## Migration: kb_jobs(created_at, status) index
 
-**File:** `docker/postgres/init/02-migrate-kb-jobs-index.sql`  
+**File:** `platform/postgres/kb/02-migrate-kb-jobs-index.sql`  
 **Applied:** June 2026  
 **Impact:** Performance improvement for Jobs page with large job history  
 **Mandatory:** No (optional optimization)
@@ -189,7 +251,7 @@ A composite index allows the database to satisfy both the `ORDER BY` and any sta
 
 ### How to apply
 
-**For fresh deployments:** No action needed. The bundled PostgreSQL init script applies this automatically on first startup.
+**For fresh deployments:** No action needed. The pipeline creates the index with `kb_jobs` (`pipeline/db_models.py`), and `pacod-db-init` applies the script at every start (it does nothing until the table exists).
 
 **For existing databases:**
 
@@ -198,7 +260,7 @@ A composite index allows the database to satisfy both the `ORDER BY` and any sta
 psql -h db.example.com -U kb_user -d kb
 
 # Run the migration
-\i /path/to/docker/postgres/init/02-migrate-kb-jobs-index.sql
+\i /path/to/platform/postgres/kb/02-migrate-kb-jobs-index.sql
 
 # Or apply it directly:
 CREATE INDEX IF NOT EXISTS ix_kb_jobs_created_at_status
@@ -218,7 +280,7 @@ The `IF NOT EXISTS` clause makes this safe to re-apply; it will be a no-op on su
 ## Notes for operators
 
 - All migrations use `IF NOT EXISTS` to remain idempotent and safe to re-apply.
-- The bundled PostgreSQL container applies all `.sql` scripts in `docker/postgres/init/` in lexicographic order on first initialization only.
+- The bundled stack applies all `.sql` scripts in `platform/postgres/kb/` in lexicographic order at every start (`pacod-db-init`, `platform/postgres/kb-db.sh`), as the role `kb`.
 - Existing databases must apply migrations manually or by connecting and running the scripts.
 - For production systems, test migrations in a staging environment first.
 - Monitor index bloat over time with:

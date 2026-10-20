@@ -44,7 +44,8 @@ pacod-kb/
 ├── web/                 # the UI (:8080): sign-in through pacod-id, sessions, members, the pages
 ├── eval/                # retrieval evaluation: multilingual corpus, golden queries, latency
 ├── tests/               # pytest; a fake pacod-id (tests/fake_id.py) for the UI
-├── docker/              # pacod-id's realm and clients, initdb scripts, the UI entrypoint
+├── docker/              # the bundled pacod-id's realm, clients and database script, the UI entrypoint
+├── platform/            # kb's share of the shared configuration: postgres/ (kb-db.sh + SQL), caddy/
 ├── vendor/wheels/       # pacod-id's Python package, vendored (scripts/vendor-pacod-id.sh)
 ├── scripts/             # make setup's secret generator, the vendoring script
 └── docs/
@@ -55,12 +56,29 @@ pacod-kb/
 Prerequisites: Docker, and checkouts of pacod-id and pacod-gw next to this one.
 
 ```sh
-make setup     # .env with generated secrets (none printed)
+make setup     # .env with generated secrets (none printed); on macOS, data in Docker volumes
 make up        # everything, with pacod-id and a development gateway; slow the first time
 open http://localhost:8080/kb    # sign in as ID_ADMIN_EMAIL / ID_ADMIN_PASSWORD (grep ID_ADMIN_ .env)
 ```
 
 Production — a real gateway, pacod-id behind TLS — is [docs/runbook.md](docs/runbook.md), section 2.
+
+## Shared network
+
+kb follows the pacod network and naming convention,
+[pacod-demo/docs/NETWORK.md](../pacod-demo/docs/NETWORK.md): every container joins the external
+Docker network `pacod-net`, kb's own services are `kb-pipeline` and `kb-ui`, and the components
+other products share keep their shared names (`pacod-qdrant`, `pacod-postgres`, `pacod-id`,
+`pacod-gw`, `pacod-mailpit`).
+
+- `docker-compose.yml` is the app file: kb-pipeline and kb-ui only.
+- `docker-compose.standalone.yml` holds kb's own copies of the shared components, switched by
+  `COMPOSE_PROFILES`. `make up` loads both files.
+- The full stack (pacod-demo) loads only the app file and runs every shared component once. kb
+  then keeps its `kb_*` collections on the shared Qdrant (the UI's Qdrant pages show nothing
+  else), its database `kb` on the shared PostgreSQL (`platform/postgres/kb-db.sh`), and can embed
+  through the shared embeddings service (`EMBEDDINGS_URL`). Its edge serves the UI through
+  `platform/caddy/kb.caddy` (`KB_SITE`).
 
 ## Development
 

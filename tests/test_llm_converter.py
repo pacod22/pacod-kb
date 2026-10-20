@@ -364,12 +364,12 @@ class TestConfigFields:
         config = self._load(
             monkeypatch,
             tmp_path,
-            PACOD_GW_URL="http://gw:8080/",
+            PACOD_GW_URL="http://pacod-gw:8080/",
             PACOD_GW_API_KEY="pgw_kb_x",
             LLM_CONVERTER_MODEL="@fast",
             LLM_CONVERTER_MAX_TOKENS="16384",
         )
-        assert (config.gateway_url, config.gateway_api_key) == ("http://gw:8080", "pgw_kb_x")
+        assert (config.gateway_url, config.gateway_api_key) == ("http://pacod-gw:8080", "pgw_kb_x")
         assert config.llm_converter_model == "@fast"
         assert config.llm_converter_max_tokens == 16384
 

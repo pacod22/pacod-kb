@@ -3,11 +3,11 @@
 from __future__ import annotations
 
 import os
-from typing import Any
+from typing import Annotated, Any
 from urllib.parse import quote
 
 import httpx
-from fastapi import APIRouter, Depends, File, Form, Query, Request, UploadFile
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, Request, UploadFile
 from fastapi.responses import HTMLResponse, StreamingResponse
 from markupsafe import escape
 
@@ -42,11 +42,75 @@ def _back_link(collection: str) -> str:
 
 
 def _qdrant_base_url() -> str:
-    return os.environ.get("QDRANT_URL", "http://kb-qdrant:6333").rstrip("/")
+    return os.environ.get("QDRANT_URL", "http://pacod-qdrant:6333").rstrip("/")
 
 
 def _qdrant_api_key() -> str | None:
     return os.environ.get("QDRANT_API_KEY") or None
+
+
+# ---------------------------------------------------------------------------
+# Which collections are kb's
+# ---------------------------------------------------------------------------
+#
+# Qdrant may be shared with other products (pacod-qdrant on pacod-net: pacod-ap keeps its
+# pacod_* collections there). These pages show and touch only kb's: names that start with
+# KB_QDRANT_COLLECTION_PREFIX (default "kb_"; kb's default collection is kb_chunks), and the
+# collections kb's projects own, whose names may predate the prefix. Anything else is a 404.
+# An empty prefix allows every collection (a Qdrant of kb's own).
+
+
+def _collection_prefix() -> str:
+    return os.environ.get("KB_QDRANT_COLLECTION_PREFIX", "kb_").strip()
+
+
+async def _project_collections(pipeline_client: httpx.AsyncClient) -> set[str]:
+    """The collections kb's projects own; empty when the pipeline cannot say."""
+    try:
+        resp = await pipeline_client.get("/projects")
+        resp.raise_for_status()
+        projects = resp.json().get("projects", [])
+        return {str(p.get("collection_name") or "") for p in projects} - {""}
+    except (httpx.HTTPError, ValueError, AttributeError):
+        return set()
+
+
+def _has_prefix(name: str) -> bool:
+    prefix = _collection_prefix()
+    return not prefix or name.startswith(prefix)
+
+
+async def kb_collection(collection: str, pipeline_client: PipelineClientDep) -> str:
+    """The path's collection, if it is kb's (else 404, as if it did not exist)."""
+    if _has_prefix(collection) or collection in await _project_collections(pipeline_client):
+        return collection
+    raise HTTPException(status_code=404, detail="Collection not found")
+
+
+KbCollection = Annotated[str, Depends(kb_collection)]
+
+
+async def _owned_collections(pipeline_client: PipelineClientDep) -> set[str]:
+    return await _project_collections(pipeline_client)
+
+
+# Awaited in the event loop, so a sync route (Qdrant's client blocks) still runs in the threadpool.
+OwnedCollections = Annotated[set[str], Depends(_owned_collections)]
+
+
+def _prefix_error(name: str) -> HTMLResponse | None:
+    """A 400 alert when a new collection name lacks kb's prefix (it would be hidden here)."""
+    if _has_prefix(name):
+        return None
+    return HTMLResponse(
+        _alert(
+            "danger",
+            f"Collection names start with <strong>{escape(_collection_prefix())}</strong>: "
+            "the Qdrant server may be shared, and this page shows only kb's collections.",
+        )
+        + _BACK_TO_COLLECTIONS,
+        status_code=400,
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -55,10 +119,14 @@ def _qdrant_api_key() -> str | None:
 
 
 @router.get("/", response_class=HTMLResponse)
-def list_collections(request: Request, client: QdrantClientDep) -> HTMLResponse:
+def list_collections(
+    request: Request, client: QdrantClientDep, owned: OwnedCollections
+) -> HTMLResponse:
     colls = client.get_collections().collections
     items: list[dict[str, Any]] = []
     for c in colls:
+        if not (_has_prefix(c.name) or c.name in owned):
+            continue
         try:
             info = client.get_collection(c.name)
             points = info.points_count or 0
@@ -83,6 +151,8 @@ def create_collection(
 ) -> HTMLResponse:
     from qdrant_client.models import Distance, VectorParams
 
+    if (refused := _prefix_error(name)) is not None:
+        return refused
     dist_map = {"Cosine": Distance.COSINE, "Dot": Distance.DOT, "Euclid": Distance.EUCLID}
     client.create_collection(
         collection_name=name,
@@ -104,7 +174,7 @@ def create_collection(
 @router.get("/{collection}", response_class=HTMLResponse)
 def collection_detail(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     client: QdrantClientDep,
     tab: str = "browse",
 ) -> HTMLResponse:
@@ -144,7 +214,7 @@ _VALID_PAGE_SIZES = {"50", "100", "1000", "2000", "5000", "all"}
 @router.get("/{collection}/browse", response_class=HTMLResponse)
 def browse_points(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     client: QdrantClientDep,
     offset: str = "",
     active_only: str = "true",
@@ -243,7 +313,7 @@ def browse_points(
 @router.get("/{collection}/points/{point_id}", response_class=HTMLResponse)
 def point_detail(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     point_id: str,
     client: QdrantClientDep,
 ) -> HTMLResponse:
@@ -277,7 +347,7 @@ def point_detail(
 @router.get("/{collection}/export")
 def export_points(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     client: QdrantClientDep,
     point_ids: list[str] = Query(default=[]),
     doc_id: str = "",
@@ -385,7 +455,7 @@ def export_points(
 @router.delete("/{collection}/points/{point_id}", response_class=HTMLResponse)
 def delete_point(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     point_id: str,
     client: QdrantClientDep,
 ) -> HTMLResponse:
@@ -406,7 +476,7 @@ def delete_point(
 @router.post("/{collection}/delete", response_class=HTMLResponse)
 def bulk_delete(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     client: QdrantClientDep,
     mode: str = Form(...),  # "doc_id" | "superseded"
     doc_id: str = Form(""),
@@ -456,7 +526,7 @@ def bulk_delete(
 @router.post("/{collection}/search", response_class=HTMLResponse)
 async def search(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     pipeline_client: PipelineClientDep,
     query: str = Form(...),
     top_k: int = Form(10),
@@ -496,7 +566,9 @@ async def search(
     response_class=HTMLResponse,
     dependencies=_ADMIN,
 )
-def delete_collection(request: Request, collection: str, client: QdrantClientDep) -> HTMLResponse:
+def delete_collection(
+    request: Request, collection: KbCollection, client: QdrantClientDep
+) -> HTMLResponse:
     client.delete_collection(collection)
     return HTMLResponse(
         _alert("warning", f"Collection <strong>{escape(collection)}</strong> deleted.")
@@ -507,12 +579,14 @@ def delete_collection(request: Request, collection: str, client: QdrantClientDep
 @router.post("/{collection}/rename", response_class=HTMLResponse, dependencies=_ADMIN)
 def rename_collection(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     client: QdrantClientDep,
     new_name: str = Form(...),
 ) -> HTMLResponse:
     from qdrant_client.models import VectorParams
 
+    if (refused := _prefix_error(new_name)) is not None:
+        return refused
     info = client.get_collection(collection)
     vectors_cfg = info.config.params.vectors
     if isinstance(vectors_cfg, dict):
@@ -582,7 +656,9 @@ def rename_collection(
 
 
 @router.post("/{collection}/snapshots", response_class=HTMLResponse)
-def create_snapshot(request: Request, collection: str, client: QdrantClientDep) -> HTMLResponse:
+def create_snapshot(
+    request: Request, collection: KbCollection, client: QdrantClientDep
+) -> HTMLResponse:
     snap = client.create_snapshot(collection)
     if snap is None:
         return HTMLResponse('<div class="alert alert-danger">Snapshot creation failed.</div>')
@@ -594,7 +670,7 @@ def create_snapshot(request: Request, collection: str, client: QdrantClientDep) 
 
 @router.delete("/{collection}/snapshots/{name}", response_class=HTMLResponse, dependencies=_ADMIN)
 def delete_snapshot(
-    request: Request, collection: str, name: str, client: QdrantClientDep
+    request: Request, collection: KbCollection, name: str, client: QdrantClientDep
 ) -> HTMLResponse:
     client.delete_snapshot(collection, name)
     return HTMLResponse(
@@ -603,7 +679,7 @@ def delete_snapshot(
 
 
 @router.get("/{collection}/snapshots/{name}/download")
-def download_snapshot(collection: str, name: str) -> StreamingResponse:
+def download_snapshot(collection: KbCollection, name: str) -> StreamingResponse:
     import httpx as _httpx
 
     base_url = _qdrant_base_url()
@@ -635,7 +711,7 @@ def download_snapshot(collection: str, name: str) -> StreamingResponse:
 @router.post("/{collection}/snapshots/restore", response_class=HTMLResponse, dependencies=_ADMIN)
 async def restore_snapshot(
     request: Request,
-    collection: str,
+    collection: KbCollection,
     _client: QdrantClientDep,
     file: UploadFile = File(...),
 ) -> HTMLResponse:
