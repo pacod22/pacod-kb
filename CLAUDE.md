@@ -20,7 +20,9 @@ uv run pytest tests/test_phase2.py::test_name -v
 
 **pacod-id's Python package** (`pacod_id`) is a vendored wheel: `scripts/vendor-pacod-id.sh [../pacod-id]` builds it from the checkout's committed HEAD into `vendor/wheels/`, builds `@pacod/ui`'s design tokens from the same commit into `web/static/pacod-ui/{tokens,console}.css` (needs `node`; `--css` rebuilds only the CSS from the recorded commit), records the commit in `vendor/PACOD_ID_VERSION`, and updates `uv.lock` (`[tool.uv.sources]` points at the file; it is in the `ui` and `dev` groups). It ships no `py.typed`, so mypy follows it via an override; `make audit` skips it (`--no-emit-package pacod-id`).
 
-**Type-check scope:** `make typecheck` (part of `make check` and CI) runs `mypy --strict` on both `pipeline/` and `web/`. Other targets: `make coverage` (pytest-cov), `make audit` (pip-audit over the locked dependencies).
+**Type-check scope:** `make typecheck` (part of `make check` and CI) runs `mypy --strict` on `pipeline/`, `web/` and `kblog/`. Other targets: `make coverage` (pytest-cov), `make audit` (pip-audit over the locked dependencies).
+
+**Logging** (`kblog/`, pacod-demo/docs/LOGGING.md): stdlib-only, copied into both images (`Dockerfile` installs it with the project, `Dockerfile.ui` copies it next to `web/`). `kblog.setup(<service>)` runs once per process: at import of `pipeline/api.py` and `web/app.py` (uvicorn imports the app after its own logging set-up, so its startup lines are formatted too), in the CLI's Typer callback (stderr), and as a no-op fallback in `load_config()`. One handler on the root logger (never remove others: pytest's capture lives there); uvicorn's loggers propagate to it; `AccessFilter` turns uvicorn's access line into `<METHOD> <path> <status>` with `method`/`path` (no query)/`status`/`client_ip`, health paths at debug; httpx/httpcore at WARNING unless `LOG_LEVEL=debug` (they log every outgoing URL). Variables `LOG_LEVEL`, `LOG_FORMAT` (json|text, default json), `SERVICE_NAME`. Log with `extra={...}` for fields; never secrets, tokens, codes or bodies. Every compose service has `logging: *logging` (`tests/test_compose_env.py`).
 
 **Route contract:** `tests/test_route_contract.py` snapshots the ordered route table and OpenAPI schema of both apps (`tests/snapshots/`). An intentional API change requires regenerating them with `KB_UPDATE_ROUTE_SNAPSHOTS=1 uv run pytest tests/test_route_contract.py`.
 
@@ -56,7 +58,7 @@ make down           # stop ALL containers of every profile
 make upgrade        # git pull, stop all, rebuild kb's images, pull the rest, start
 make upgrade-db     # PostgreSQL only: pull image, recreate container
 make upgrade-ui     # UI only: rebuild image, recreate container
-make logs S=kb-ui   # follow one service's logs (kb-pipeline|kb-ui|pacod-qdrant|pacod-postgres|pacod-id|pacod-gw)
+make logs S=kb-ui   # follow one service's logs (JSON events; LOG_FORMAT=text for a terminal) (kb-pipeline|kb-ui|pacod-qdrant|pacod-postgres|pacod-id|pacod-gw)
 make check          # still runs locally via uv — no Docker equivalent
 
 # Every service gets an explicit environment (no env_file): tests/test_compose_env.py checks that the

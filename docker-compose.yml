@@ -17,6 +17,14 @@
 # a server). A value without a slash is a named volume instead (kb-data, kb-model-cache): macOS,
 # where /data cannot be shared, and the full stack use those.
 
+# Every service rotates its log (pacod-demo/docs/LOGGING.md, section 2); anchors do not cross
+# files, so docker-compose.standalone.yml has its own copy.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   kb-pipeline:
     build:
@@ -27,6 +35,7 @@ services:
         INSTALL_POSTGRES_EXTRA: ${INSTALL_POSTGRES_EXTRA:-1}
     image: kb-pipeline
     container_name: kb-pipeline
+    logging: *logging
     restart: unless-stopped
     command: uvicorn pipeline.api:app --host 0.0.0.0 --port 8000 --workers 1
     volumes:
@@ -41,7 +50,10 @@ services:
       - KB_DONE=${KB_DONE:-}
       - KB_FAILED=${KB_FAILED:-}
       - DROPZONE_INTERVAL_SECS=${DROPZONE_INTERVAL_SECS:-10}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      # The log (pacod-demo/docs/LOGGING.md): level debug|info|warn|error, format json|text.
+      - SERVICE_NAME=kb-pipeline
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
       - GIT_AUTOCOMMIT=${GIT_AUTOCOMMIT:-false}
       - PIPELINE_API_SECRET=${PIPELINE_API_SECRET:-}
       # Vector store and embeddings
@@ -150,6 +162,7 @@ services:
       dockerfile: Dockerfile.ui
     image: kb-ui
     container_name: kb-ui
+    logging: *logging
     restart: unless-stopped
     # The UI never reads KB_ROOT (it goes through the pipeline API), so the
     # archive is not mounted here.
@@ -185,7 +198,9 @@ services:
       - PACOD_ID_UI_SECRET=${KB_ID_UI_SECRET:-}
       - PACOD_ID_SERVICE_CLIENT_ID=pacod-kb-service
       - PACOD_ID_SERVICE_SECRET=${KB_ID_SERVICE_SECRET:-}
-      - LOG_LEVEL=${LOG_LEVEL:-INFO}
+      - SERVICE_NAME=kb-ui
+      - LOG_LEVEL=${LOG_LEVEL:-info}
+      - LOG_FORMAT=${LOG_FORMAT:-json}
     depends_on:
       kb-pipeline:
         condition: service_healthy

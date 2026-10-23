@@ -28,9 +28,10 @@ jobs:
         run: |
           uv run mypy --strict pipeline/
           uv run mypy --strict web/
+          uv run mypy --strict kblog/
 
       - name: Unit tests with coverage
-        run: uv run pytest tests/ -q --cov=pipeline --cov=web --cov-report=term-missing:skip-covered
+        run: uv run pytest tests/ -q --cov=pipeline --cov=web --cov=kblog --cov-report=term-missing:skip-covered
 
       - name: Eval harness smoke test
         run: |

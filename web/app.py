@@ -20,6 +20,7 @@ from fastapi.staticfiles import StaticFiles
 from pacod_id.client import ApiError
 from starlette.middleware.sessions import SessionMiddleware
 
+import kblog
 from web.actor import add_actor_header
 from web.auth import IdentityUnavailable, NoKbAccess, require_user
 from web.identity import Identity, IdSettings
@@ -30,6 +31,9 @@ from web.routers import qdrant as qdrant_router
 from web.sessions import SessionStore, db_url
 from web.templates_config import templates
 
+# The log (kblog: LOG_LEVEL, LOG_FORMAT, SERVICE_NAME), before uvicorn says anything more: uvicorn
+# imports this module after its own logging set-up and before "Started server process".
+kblog.setup("kb-ui")
 logger = logging.getLogger(__name__)
 
 _HERE = Path(__file__).parent

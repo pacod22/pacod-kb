@@ -37,6 +37,7 @@ from fastapi import (
 from fastapi.responses import JSONResponse
 from fastapi.security import APIKeyHeader
 
+import kblog
 from pipeline.acquisition import IngestOptions
 from pipeline.config import Config, load_config, warn_legacy_env
 from pipeline.document_store import (
@@ -59,6 +60,10 @@ if TYPE_CHECKING:
     from pipeline.gateway import Gateway
     from pipeline.reranker import Reranker
 
+# The log, before uvicorn says anything more: uvicorn imports this module after its own logging
+# set-up and before "Started server process", so its lines are kblog events too. After the
+# pipeline.config import, which reads .env (LOG_LEVEL, LOG_FORMAT for a local `uv run`).
+kblog.setup("kb-pipeline")
 logger = logging.getLogger(__name__)
 
 # ---------------------------------------------------------------------------

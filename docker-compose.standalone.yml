@@ -18,12 +18,21 @@
 # default, as on a server). A value without a slash is a named volume instead (pacod-qdrant-data,
 # pacod-postgres-data): macOS, where /data cannot be shared, uses those.
 
+# Every service rotates its log (pacod-demo/docs/LOGGING.md, section 2); anchors do not cross
+# files, so docker-compose.yml has its own copy.
+x-logging: &logging
+  driver: json-file
+  options:
+    max-size: "10m"
+    max-file: "5"
+
 services:
   pacod-qdrant:
     # Pin QDRANT_IMAGE_TAG to the version you run: Qdrant storage cannot be
     # opened by an older server, so an unpinned "latest" pull is one-way.
     image: qdrant/qdrant:${QDRANT_IMAGE_TAG:-v1.19.2}
     container_name: pacod-qdrant
+    logging: *logging
     profiles: [server]
     restart: unless-stopped
     volumes:
@@ -47,6 +56,7 @@ services:
   pacod-postgres:
     image: postgres:16-alpine
     container_name: pacod-postgres
+    logging: *logging
     profiles: [db, id]
     restart: unless-stopped
     environment:
@@ -73,6 +83,7 @@ services:
   pacod-db-init:
     image: postgres:16-alpine
     container_name: pacod-db-init
+    logging: *logging
     profiles: [db, id]
     depends_on:
       pacod-postgres:
@@ -111,6 +122,7 @@ services:
     # brand.
     image: ${PACOD_ID_IMAGE:-pacod-kb-id:dev}
     container_name: pacod-id
+    logging: *logging
     profiles: [id]
     restart: unless-stopped
     depends_on:
@@ -145,7 +157,9 @@ services:
       PID_SMTP_PASSWORD: ${PID_SMTP_PASSWORD:-}
       PID_EMAIL_FROM_ADDRESS: ${ID_MAIL_FROM:-id@pacod-kb.test}
       PID_EMAIL_FROM_NAME: pacod-kb
-      PID_LOG_FORMAT: text
+      # The log (pacod-demo/docs/LOGGING.md): a filter directive, and json|text.
+      PID_LOG: ${PID_LOG:-info,sqlx=warn}
+      PID_LOG_FORMAT: ${PID_LOG_FORMAT:-text}
     volumes:
       - ./docker/pacod-id/pacod-id.toml:/etc/pacod-id/pacod-id.toml:ro
     read_only: true
@@ -169,6 +183,7 @@ services:
   pacod-mailpit:
     image: axllent/mailpit:v1.27
     container_name: pacod-mailpit
+    logging: *logging
     profiles: [mailpit]
     restart: unless-stopped
     ports:
@@ -186,6 +201,7 @@ services:
   pacod-gw:
     image: ${PACOD_GW_LITE_IMAGE:-pacod-gw-lite:dev}
     container_name: pacod-gw
+    logging: *logging
     profiles: [dev-gateway]
     restart: unless-stopped
     read_only: true
@@ -194,7 +210,8 @@ services:
     command: ["serve"]
     environment:
       PGW_LISTEN: 0.0.0.0:8080
-      PGW_LOG_FORMAT: text
+      RUST_LOG: ${RUST_LOG:-info}
+      PGW_LOG_FORMAT: ${PGW_LOG_FORMAT:-text}
       PGW_EGRESS_ALLOW_PRIVATE: gw-mock
       PGW_MAX_BODY_BYTES: "33554432"
       PGW_PROVIDER_ANTHROPIC_KEY: dev-anthropic-key
@@ -223,6 +240,7 @@ services:
   gw-mock:
     image: ${PACOD_GW_MOCK_IMAGE:-pacod-gw-mock:dev}
     container_name: gw-mock
+    logging: *logging
     profiles: [dev-gateway]
     restart: unless-stopped
     read_only: true

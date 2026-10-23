@@ -130,3 +130,36 @@ def test_env_example_has_no_comment_compose_would_read_as_a_value() -> None:
     lines = (_ROOT / ".env.example").read_text(encoding="utf-8").splitlines()
     bad = [line for line in lines if re.match(r"^[A-Z0-9_]+=\s+#", line)]
     assert not bad, bad
+
+
+def _env(service: str) -> dict[str, str]:
+    env = _SERVICES[service].get("environment") or {}
+    if isinstance(env, dict):
+        return {k: str(v) for k, v in env.items()}
+    return dict(str(item).split("=", 1) for item in env)
+
+
+def test_every_service_rotates_its_log() -> None:
+    # pacod-demo/docs/LOGGING.md, section 2: each file its own x-logging anchor.
+    block = {"driver": "json-file", "options": {"max-size": "10m", "max-file": "5"}}
+    for name, doc in _COMPOSE.items():
+        assert doc["x-logging"] == block, name
+    for name, service in _SERVICES.items():
+        assert service.get("logging") == block, name
+
+
+def test_kb_services_pass_the_log_switches() -> None:
+    # kblog reads these (and only these) in both processes.
+    assert _variables_read("kblog") == {"LOG_LEVEL", "LOG_FORMAT", "SERVICE_NAME"}
+    for name in ("kb-pipeline", "kb-ui"):
+        env = _env(name)
+        assert env["SERVICE_NAME"] == name
+        assert env["LOG_LEVEL"] == "${LOG_LEVEL:-info}"
+        assert env["LOG_FORMAT"] == "${LOG_FORMAT:-json}"
+
+
+def test_bundled_components_pass_their_log_switches_through() -> None:
+    assert _env("pacod-id")["PID_LOG_FORMAT"] == "${PID_LOG_FORMAT:-text}"
+    assert _env("pacod-id")["PID_LOG"] == "${PID_LOG:-info,sqlx=warn}"
+    assert _env("pacod-gw")["PGW_LOG_FORMAT"] == "${PGW_LOG_FORMAT:-text}"
+    assert _env("pacod-gw")["RUST_LOG"] == "${RUST_LOG:-info}"

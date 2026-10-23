@@ -20,8 +20,10 @@ WORKDIR /app
 
 COPY --from=builder /app/.venv /app/.venv
 COPY web/ web/
+# The log set-up both images share (kblog: pacod-demo/docs/LOGGING.md); stdlib only.
+COPY kblog/ kblog/
 # Readable by the app user (uid 10001) whatever modes the build context had.
-RUN chmod -R a+rX /app/web
+RUN chmod -R a+rX /app/web /app/kblog
 COPY docker/ui/entrypoint.py /usr/local/bin/kb-ui-entrypoint
 ENV PATH="/app/.venv/bin:$PATH"
 

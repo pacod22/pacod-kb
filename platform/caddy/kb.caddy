@@ -5,20 +5,31 @@
 # Caddy sends X-Forwarded-For/-Proto/-Host and keeps the Host. kb-ui (uvicorn --proxy-headers)
 # believes them only from UI_FORWARDED_ALLOW_IPS, so the full stack sets that to pacod-caddy's
 # address (or *, as nothing else reaches kb-ui there). The pipeline API is never routed.
+#
+# Access log (pacod-demo/docs/LOGGING.md, section 6): stdout, in KB_CADDY_LOG_FORMAT, console
+# (Caddy's text, the default) or json; sign-in codes, state, return paths, tokens and keys are
+# removed from the query, the Referer and API-key headers and the redirects' Location dropped.
 {$KB_SITE:http://kb.localhost} {
 	reverse_proxy kb-ui:8080
 
 	log {
 		output stdout
 		format filter {
-			wrap console
+			wrap {$KB_CADDY_LOG_FORMAT:console}
 			fields {
 				request>uri query {
+					delete token
 					delete code
 					delete state
 					delete next
+					delete flow
+					delete id_token_hint
+					delete login_hint
+					delete key
 				}
 				request>headers>Referer delete
+				request>headers>X-Api-Key delete
+				request>headers>X-Goog-Api-Key delete
 				# The redirects carry the same values: to pacod-id with the state, back to /kb/login
 				# with the page to return to.
 				resp_headers>Location delete

@@ -9,6 +9,8 @@ from pathlib import Path
 
 from dotenv import load_dotenv
 
+import kblog
+
 load_dotenv()
 
 
@@ -172,8 +174,10 @@ def load_config() -> Config:
     if qdrant_mode == "server" and not qdrant_url:
         qdrant_url = DEFAULT_QDRANT_URL
 
-    log_level = os.environ.get("LOG_LEVEL", "INFO").upper()
-    logging.basicConfig(level=getattr(logging, log_level, logging.INFO))
+    # The process's log (kblog: LOG_LEVEL, LOG_FORMAT, SERVICE_NAME); the API and the CLI set it
+    # up at start already, so this only covers other callers. Set up once, never reconfigured.
+    kblog.setup("kb-pipeline")
+    log_level = logging.getLevelName(kblog.parse_level(os.environ.get("LOG_LEVEL")))
 
     def _validate_storage_backend(value: str) -> str:
         if value not in ("filesystem", "database"):

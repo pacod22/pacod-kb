@@ -247,9 +247,10 @@ install: ## Install dependencies incl. dev tools
 lint: ## Run ruff
 	uv run ruff check .
 
-typecheck: ## Run mypy --strict on pipeline/ and web/
+typecheck: ## Run mypy --strict on pipeline/, web/ and kblog/
 	uv run mypy --strict pipeline/
 	uv run mypy --strict web/
+	uv run mypy --strict kblog/
 
 test: ## Run the test suite
 	uv run pytest tests/ -q
@@ -257,7 +258,7 @@ test: ## Run the test suite
 check: lint typecheck test ## Lint + typecheck + tests (what CI runs)
 
 coverage: ## Run the tests with a coverage report
-	uv run pytest tests/ -q --cov=pipeline --cov=web --cov-report=term-missing:skip-covered
+	uv run pytest tests/ -q --cov=pipeline --cov=web --cov=kblog --cov-report=term-missing:skip-covered
 
 audit: ## Check locked dependencies for known vulnerabilities
 	uv export --frozen --all-extras --no-hashes --no-emit-project --no-emit-package pacod-id -o /tmp/kb-requirements.txt

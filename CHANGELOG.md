@@ -17,6 +17,11 @@ All notable changes to this project are recorded here. The format follows
 - The `/data/...` bind mounts are variables (`KB_DATA`/`KB_ROOT`, `KB_MODEL_CACHE`,
   `KB_QDRANT_DATA`, `KB_POSTGRES_DATA`); a name is a Docker volume (macOS).
 - `QDRANT_IMAGE_TAG` defaults to `v1.19.2`.
+- Logging follows the pacod convention (pacod-demo/docs/LOGGING.md): kb-pipeline and kb-ui (uvicorn's
+  lines included) write one JSON event per line by default (`LOG_FORMAT=text` for a terminal;
+  `LOG_LEVEL` takes `debug|info|warn|error`); request lines without the query string, health
+  checks at debug; every compose service rotates its log (json-file, 5 × 10 MB). The UI now
+  honours `LOG_LEVEL`. `kb.caddy`'s access log: `KB_CADDY_LOG_FORMAT`, more redaction.
 
 ### Added
 

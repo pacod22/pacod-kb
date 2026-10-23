@@ -37,3 +37,15 @@ def test_the_caddy_site_is_kb_ui() -> None:
     assert "delete code" in site and "delete state" in site
     # Site blocks only: an imported file cannot carry global options.
     assert not site.lstrip().startswith("{\n")
+
+
+def test_the_caddy_access_log_follows_the_convention() -> None:
+    # pacod-demo/docs/LOGGING.md, section 6.
+    site = (_ROOT / "platform" / "caddy" / "kb.caddy").read_text(encoding="utf-8")
+    assert "output stdout" in site
+    assert "wrap {$KB_CADDY_LOG_FORMAT:console}" in site
+    for param in ("token", "code", "state", "next", "flow", "id_token_hint", "login_hint", "key"):
+        assert f"\t\t\t\t\tdelete {param}\n" in site, param
+    for header in ("Referer", "X-Api-Key", "X-Goog-Api-Key"):
+        assert f"request>headers>{header} delete" in site, header
+    assert "resp_headers>Location delete" in site

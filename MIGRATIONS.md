@@ -13,6 +13,16 @@ For SQLAlchemy-backed tables (tables defined in `pipeline/db_models.py`), the pi
 
 ---
 
+## Upgrade notes: October 2026 — the logging convention
+
+kb-pipeline and kb-ui now log one JSON object per line (pacod-demo/docs/LOGGING.md; docs/runbook.md
+3.4) instead of `INFO:name:message`. Nothing to do unless something reads those lines: set
+`LOG_FORMAT=text` in `.env` for readable lines, or parse the JSON. `LOG_LEVEL` keeps working
+(`INFO` = `info`; `CRITICAL` now means `info`, use `error`). The containers' logs now rotate
+(5 × 10 MB) after `make up` recreates them.
+
+---
+
 ## Upgrade notes: October 2026 — the shared network pacod-net
 
 kb now follows the pacod network convention (pacod-demo/docs/NETWORK.md), so it can run on its

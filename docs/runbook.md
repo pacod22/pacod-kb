@@ -233,6 +233,37 @@ invitation, or gives a link to pass on), change a role, remove. Roles: **viewer*
 prompts, switches, members). The last admin cannot be removed. Passwords, sessions and
 sign-in methods are each person's own, at pacod-id (**My account**).
 
+### 3.4 Logs
+
+kb logs like every pacod product (pacod-demo/docs/LOGGING.md): one event per line on stdout,
+kept by Docker (`json-file`, 5 files of 10 MB per container, every service of both compose
+files). `make logs S=<service>` follows one.
+
+| Variable | Values | Default |
+|---|---|---|
+| `LOG_LEVEL` | `debug`, `info`, `warn`, `error` (any case; `warning` = `warn`; anything else = `info`) | `info` |
+| `LOG_FORMAT` | `json` (one object per line) or `text` (for reading in a terminal) | `json` |
+| `SERVICE_NAME` | the `service` of every event; compose sets `kb-pipeline` and `kb-ui` | |
+| `KB_CADDY_LOG_FORMAT` | the edge's access log (`platform/caddy/kb.caddy`, full stack): `console` or `json` | `console` |
+
+Both set kb-pipeline and kb-ui (and the `kb` CLI, which logs to stderr: its output is on
+stdout). kb's own stack passes `PID_LOG`/`PID_LOG_FORMAT` to pacod-id and
+`RUST_LOG`/`PGW_LOG_FORMAT` to the development gateway (both `text` by default). A JSON event
+starts with `timestamp` (UTC, milliseconds), `level`, `service`, `logger`, `message`, then the
+event's fields; an exception adds `error` and `stack_trace`:
+
+```text
+{"timestamp":"2026-10-23T06:41:07.695Z","level":"info","service":"kb-ui","logger":"web.identity","message":"kb catalogue pushed to pacod-id (version 3, changed False)"}
+{"timestamp":"2026-10-23T06:41:09.120Z","level":"info","service":"kb-ui","logger":"uvicorn.access","message":"GET /kb/login 302","method":"GET","path":"/kb/login","status":302,"client_ip":"172.18.0.9"}
+2026-10-23T06:41:09.120Z INFO  kb-ui uvicorn.access: GET /kb/login 302 method=GET path=/kb/login status=302 client_ip=172.18.0.9
+```
+
+uvicorn's own lines are events too; its request lines never carry the query string (it can
+hold sign-in codes), and the health checks (`/health`, `/kb/healthz`) appear only at `debug`, like
+the outgoing requests' lines of the HTTP client (httpx: full URLs, pacod-id's feed polls).
+Read JSON with `docker logs kb-ui | jq -r '.message'`, or set `LOG_FORMAT=text` and
+`make up`.
+
 ## 4. Backups
 
 | What | Where |

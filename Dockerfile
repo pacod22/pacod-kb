@@ -29,6 +29,8 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 
 # 2. Source (after deps so this layer doesn't bust the deps cache)
 COPY pipeline/ ./pipeline/
+# The log set-up both images share (kblog: pacod-demo/docs/LOGGING.md)
+COPY kblog/ ./kblog/
 COPY eval/ ./eval/
 # hatchling validates pyproject's `readme` when building the project
 COPY README.md ./

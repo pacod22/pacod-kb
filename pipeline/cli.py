@@ -6,7 +6,19 @@ from pathlib import Path
 
 import typer
 
+import kblog
+
 app = typer.Typer(help="AI-ready knowledge base pipeline.")
+
+
+@app.callback()
+def _log_setup() -> None:
+    # The log (kblog: LOG_LEVEL, LOG_FORMAT, SERVICE_NAME) on stderr: stdout is the commands'
+    # output (kb export writes its JSON there). pipeline.config first: it reads .env.
+    import pipeline.config  # noqa: F401
+
+    kblog.setup("kb-pipeline", stream="stderr")
+
 
 _DOC_TYPE_HELP = (
     "generic | web_page | legal_code | regulation | directive"
