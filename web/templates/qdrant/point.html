@@ -2,146 +2,111 @@
 {% block title %}Point detail{% endblock %}
 {% block content %}
 
-<div class="d-flex align-items-center gap-3 mb-4">
-  <h5 class="mb-0">Point detail</h5>
-  <a href="/kb/qdrant/{{ collection }}?tab=browse" class="btn btn-sm btn-outline-secondary">
-    ← Browse
-  </a>
-  <button class="btn btn-sm btn-outline-danger ms-auto"
-          hx-delete="/kb/qdrant/{{ collection }}/points/{{ point_id }}"
-          hx-target="#delete-result"
-          hx-swap="innerHTML"
-          hx-confirm="Delete this point permanently?">
-    Delete point
-  </button>
-</div>
-<div id="delete-result" class="mb-2"></div>
-
-<div class="font-monospace text-muted mb-3 text-s">
-  UUID: {{ point_id }}
-</div>
-
-<!-- Payload key-value table -->
-<div class="card shadow-sm mb-4">
-  <div class="card-header small text-uppercase text-muted">Payload</div>
-  <div class="card-body p-0">
-    <table class="table table-sm table-hover mb-0">
-      <tbody>
-
-        <tr>
-          <th class="ps-3 payload-label-col">chunk_id</th>
-          <td><code class="code-sm">{{ payload.chunk_id }}</code></td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">doc_id</th>
-          <td><code class="code-sm">{{ payload.doc_id }}</code></td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">heading_path</th>
-          <td>
-            {% if payload.heading_path %}
-              {% for h in payload.heading_path %}
-                <span class="badge text-muted border me-1 text-s">{{ h }}</span>
-              {% endfor %}
-            {% else %}
-              <span class="text-muted small">(none)</span>
-            {% endif %}
-          </td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">heading_level</th>
-          <td><span class="badge bg-secondary">H{{ payload.heading_level }}</span></td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">sequence</th>
-          <td class="small">{{ payload.sequence }}</td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">parent_chunk</th>
-          <td>
-            {% if payload.parent_chunk %}
-              <code class="code-sm">{{ payload.parent_chunk }}</code>
-            {% else %}
-              <span class="text-muted small">(none)</span>
-            {% endif %}
-          </td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">byte_start</th>
-          <td class="small font-monospace">{{ payload.byte_start }}</td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">byte_end</th>
-          <td class="small font-monospace">{{ payload.byte_end }}</td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">extraction_method</th>
-          <td>
-            {% set m = payload.extraction_method %}
-            {% if m == "ocr" %}
-              <span class="badge bg-warning text-dark">OCR</span>
-            {% elif m == "vlm" %}
-              <span class="badge bg-info text-dark">VLM</span>
-            {% else %}
-              <span class="badge text-muted border">{{ m }}</span>
-            {% endif %}
-          </td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">confidence</th>
-          <td>
-            {% set conf = payload.confidence | float %}
-            <div class="d-flex align-items-center gap-2">
-              <div class="progress confidence-meter">
-                <div class="progress-bar
-                  {% if conf >= 0.9 %}bg-success{% elif conf >= 0.7 %}bg-warning{% else %}bg-danger{% endif %}"
-                  data-pct="{{ (conf * 100) | int }}"></div>
-              </div>
-              <small class="text-muted">{{ '%.2f' | format(conf) }}</small>
-            </div>
-          </td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">valid_until</th>
-          <td>
-            {% if payload.valid_until %}
-              <span class="badge bg-secondary">{{ payload.valid_until }}</span>
-            {% else %}
-              <span class="badge bg-success">active</span>
-            {% endif %}
-          </td>
-        </tr>
-
-      </tbody>
-    </table>
+<header class="page-header">
+  <div>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/kb/qdrant/">Collections</a><span aria-hidden="true">/</span><a href="/kb/qdrant/{{ collection }}?tab=browse">{{ collection }}</a><span aria-hidden="true">/</span></nav>
+    <h1 class="page-title">Point detail</h1>
+    <p class="page-subtitle mono">UUID: {{ point_id }}</p>
   </div>
-</div>
+  <div class="page-actions">
+    <button class="btn btn-sm danger"
+            hx-delete="/kb/qdrant/{{ collection }}/points/{{ point_id }}"
+            hx-target="#delete-result"
+            hx-swap="innerHTML"
+            hx-confirm="Delete this point permanently?">
+      {{ icon("trash", 14) }} Delete point
+    </button>
+  </div>
+</header>
+<div id="delete-result"></div>
+
+<!-- Payload -->
+<section class="section-card">
+  <div class="sc-header"><h2>Payload</h2></div>
+  <div class="sc-body">
+    <dl class="facts">
+      <dt class="mono">chunk_id</dt>
+      <dd><code>{{ payload.chunk_id }}</code></dd>
+
+      <dt class="mono">doc_id</dt>
+      <dd><code>{{ payload.doc_id }}</code></dd>
+
+      <dt class="mono">heading_path</dt>
+      <dd>
+        {% if payload.heading_path %}
+          <div class="row tight">
+          {% for h in payload.heading_path %}
+            <span class="badge neutral">{{ h }}</span>
+          {% endfor %}
+          </div>
+        {% else %}
+          <span class="muted small">(none)</span>
+        {% endif %}
+      </dd>
+
+      <dt class="mono">heading_level</dt>
+      <dd><span class="badge neutral">H{{ payload.heading_level }}</span></dd>
+
+      <dt class="mono">sequence</dt>
+      <dd>{{ payload.sequence }}</dd>
+
+      <dt class="mono">parent_chunk</dt>
+      <dd>
+        {% if payload.parent_chunk %}
+          <code>{{ payload.parent_chunk }}</code>
+        {% else %}
+          <span class="muted small">(none)</span>
+        {% endif %}
+      </dd>
+
+      <dt class="mono">byte_start</dt>
+      <dd class="mono">{{ payload.byte_start }}</dd>
+
+      <dt class="mono">byte_end</dt>
+      <dd class="mono">{{ payload.byte_end }}</dd>
+
+      <dt class="mono">extraction_method</dt>
+      <dd>
+        {% set m = payload.extraction_method %}
+        {% if m == "ocr" %}
+          <span class="badge warn">OCR</span>
+        {% elif m == "vlm" %}
+          <span class="badge info">VLM</span>
+        {% else %}
+          <span class="badge neutral">{{ m }}</span>
+        {% endif %}
+      </dd>
+
+      <dt class="mono">confidence</dt>
+      <dd>
+        {% set conf = payload.confidence | float %}
+        <div class="row nowrap">
+          <span class="meter w-sm {% if conf >= 0.9 %}good{% elif conf >= 0.7 %}near{% else %}bad{% endif %}"><span style="width: {{ (conf * 100) | int }}%"></span></span>
+          <small class="muted">{{ '%.2f' | format(conf) }}</small>
+        </div>
+      </dd>
+
+      <dt class="mono">valid_until</dt>
+      <dd>
+        {% if payload.valid_until %}
+          <span class="badge neutral">{{ payload.valid_until }}</span>
+        {% else %}
+          <span class="badge good">active</span>
+        {% endif %}
+      </dd>
+    </dl>
+  </div>
+</section>
 
 <!-- Embedded text -->
-<div class="card shadow-sm">
-  <div class="card-header small text-uppercase text-muted d-flex justify-content-between">
-    <span>Embedded text</span>
-    <small class="text-muted">{{ payload.text | length }} chars</small>
+<section class="section-card">
+  <div class="sc-header">
+    <h2>Embedded text</h2>
+    <span class="hint">{{ payload.text | length }} chars</span>
   </div>
-  <div class="card-body">
-    <pre class="mb-0 doc-body-pre">{{ payload.text }}</pre>
+  <div class="sc-body">
+    <pre class="doc-body-pre">{{ payload.text }}</pre>
   </div>
-</div>
-
-<script>
-document.querySelectorAll('.progress-bar[data-pct]').forEach(function(el) {
-  el.style.width = (el.dataset.pct || '0') + '%';
-});
-</script>
+</section>
 
 {% endblock %}

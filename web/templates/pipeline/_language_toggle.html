@@ -10,10 +10,10 @@
         hx-swap="outerHTML">
     <input type="hidden" name="enabled" value="{{ 'false' if on else 'true' }}">
     <button type="submit"
-            class="btn btn-sm {{ 'btn-success' if on else 'btn-outline-secondary' }}"
+            class="btn btn-sm"
+            aria-pressed="{{ 'true' if on else 'false' }}"
             title="{{ 'Language validation is ON - click to disable' if on else 'Language validation is OFF - click to enable' }}">
       {% if on %}ON{% else %}OFF{% endif %}
     </button>
   </form>
 </div>
-

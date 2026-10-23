@@ -5,130 +5,125 @@
 {% set offset = offset_filter or state.get('offset', 0) %}
 {% set provider_options = state.get('provider_options', []) %}
 {% set purpose_options = state.get('purpose_options', []) %}
-<div id="ai-interactions-panel" class="section-card mt-4">
-  <div class="sc-header d-flex justify-content-between align-items-center gap-2 flex-wrap">
-    <span>AI Interactions — detailed call log</span>
-    <span class="badge bg-secondary">{{ total }} total</span>
+<section id="ai-interactions-panel" class="section-card">
+  <div class="sc-header">
+    <h2>AI Interactions — detailed call log</h2>
+    <span class="badge neutral">{{ total }} total</span>
   </div>
   <div class="sc-body">
-    <div class="small text-muted mb-3">
+    <p class="small muted">
       Every individual LLM call (document conversion, content-security screening, price  extraction, …) is recorded here with its prompts, response, timing, tokens, and cost.  Tap a row to inspect the full request and response.
-    </div>
+    </p>
 
-    <form class="row g-2 mb-3"
+    <form class="grid-form"
           hx-get="/kb/pipeline/ai-interactions"
           hx-target="#ai-interactions-panel"
           hx-swap="outerHTML">
-      <div class="col-12 col-sm-6 col-lg-3">
-        <label class="form-label form-label-sm">Provider</label>
-        <select class="form-select form-select-sm" name="provider">
+      <div class="field">
+        <label for="ai-filter-provider">Provider</label>
+        <select id="ai-filter-provider" class="sm" name="provider">
           <option value="">All providers</option>
           {% for p in provider_options %}
           <option value="{{ p }}" {% if provider_filter == p %}selected{% endif %}>{{ p }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-12 col-sm-6 col-lg-3">
-        <label class="form-label form-label-sm">Purpose</label>
-        <select class="form-select form-select-sm" name="purpose">
+      <div class="field">
+        <label for="ai-filter-purpose">Purpose</label>
+        <select id="ai-filter-purpose" class="sm" name="purpose">
           <option value="">All purposes</option>
           {% for p in purpose_options %}
           <option value="{{ p }}" {% if purpose_filter == p %}selected{% endif %}>{{ p }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-6 col-sm-4 col-lg-2">
-        <label class="form-label form-label-sm">Status</label>
-        <select class="form-select form-select-sm" name="status">
+      <div class="field">
+        <label for="ai-filter-status">Status</label>
+        <select id="ai-filter-status" class="sm" name="status">
           <option value="">Any</option>
           <option value="ok" {% if status_filter == 'ok' %}selected{% endif %}>ok</option>
           <option value="error" {% if status_filter == 'error' %}selected{% endif %}>error</option>
         </select>
       </div>
-      <div class="col-6 col-sm-8 col-lg-2">
-        <label class="form-label form-label-sm">Turn / doc id</label>
-        <input class="form-control form-control-sm" name="turn_id" value="{{ turn_id_filter or '' }}" placeholder="turn id">
+      <div class="field">
+        <label for="ai-filter-turn">Turn / doc id</label>
+        <input id="ai-filter-turn" class="sm" name="turn_id" value="{{ turn_id_filter or '' }}" placeholder="turn id">
       </div>
-      <div class="col-12 col-lg-2 d-flex align-items-end">
-        <button class="btn btn-sm btn-outline-secondary w-100" type="submit">Apply</button>
+      <div class="row">
+        <button class="btn btn-sm" type="submit">Apply</button>
       </div>
     </form>
 
     {# ── Interaction list (opens an overlay on click) ──────────────────── #}
-    <div class="list-group ai-interactions-list">
+    <div class="list">
       {% for r in rows %}
       <button type="button"
-              class="list-group-item list-group-item-action ai-interaction-item d-flex align-items-center gap-2 text-nowrap"
+              class="ai-interaction-item row nowrap"
               data-ai-id="{{ r.id }}"
               hx-get="/kb/pipeline/ai-interactions/detail/{{ r.id }}"
               hx-target="#ai-interaction-detail"
               hx-swap="innerHTML"
               onclick="aiMarkActive(this)">
-        <span class="small text-muted d-none d-md-inline flex-shrink-0">{{ r.created_at[11:19] }}</span>
-        <code class="small text-truncate flex-grow-1 min-w-0">{{ r.model }}</code>
-        <span class="fmt-badge flex-shrink-0 d-none d-sm-inline">{{ r.purpose }}</span>
-        <span class="small text-muted flex-shrink-0 d-none d-lg-inline">{{ r.input_tokens + r.output_tokens + r.cached_tokens }} tok</span>
-        <span class="small text-muted flex-shrink-0 d-none d-lg-inline">{{ r.duration_ms }} ms</span>
-        <span class="small flex-shrink-0">{% if r.cost_source == 'unpriced' %}<span class="text-muted">not priced</span>{% else %}${{ '%.4f'|format(r.cost_usd) }}{% endif %}</span>
+        <span class="small muted hide-narrow">{{ r.created_at[11:19] }}</span>
+        <code class="small truncate grow">{{ r.model }}</code>
+        <span class="fmt-badge hide-narrow">{{ r.purpose }}</span>
+        <span class="small muted hide-narrow">{{ r.input_tokens + r.output_tokens + r.cached_tokens }} tok</span>
+        <span class="small muted hide-narrow">{{ r.duration_ms }} ms</span>
+        <span class="small">{% if r.cost_source == 'unpriced' %}<span class="muted">not priced</span>{% else %}${{ '%.4f'|format(r.cost_usd) }}{% endif %}</span>
         {% if r.status == 'ok' %}
-        <span class="badge bg-success flex-shrink-0">ok</span>
+        <span class="badge good">ok</span>
         {% else %}
-        <span class="badge bg-danger flex-shrink-0">error</span>
+        <span class="badge bad">error</span>
         {% endif %}
       </button>
       {% else %}
-      <div class="list-group-item text-muted small">No interactions recorded yet.</div>
+      <div class="muted small">No interactions recorded yet.</div>
       {% endfor %}
     </div>
 
     {% set next_offset = offset + limit %}
     {% set prev_offset = offset - limit if offset - limit > 0 else 0 %}
-    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mt-3">
-      <span class="small text-muted">Showing {{ offset + 1 if rows else 0 }}–{{ offset + rows|length }} of {{ total }}</span>
-      <div class="btn-group btn-group-sm">
-        <button class="btn btn-outline-secondary" {% if offset <= 0 %}disabled{% endif %}
+    <div class="spread">
+      <span class="small muted">Showing {{ offset + 1 if rows else 0 }}–{{ offset + rows|length }} of {{ total }}</span>
+      <div class="row tight">
+        <button class="btn btn-sm" {% if offset <= 0 %}disabled{% endif %}
                 hx-get="/kb/pipeline/ai-interactions?provider={{ provider_filter }}&purpose={{ purpose_filter }}&status={{ status_filter }}&turn_id={{ turn_id_filter }}&limit={{ limit }}&offset={{ prev_offset }}"
                 hx-target="#ai-interactions-panel" hx-swap="outerHTML">← Prev</button>
-        <button class="btn btn-outline-secondary" {% if next_offset >= total %}disabled{% endif %}
+        <button class="btn btn-sm" {% if next_offset >= total %}disabled{% endif %}
                 hx-get="/kb/pipeline/ai-interactions?provider={{ provider_filter }}&purpose={{ purpose_filter }}&status={{ status_filter }}&turn_id={{ turn_id_filter }}&limit={{ limit }}&offset={{ next_offset }}"
                 hx-target="#ai-interactions-panel" hx-swap="outerHTML">Next →</button>
       </div>
     </div>
   </div>
-</div>
 
-{# ── Overlay modal: detail content is loaded into .modal-content on click ── #}
-<div class="modal fade" id="aiInteractionModal" tabindex="-1" aria-labelledby="aiInteractionModalTitle" aria-hidden="true">
-  <div class="modal-dialog modal-lg modal-dialog-scrollable modal-dialog-centered modal-fullscreen-sm-down">
-    <div class="modal-content" id="ai-interaction-detail"></div>
-  </div>
-</div>
+  {# ── Overlay dialog: the detail is loaded into #ai-interaction-detail on click. It lives
+     inside the panel, so swapping the panel replaces it instead of adding another. ── #}
+  <dialog class="wide" id="aiInteractionModal" aria-labelledby="aiInteractionModalTitle">
+    <div id="ai-interaction-detail"></div>
+  </dialog>
+</section>
 
 <script>
 (function() {
   function aiOpenModal() {
     var el = document.getElementById('aiInteractionModal');
-    if (!el || !window.bootstrap) return;
-    window.bootstrap.Modal.getOrCreateInstance(el).show();
+    if (el && !el.open) el.showModal();
   }
 
-  // Programmatic close used by detail templates (in addition to data-bs-dismiss).
+  // Programmatic close used by detail templates.
   window.aiCloseDetail = function() {
     var el = document.getElementById('aiInteractionModal');
-    if (el && window.bootstrap) {
-      var inst = window.bootstrap.Modal.getInstance(el);
-      if (inst) inst.hide();
-    }
+    if (el && el.open) el.close();
   };
 
   window.aiMarkActive = function(btn) {
-    document.querySelectorAll('.ai-interaction-item.active').forEach(function(el) {
-      el.classList.remove('active');
+    document.querySelectorAll('.ai-interaction-item[aria-current]').forEach(function(el) {
+      el.removeAttribute('aria-current');
     });
-    if (btn) btn.classList.add('active');
+    if (btn) btn.setAttribute('aria-current', 'true');
   };
 
-  // Open the overlay once the detail content has been swapped into the modal.
+  // Open the overlay once the detail content has been swapped into the dialog.
   if (!window._aiDetailListenerBound) {
     window._aiDetailListenerBound = true;
     document.body.addEventListener('htmx:afterSwap', function(evt) {
@@ -138,16 +133,26 @@
     });
   }
 
-  // Clear content + selection highlight after the overlay closes.
+  // Clear content + selection highlight after the overlay closes (button, Escape or backdrop).
   var modalEl = document.getElementById('aiInteractionModal');
   if (modalEl && !modalEl._aiBound) {
     modalEl._aiBound = true;
-    modalEl.addEventListener('hidden.bs.modal', function() {
+    modalEl.addEventListener('close', function() {
       var detail = document.getElementById('ai-interaction-detail');
       if (detail) detail.innerHTML = '';
-      document.querySelectorAll('.ai-interaction-item.active').forEach(function(el) {
-        el.classList.remove('active');
+      document.querySelectorAll('.ai-interaction-item[aria-current]').forEach(function(el) {
+        el.removeAttribute('aria-current');
       });
+    });
+    // A click on the backdrop (the dialog itself, outside its content) closes it; only when the
+    // press began there too, so selecting text that ends outside the content keeps it open.
+    var downOnBackdrop = false;
+    modalEl.addEventListener('pointerdown', function(evt) {
+      downOnBackdrop = evt.target === modalEl;
+    });
+    modalEl.addEventListener('click', function(evt) {
+      if (downOnBackdrop && evt.target === modalEl) modalEl.close();
+      downOnBackdrop = false;
     });
   }
 })();

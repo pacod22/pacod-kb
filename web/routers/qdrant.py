@@ -13,6 +13,7 @@ from markupsafe import escape
 
 from web.auth import Principal, require_role, require_user, require_write
 from web.dependencies import PipelineClientDep, QdrantClientDep
+from web.html import Tone, notice
 from web.roles import role_satisfies
 from web.templates_config import templates
 
@@ -24,21 +25,23 @@ _MAX_BROWSE_ALL = 10_000
 # Destructive/irreversible collection operations are admin-only.
 _ADMIN = [Depends(require_role("admin"))]
 
-_BACK_TO_COLLECTIONS = (
-    '<a href="/kb/qdrant/" class="btn btn-sm btn-outline-secondary mt-2">Back to collections</a>'
-)
+_BACK_TO_COLLECTIONS = '<a href="/kb/qdrant/" class="btn btn-sm">Back to collections</a>'
+
+_TONES: dict[str, Tone] = {"success": "good", "warning": "warn", "danger": "bad", "info": "info"}
 
 
 def _alert(kind: str, html: str) -> str:
-    """Wrap pre-escaped *html* in a Bootstrap alert."""
-    return f'<div class="alert alert-{kind}">{html}</div>'
+    """Wrap pre-escaped *html* in a notice (web/html.py); *kind* is success/warning/danger/info.
+
+    The text goes in one <span> (the notice's text is a flex column), and the result is a plain
+    str: a Markup would escape the links concatenated after it.
+    """
+    return str(notice(_TONES[kind], f"<span>{html}</span>"))
 
 
 def _back_link(collection: str) -> str:
-    return (
-        f'<a href="/kb/qdrant/{quote(collection, safe="")}?tab=manage" '
-        'class="btn btn-sm btn-outline-secondary mt-2">Back</a>'
-    )
+    href = f"/kb/qdrant/{quote(collection, safe='')}?tab=manage"
+    return f'<a href="{href}" class="btn btn-sm">Back</a>'
 
 
 def _qdrant_base_url() -> str:
@@ -324,9 +327,7 @@ def point_detail(
         with_vectors=False,
     )
     if not records:
-        return HTMLResponse(
-            "<div class='alert alert-danger'>Point not found.</div>", status_code=404
-        )
+        return HTMLResponse(_alert("danger", "Point not found."), status_code=404)
     r = records[0]
     return templates.TemplateResponse(
         request,
@@ -499,7 +500,7 @@ def bulk_delete(
     try:
         if mode == "doc_id":
             if not doc_id.strip():
-                return HTMLResponse('<div class="alert alert-warning">No doc_id provided.</div>')
+                return HTMLResponse(_alert("warning", "No doc_id provided."))
             flt = Filter(
                 must=[FieldCondition(key="source_id", match=MatchValue(value=doc_id.strip()))]
             )
@@ -511,11 +512,9 @@ def bulk_delete(
             points_selector=FilterSelector(filter=flt),
         )
         label = f"doc_id={doc_id.strip()!r}" if mode == "doc_id" else "all superseded"
-        return HTMLResponse(
-            f'<div class="alert alert-success">Deleted points matching {escape(label)}.</div>'
-        )
+        return HTMLResponse(_alert("success", f"Deleted points matching {escape(label)}."))
     except Exception as exc:
-        return HTMLResponse(f'<div class="alert alert-danger">{escape(str(exc))}</div>')
+        return HTMLResponse(_alert("danger", str(escape(str(exc)))))
 
 
 # ---------------------------------------------------------------------------
@@ -546,9 +545,7 @@ async def search(
         resp.raise_for_status()
         results: list[dict[str, Any]] = resp.json().get("results", [])
     except httpx.HTTPStatusError as exc:
-        return HTMLResponse(
-            f'<div class="alert alert-danger">Search failed: {escape(exc.response.text)}</div>'
-        )
+        return HTMLResponse(_alert("danger", f"Search failed: {escape(exc.response.text)}"))
     return templates.TemplateResponse(
         request,
         "qdrant/_search_results.html",
@@ -645,8 +642,11 @@ def rename_collection(
 
     client.delete_collection(collection)
     return HTMLResponse(
-        f'<div class="alert alert-success">Renamed <strong>{escape(collection)}</strong> → '
-        f"<strong>{escape(new_name)}</strong>.</div>" + _BACK_TO_COLLECTIONS
+        _alert(
+            "success",
+            f"Renamed <strong>{escape(collection)}</strong> → <strong>{escape(new_name)}</strong>.",
+        )
+        + _BACK_TO_COLLECTIONS
     )
 
 
@@ -661,7 +661,7 @@ def create_snapshot(
 ) -> HTMLResponse:
     snap = client.create_snapshot(collection)
     if snap is None:
-        return HTMLResponse('<div class="alert alert-danger">Snapshot creation failed.</div>')
+        return HTMLResponse(_alert("danger", "Snapshot creation failed."))
     return HTMLResponse(
         _alert("success", f"Snapshot <strong>{escape(snap.name)}</strong> created.")
         + _back_link(collection)
@@ -673,9 +673,7 @@ def delete_snapshot(
     request: Request, collection: KbCollection, name: str, client: QdrantClientDep
 ) -> HTMLResponse:
     client.delete_snapshot(collection, name)
-    return HTMLResponse(
-        f'<div class="alert alert-warning">Snapshot <strong>{escape(name)}</strong> deleted.</div>'
-    )
+    return HTMLResponse(_alert("warning", f"Snapshot <strong>{escape(name)}</strong> deleted."))
 
 
 @router.get("/{collection}/snapshots/{name}/download")
@@ -731,6 +729,6 @@ async def restore_snapshot(
     if resp.status_code >= 400:
         return HTMLResponse(_alert("danger", f"Restore failed: {escape(resp.text)}"))
     return HTMLResponse(
-        f'<div class="alert alert-success">Snapshot restored to '
-        f"<strong>{escape(collection)}</strong>.</div>" + _back_link(collection)
+        _alert("success", f"Snapshot restored to <strong>{escape(collection)}</strong>.")
+        + _back_link(collection)
     )

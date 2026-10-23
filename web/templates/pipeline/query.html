@@ -1,36 +1,36 @@
 {% extends "base.html" %}
 {% block title %}Search{% endblock %}
 {% block content %}
-<div class="page-header">
+<header class="page-header">
   <div>
     <h1 class="page-title">Search</h1>
     <p class="page-subtitle">Hybrid semantic plus keyword retrieval across the active project scope.</p>
   </div>
-</div>
+</header>
 
-<div class="section-card mb-4">
+<section class="section-card">
   <div class="sc-body">
     <form hx-post="/kb/pipeline/query"
           hx-target="#results"
           hx-swap="innerHTML"
-          class="row g-2 align-items-end">
-      <div class="col-12 col-md">
-        <label class="form-label small fw-semibold mb-1">Query</label>
-        <input type="text" class="form-control" name="query" value="{{ query or '' }}" placeholder="Enter query..." required>
+          class="grid-form">
+      <div class="field span-all">
+        <label for="query-text">Query</label>
+        <input type="text" id="query-text" name="query" value="{{ query or '' }}" placeholder="Enter query..." required>
       </div>
-      <div class="col-12 col-sm-4 col-md-2">
-        <label class="form-label small fw-semibold mb-1">Top K</label>
-        <input type="number" class="form-control" name="top_k" value="5" min="1" max="20" title="Top K">
+      <div class="field">
+        <label for="query-top-k">Top K</label>
+        <input type="number" id="query-top-k" name="top_k" value="5" min="1" max="20" title="Top K">
       </div>
-      <div class="col-12 col-md-auto">
-        <button type="submit" class="btn btn-primary w-100">
+      <div>
+        <button type="submit" class="btn btn-primary">
           Search
-          <span class="htmx-indicator spinner-border spinner-border-sm ms-1"></span>
+          <span class="htmx-indicator spinner" aria-hidden="true"></span>
         </button>
       </div>
     </form>
   </div>
-</div>
+</section>
 
 <div id="results">
 {% include "pipeline/_query_results.html" %}

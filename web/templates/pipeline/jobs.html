@@ -1,17 +1,19 @@
 {% extends "base.html" %}
 {% block title %}Jobs{% endblock %}
 {% block content %}
-<div class="page-header">
+<header class="page-header">
   <div>
     <h1 class="page-title">Recent jobs</h1>
     <p class="page-subtitle">Background task history and operation results.</p>
   </div>
-  <a class="btn btn-sm btn-outline-secondary"
-     href="/kb/pipeline/jobs"
-     hx-get="/kb/pipeline/jobs"
-     hx-target="#jobs-table"
-     hx-swap="outerHTML">Refresh</a>
-</div>
+  <div class="page-actions">
+    <a class="btn btn-sm"
+       href="/kb/pipeline/jobs"
+       hx-get="/kb/pipeline/jobs"
+       hx-target="#jobs-table"
+       hx-swap="outerHTML">{{ icon("refresh-cw", 14) }} Refresh</a>
+  </div>
+</header>
 
 {% include "pipeline/_jobs_table.html" %}
 {% endblock %}

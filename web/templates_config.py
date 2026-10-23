@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import Request
 from fastapi.templating import Jinja2Templates
 
+from web.html import icon, notice
 from web.roles import role_satisfies
 
 
@@ -30,3 +31,5 @@ templates = Jinja2Templates(
     directory=str(Path(__file__).parent / "templates"),
     context_processors=[_current_user_processor],
 )
+# The icons and notices routers build too (web/html.py), so both draw them the same way.
+templates.env.globals.update(icon=icon, notice=notice)

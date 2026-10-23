@@ -1,53 +1,51 @@
 {% set cfg = llm_state.get('effective', {}) %}
 {% set defaults = llm_state.get('env_default', {}) %}
 {% set models = llm_state.get('available_models', []) %}
-<div id="llm-config-panel" class="section-card mt-4">
-  <div class="sc-header">Models</div>
+<section id="llm-config-panel" class="section-card">
+  <div class="sc-header"><h2>Models</h2></div>
   <div class="sc-body">
-    <div class="config-hint mb-2">
+    <p class="config-hint">
       Gateway model names — <code>provider/model</code> or a pool <code>@name</code>. Overrides apply on the next call, without a restart.
-    </div>
-    {% if saved %}<div class="alert alert-success py-1 px-2 mb-2 small">Saved.</div>{% endif %}
-    {% if error %}<div class="alert alert-danger py-1 px-2 mb-2 small">{{ error }}</div>{% endif %}
+    </p>
+    {% if saved %}{{ notice("good", "Saved.") }}{% endif %}
+    {% if error %}{{ notice("bad", error | e) }}{% endif %}
     <datalist id="gateway-models">
       {% for m in models %}<option value="{{ m }}">{% endfor %}
     </datalist>
-    <form hx-post="/kb/pipeline/settings/llm-config" hx-target="#llm-config-panel" hx-swap="outerHTML" class="row g-3">
-      <div class="col-md-6">
-        <label class="form-label form-label-sm" for="converter_model">Document conversion</label>
-        <input id="converter_model" class="form-control form-control-sm font-monospace" name="converter_model" list="gateway-models"
+    <form hx-post="/kb/pipeline/settings/llm-config" hx-target="#llm-config-panel" hx-swap="outerHTML" class="grid-form">
+      <div class="field">
+        <label for="converter_model">Document conversion</label>
+        <input id="converter_model" class="sm mono" name="converter_model" list="gateway-models"
                value="{{ cfg.get('converter_model', '') }}" placeholder="{{ defaults.get('converter_model', '') }}">
-        <div class="form-text small">Default <code>{{ defaults.get('converter_model', '—') }}</code> (<code>LLM_CONVERTER_MODEL</code>)</div>
+        <p class="hint">Default <code>{{ defaults.get('converter_model', '—') }}</code> (<code>LLM_CONVERTER_MODEL</code>)</p>
       </div>
-      <div class="col-md-6">
-        <label class="form-label form-label-sm" for="security_model">Content-security second opinion</label>
-        <input id="security_model" class="form-control form-control-sm font-monospace" name="security_model" list="gateway-models"
+      <div class="field">
+        <label for="security_model">Content-security second opinion</label>
+        <input id="security_model" class="sm mono" name="security_model" list="gateway-models"
                value="{{ cfg.get('security_model', '') }}" placeholder="{{ defaults.get('security_model', '') }}">
-        <div class="form-text small">Default <code>{{ defaults.get('security_model', '—') }}</code>; used when <code>CONTENT_SECURITY_LLM_ENABLED=true</code></div>
+        <p class="hint">Default <code>{{ defaults.get('security_model', '—') }}</code>; used when <code>CONTENT_SECURITY_LLM_ENABLED=true</code></p>
       </div>
-      <div class="col-md-4">
-        <label class="form-label form-label-sm" for="converter_max_tokens">Conversion max output tokens</label>
-        <input id="converter_max_tokens" class="form-control form-control-sm" name="converter_max_tokens" inputmode="numeric"
+      <div class="field">
+        <label for="converter_max_tokens">Conversion max output tokens</label>
+        <input id="converter_max_tokens" class="sm" name="converter_max_tokens" inputmode="numeric"
                value="{{ cfg.get('converter_max_tokens', defaults.get('converter_max_tokens', 64000)) }}">
       </div>
-      <div class="col-md-4">
-        <label class="form-label form-label-sm" for="converter_temperature">Conversion temperature</label>
-        <input id="converter_temperature" class="form-control form-control-sm" name="converter_temperature" inputmode="decimal"
+      <div class="field">
+        <label for="converter_temperature">Conversion temperature</label>
+        <input id="converter_temperature" class="sm" name="converter_temperature" inputmode="decimal"
                value="{{ cfg.get('converter_temperature', defaults.get('converter_temperature', 0.2)) }}">
       </div>
-      <div class="col-md-4 d-flex align-items-end">
-        <div class="form-check form-switch mb-1">
-          <input class="form-check-input" type="checkbox" id="converter_temperature_enabled" name="converter_temperature_enabled"
-                 {% if cfg.get('converter_temperature_enabled') %}checked{% endif %}>
-          <label class="form-check-label" for="converter_temperature_enabled">Send temperature</label>
-        </div>
-      </div>
-      <div class="col-12 config-hint">
+      <label class="check">
+        <input type="checkbox" id="converter_temperature_enabled" name="converter_temperature_enabled"
+               {% if cfg.get('converter_temperature_enabled') %}checked{% endif %}>
+        Send temperature
+      </label>
+      <p class="config-hint span-all">
         Off by default: conversion uses the model's own sampling, and the gateway drops a temperature a model does not accept.
-      </div>
-      <div class="col-12 d-flex justify-content-end">
+      </p>
+      <div class="row end span-all">
         <button class="btn btn-sm btn-primary" type="submit">Save</button>
       </div>
     </form>
   </div>
-</div>
+</section>

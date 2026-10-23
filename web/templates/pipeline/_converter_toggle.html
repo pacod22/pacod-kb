@@ -15,7 +15,8 @@
         hx-swap="outerHTML">
     <input type="hidden" name="enabled" value="{{ 'false' if on else 'true' }}">
     <button type="submit"
-            class="btn btn-sm {{ 'btn-info' if on else 'btn-outline-secondary' }}"
+            class="btn btn-sm"
+            aria-pressed="{{ 'true' if on else 'false' }}"
             title="{{ 'Conversion: AI (LLM) — click to switch to Deterministic' if on else 'Conversion: Deterministic — click to switch to AI (LLM)' }}">
       {% if on %}AI (LLM){% else %}Deterministic{% endif %}
     </button>

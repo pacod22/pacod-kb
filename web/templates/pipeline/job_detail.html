@@ -1,30 +1,30 @@
 {% extends "base.html" %}
 {% block title %}Job {{ job_id[:12] }}{% endblock %}
 {% block content %}
-<div class="page-header">
+<header class="page-header">
   <div>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/kb/pipeline/jobs">Jobs</a><span aria-hidden="true">/</span></nav>
     <h1 class="page-title">Job detail</h1>
     <p class="page-subtitle"><code>{{ job_id }}</code></p>
   </div>
-  <div class="d-flex gap-2">
-    <a class="btn btn-sm btn-outline-secondary" href="/kb/pipeline/jobs">Back to jobs</a>
+  <div class="page-actions">
+    <a class="btn btn-sm" href="/kb/pipeline/jobs">{{ icon("arrow-left", 14) }} Back to jobs</a>
     {% if job and job.status != 'running' %}
     <form method="post" action="/kb/pipeline/jobs/{{ job_id }}/restart">
-      <button class="btn btn-sm btn-outline-primary" type="submit">Restart</button>
+      <button class="btn btn-sm" type="submit">{{ icon("refresh-cw", 14) }} Restart</button>
     </form>
     {% endif %}
     {% if job and job.status != 'running' %}
     <form method="post" action="/kb/pipeline/jobs/{{ job_id }}/delete">
-      <button class="btn btn-sm btn-outline-danger" type="submit">Delete</button>
+      <button class="btn btn-sm danger" type="submit">{{ icon("trash", 14) }} Delete</button>
     </form>
     {% endif %}
   </div>
-</div>
+</header>
 
-<div class="section-card">
+<section class="section-card">
   <div class="sc-body">
     {% include "pipeline/job_status.html" %}
   </div>
-</div>
+</section>
 {% endblock %}
-

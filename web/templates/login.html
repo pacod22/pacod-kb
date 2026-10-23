@@ -1,32 +1,11 @@
-<!doctype html>
-<html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sign in — Knowledge Base</title>
-  <link rel="icon" href="/kb/static/favicon.ico" sizes="any">
-  <link rel="icon" type="image/svg+xml" href="/kb/static/favicon.svg">
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
-        integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH"
-        crossorigin="anonymous">
-  <link rel="stylesheet" href="/kb/static/style.css">
-  <script>(function(){var t=localStorage.getItem('kb-theme')||'light';document.documentElement.setAttribute('data-bs-theme',t);})();</script>
-</head>
-<body class="d-flex align-items-center justify-content-center min-vh-100 p-3">
-  <div class="card shadow-sm" style="max-width: 420px; width: 100%;">
-    <div class="card-body p-4">
-      <div class="d-flex align-items-center gap-2 mb-3">
-        <img src="/kb/static/favicon.svg" alt="KB" width="32" height="32" class="rounded">
-        <h1 class="h5 mb-0 fw-bold">Knowledge Base</h1>
-      </div>
-      {# Shown only with a reason (signed out, session ended, a failed sign-in, not set up);
-         otherwise /kb/login goes straight to pacod-id's sign-in page. #}
-      {% if message %}
-      <div class="alert alert-secondary py-2 small" role="status">{{ message }}</div>
-      {% endif %}
-      <a class="btn btn-primary w-100" href="/kb/login?next={{ next | urlencode }}">Sign in</a>
-      <p class="text-muted small mt-3 mb-0">Accounts are managed by pacod-id. Ask an administrator to invite you.</p>
-    </div>
-  </div>
-</body>
-</html>
+{% extends "auth_base.html" %}
+{% block title %}Sign in{% endblock %}
+{% block content %}
+  {# Shown only with a reason (signed out, session ended, a failed sign-in, not set up);
+     otherwise /kb/login goes straight to pacod-id's sign-in page. #}
+  {% if message %}
+  {{ notice("neutral", message | e) }}
+  {% endif %}
+  <a class="btn btn-primary btn-wide" href="/kb/login?next={{ next | urlencode }}">Sign in</a>
+  <p class="muted small center">Accounts are managed by pacod-id. Ask an administrator to invite you.</p>
+{% endblock %}

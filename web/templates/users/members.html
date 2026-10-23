@@ -1,19 +1,22 @@
 {% extends "base.html" %}
 {% block title %}Members{% endblock %}
 {% block content %}
-<div class="page-header">
+<header class="page-header">
   <div>
     <h1 class="page-title">Members</h1>
     <p class="page-subtitle">Who holds which role in the knowledge base. Accounts live in pacod-id; roles are granted here.</p>
   </div>
-</div>
+</header>
 
-{% if notice %}<div class="alert alert-success py-2 small" role="status">{{ notice }}</div>{% endif %}
-{% if error %}<div class="alert alert-danger py-2 small" role="alert">{{ error }}</div>{% endif %}
+{# The page's context has a `notice` message, which hides the notice() global: the notices are written out. #}
+{% if notice %}<div class="notice good" role="status">{{ icon("circle-check") }}<div class="notice-text"><span>{{ notice }}</span></div></div>{% endif %}
+{% if error %}<div class="notice bad" role="alert">{{ icon("circle-alert") }}<div class="notice-text"><span>{{ error }}</span></div></div>{% endif %}
 {% if link %}
-<div class="alert alert-info py-2 small" role="status">
-  Send this invitation link yourself (it is shown only now):
-  <code class="d-block text-break mt-1">{{ link }}</code>
+<div class="notice info" role="status">{{ icon("info") }}
+  <div class="notice-text">
+    <span>Send this invitation link yourself (it is shown only now):</span>
+    <code class="break">{{ link }}</code>
+  </div>
 </div>
 {% endif %}
 
@@ -21,113 +24,114 @@
   {% for r in grantable %}<option value="{{ r }}" {% if r == selected %}selected{% endif %}>{{ r }}</option>{% endfor %}
 {%- endmacro %}
 
-<div class="section-card">
-  <div class="sc-header">Invite someone</div>
+<section class="section-card">
+  <div class="sc-header"><h2>Invite someone</h2></div>
   <div class="sc-body">
-    <form method="post" action="/kb/users/invite" class="row g-2 align-items-end">
-      <div class="col-md-5">
-        <label class="form-label form-label-sm" for="invite-email">Email</label>
-        <input class="form-control form-control-sm" type="email" id="invite-email" name="email" required>
+    <form method="post" action="/kb/users/invite" class="grid-form">
+      <div class="field">
+        <label for="invite-email">Email</label>
+        <input class="sm" type="email" id="invite-email" name="email" required>
       </div>
-      <div class="col-md-3">
-        <label class="form-label form-label-sm" for="invite-role">Role</label>
-        <select class="form-select form-select-sm" id="invite-role" name="role">{{ role_options('viewer') }}</select>
+      <div class="field">
+        <label for="invite-role">Role</label>
+        <select class="sm" id="invite-role" name="role">{{ role_options('viewer') }}</select>
       </div>
-      <div class="col-md-2">
-        <div class="form-check">
-          <input class="form-check-input" type="checkbox" id="invite-link" name="as_link" value="1">
-          <label class="form-check-label small" for="invite-link">give me a link</label>
-        </div>
+      <div class="row loose">
+        <label class="check"><input type="checkbox" id="invite-link" name="as_link" value="1"> give me a link</label>
+        <button class="btn btn-sm btn-primary push" type="submit">Invite</button>
       </div>
-      <div class="col-md-2 d-grid"><button class="btn btn-sm btn-primary" type="submit">Invite</button></div>
     </form>
   </div>
-</div>
+</section>
 
-<div class="section-card mt-4">
-  <div class="sc-header">Members</div>
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th class="text-end"></th></tr></thead>
+<section class="section-card">
+  <div class="sc-header"><h2>Members</h2></div>
+  <div class="table-wrap">
+    <table class="compact stack-table">
+      <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Status</th><th class="num"></th></tr></thead>
       <tbody>
       {% for m in members %}
         <tr>
-          <td>{{ m.name or '—' }}</td>
-          <td><code class="small">{{ m.email }}</code></td>
-          <td>
+          <td data-label="Name">{{ m.name or '—' }}</td>
+          <td data-label="Email"><code class="small">{{ m.email }}</code></td>
+          <td data-label="Role">
             {% if m.principal == me.sub %}
-              <span class="fmt-badge">{{ m.kb_role }}</span> <span class="small text-muted">(you)</span>
+              <span class="fmt-badge">{{ m.kb_role }}</span> <span class="small muted">(you)</span>
             {% else %}
-              <form method="post" action="/kb/users/{{ m.principal }}/role" class="d-flex gap-1">
-                <select class="form-select form-select-sm w-auto" name="role">{{ role_options(m.kb_role) }}</select>
-                <button class="btn btn-sm btn-outline-primary" type="submit">Change</button>
+              <form method="post" action="/kb/users/{{ m.principal }}/role" class="row tight nowrap">
+                <select class="sm w-auto" name="role" aria-label="Role">{{ role_options(m.kb_role) }}</select>
+                <button class="btn btn-sm" type="submit">Change</button>
               </form>
             {% endif %}
           </td>
-          <td>{{ m.status }}</td>
-          <td class="text-end">
+          <td data-label="Status">{{ m.status }}</td>
+          <td class="num">
             {% if m.principal != me.sub %}
-            <form method="post" action="/kb/users/{{ m.principal }}/remove" class="d-inline"
+            <form method="post" action="/kb/users/{{ m.principal }}/remove"
                   onsubmit="return confirm('Remove this person from the knowledge base?');">
-              <button class="btn btn-sm btn-outline-danger" type="submit">Remove</button>
+              <button class="btn btn-sm btn-quiet danger" type="submit">Remove</button>
             </form>
             {% endif %}
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="5" class="text-muted small">No members could be listed.</td></tr>
+        <tr><td colspan="5" class="muted small">No members could be listed.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
-</div>
+</section>
 
-<div class="section-card mt-4">
-  <div class="sc-header">Pending invitations</div>
-  <div class="table-responsive">
-    <table class="table table-sm align-middle mb-0">
-      <thead><tr><th>Email</th><th>Role</th><th>Expires</th><th class="text-end"></th></tr></thead>
+<section class="section-card">
+  <div class="sc-header"><h2>Pending invitations</h2></div>
+  <div class="table-wrap">
+    <table class="compact stack-table">
+      <thead><tr><th>Email</th><th>Role</th><th>Expires</th><th class="num"></th></tr></thead>
       <tbody>
       {% for i in invitations %}
         <tr>
-          <td><code class="small">{{ i.email }}</code></td>
-          <td>{{ (i.role or '').split('.')[-1] }}</td>
-          <td>{% if i.expired %}<span class="text-danger">expired</span>{% else %}{{ (i.expires_at or '')[:10] }}{% endif %}</td>
-          <td class="text-end d-flex gap-1 justify-content-end">
-            <form method="post" action="/kb/users/invitations/{{ i.id }}/resend"><button class="btn btn-sm btn-outline-secondary" type="submit">Resend</button></form>
-            <form method="post" action="/kb/users/invitations/{{ i.id }}/revoke"><button class="btn btn-sm btn-outline-danger" type="submit">Revoke</button></form>
+          <td data-label="Email"><code class="small">{{ i.email }}</code></td>
+          <td data-label="Role">{{ (i.role or '').split('.')[-1] }}</td>
+          <td data-label="Expires">{% if i.expired %}<span class="text-danger">expired</span>{% else %}{{ (i.expires_at or '')[:10] }}{% endif %}</td>
+          <td class="num">
+            <div class="row tight nowrap end">
+              <form method="post" action="/kb/users/invitations/{{ i.id }}/resend"><button class="btn btn-sm" type="submit">Resend</button></form>
+              <form method="post" action="/kb/users/invitations/{{ i.id }}/revoke"><button class="btn btn-sm btn-quiet danger" type="submit">Revoke</button></form>
+            </div>
           </td>
         </tr>
       {% else %}
-        <tr><td colspan="4" class="text-muted small">None.</td></tr>
+        <tr><td colspan="4" class="muted small">None.</td></tr>
       {% endfor %}
       </tbody>
     </table>
   </div>
-</div>
+</section>
 
 {% if former %}
-<div class="section-card mt-4">
-  <div class="sc-header">Former local accounts not yet in the knowledge base</div>
+<section class="section-card">
+  <div class="sc-header"><h2>Former local accounts not yet in the knowledge base</h2></div>
   <div class="sc-body">
     <p class="config-hint">These accounts signed in before sign-in moved to pacod-id. Invite them to give them access again.</p>
-    <table class="table table-sm align-middle mb-0">
+    <div class="table-wrap">
+    <table class="compact">
       <tbody>
       {% for email, role in former %}
         <tr>
           <td><code class="small">{{ email }}</code></td>
-          <td class="text-end">
-            <form method="post" action="/kb/users/invite" class="d-flex gap-1 justify-content-end">
+          <td class="num">
+            <form method="post" action="/kb/users/invite" class="row tight nowrap end">
               <input type="hidden" name="email" value="{{ email }}">
-              <select class="form-select form-select-sm w-auto" name="role">{{ role_options(role) }}</select>
-              <button class="btn btn-sm btn-outline-primary" type="submit">Invite</button>
+              <select class="sm w-auto" name="role" aria-label="Role">{{ role_options(role) }}</select>
+              <button class="btn btn-sm" type="submit">Invite</button>
             </form>
           </td>
         </tr>
       {% endfor %}
       </tbody>
     </table>
+    </div>
   </div>
-</div>
+</section>
 {% endif %}
 {% endblock %}

@@ -1,0 +1,20 @@
+{# The head both page frames share (base.html, auth_base.html): icons, the pacod design
+   (@pacod/ui tokens, the fonts, style.css) and the theme before the first paint. #}
+<link rel="icon" href="/kb/static/favicon.ico" sizes="any">
+<link rel="icon" type="image/svg+xml" href="/kb/static/favicon.svg">
+<link rel="icon" type="image/png" sizes="32x32" href="/kb/static/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/kb/static/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/kb/static/apple-touch-icon.png">
+<link rel="manifest" href="/kb/static/site.webmanifest">
+<link rel="stylesheet" href="/kb/static/pacod-ui/tokens.css">
+<link rel="stylesheet" href="/kb/static/pacod-ui/console.css">
+<link rel="stylesheet" href="/kb/static/fonts/fonts.css">
+<link rel="stylesheet" href="/kb/static/style.css">
+<script>
+  // Apply a light or dark choice made with the theme button before the first paint.
+  // Without one, the page follows the system setting.
+  try {
+    var t = localStorage.getItem('kb-theme');
+    if (t === 'light' || t === 'dark') document.documentElement.dataset.theme = t;
+  } catch (e) {}
+</script>

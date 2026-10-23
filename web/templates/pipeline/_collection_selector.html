@@ -7,9 +7,8 @@
   </div>
   <form hx-post="/kb/pipeline/settings/collection"
         hx-target="#collection-selector"
-        hx-swap="outerHTML"
-        class="d-flex align-items-center gap-2">
-    <select name="collection" class="form-select form-select-sm select-compact">
+        hx-swap="outerHTML">
+    <select name="collection" class="sm" aria-label="Active collection">
       {% for col in cols.get('collections', []) %}
         <option value="{{ col.name }}" {% if col.name == active %}selected{% endif %}>
           {{ col.name }}{% if col.points_count is not none %} ({{ col.points_count }}){% endif %}
@@ -19,7 +18,7 @@
         <option value="{{ active }}" selected>{{ active or '(unknown)' }}</option>
       {% endif %}
     </select>
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Switch</button>
+    <button type="submit" class="btn btn-sm">Switch</button>
     {% if error %}<span class="text-danger small">{{ error }}</span>{% endif %}
   </form>
 </div>

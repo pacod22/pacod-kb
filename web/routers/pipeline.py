@@ -14,6 +14,7 @@ from markupsafe import escape
 
 from web.auth import require_role, require_write
 from web.dependencies import PipelineClientDep
+from web.html import notice
 from web.templates_config import templates
 
 # Settings that affect every user (AI configuration, prompts, security) are admin-only.
@@ -567,17 +568,26 @@ async def switch_project(
         )
     except Exception:
         projects_data = {"projects": [], "active": None}
-    active_project: str = settings.get("active_project", project)
+    # A refused switch leaves the active project as it was: show that one, not the one asked for.
+    active_project: str = settings.get("active_project") or (
+        projects_data.get("active") or "" if error else project
+    )
+    # The context processor (web/templates_config.py) supplies these to every template, after
+    # the route's own context: give it the outcome of this switch, not the request's earlier view.
+    request.state.active_project = active_project
+    request.state.sidebar_projects = projects_data.get("projects", [])
     is_sidebar = _truthy(sidebar)
     if is_sidebar:
+        # The top bar's picker: a switch changes what every page shows, so the page reloads.
         return templates.TemplateResponse(
             request,
-            "pipeline/_sidebar_project_switcher.html",
+            "pipeline/_project_bar.html",
             {
                 "sidebar_projects": projects_data.get("projects", []),
                 "active_project": active_project,
                 "error": error,
             },
+            headers={"HX-Refresh": "true"} if error is None else None,
         )
     return templates.TemplateResponse(
         request,
@@ -831,12 +841,12 @@ async def document_detail(
         resp = None
     if resp is None or resp.status_code == 404:
         return HTMLResponse(
-            "<div class='alert alert-danger'>Document not found.</div>",
+            notice("bad", "Document not found."),
             status_code=404,
         )
     if resp.status_code >= 400:
         return HTMLResponse(
-            f"<div class='alert alert-danger'>Failed to load document: {escape(resp.text)}</div>",
+            notice("bad", f"Failed to load document: {escape(resp.text)}"),
             status_code=resp.status_code,
         )
 
@@ -905,8 +915,7 @@ async def delete_document_route(
         resp.raise_for_status()
     except httpx.HTTPStatusError as exc:
         return HTMLResponse(
-            "<div class='alert alert-danger mt-3'>"
-            f"Delete failed: {escape(exc.response.text)}</div>",
+            notice("bad", f"Delete failed: {escape(exc.response.text)}"),
             status_code=exc.response.status_code,
         )
     return HTMLResponse("", headers={"HX-Redirect": "/kb/pipeline/documents"})
@@ -917,7 +926,7 @@ async def delete_bulk(request: Request, client: PipelineClientDep) -> HTMLRespon
     form = await request.form()
     doc_ids = [str(v) for v in form.getlist("doc_ids")]
     if not doc_ids:
-        return HTMLResponse("<div class='alert alert-warning'>No documents selected.</div>")
+        return HTMLResponse(notice("warn", "No documents selected."))
     errors: list[str] = []
     for did in doc_ids:
         try:
@@ -928,9 +937,10 @@ async def delete_bulk(request: Request, client: PipelineClientDep) -> HTMLRespon
     if errors:
         deleted = len(doc_ids) - len(errors)
         return HTMLResponse(
-            f"<div class='alert alert-danger'>"
-            f"Deleted {deleted} document(s); {len(errors)} failed: {escape('; '.join(errors))}"
-            f"</div>"
+            notice(
+                "bad",
+                f"Deleted {deleted} document(s); {len(errors)} failed: {escape('; '.join(errors))}",
+            )
         )
     return HTMLResponse("", headers={"HX-Redirect": "/kb/pipeline/documents"})
 

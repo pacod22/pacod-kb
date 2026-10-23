@@ -3,247 +3,224 @@
 {% block content %}
 
 {# ── Header ─────────────────────────────────────────────────────────────── #}
-<div class="d-flex align-items-start gap-3 mb-4">
-  <div class="flex-grow-1">
-    <div class="text-muted small mb-1">
-      <a href="/kb/pipeline/documents" class="text-decoration-none text-muted">Documents</a>
-      <span class="mx-1">›</span>
-      <code class="text-s">{{ manifest.doc_id[:8] }}</code>
-    </div>
-    <h4 class="mb-1">{{ manifest.title }}</h4>
-    <div class="d-flex align-items-center gap-2 flex-wrap">
+<header class="page-header">
+  <div>
+    <nav class="crumbs" aria-label="Breadcrumb">
+      <a href="/kb/pipeline/documents">Documents</a>
+      <span aria-hidden="true">/</span>
+      <span>{{ manifest.doc_id[:8] }}</span>
+    </nav>
+    <h1 class="page-title">{{ manifest.title }}</h1>
+    <div class="row tight">
       {% set st = manifest.get('status', '') %}
       {% if st == 'ok' and not manifest.get('valid_until') %}
-        <span class="badge bg-success">active</span>
+        <span class="badge good">active</span>
       {% elif st == 'ok' and manifest.get('valid_until') %}
-        <span class="badge bg-secondary">superseded {{ manifest.valid_until }}</span>
+        <span class="badge neutral">superseded {{ manifest.valid_until }}</span>
       {% elif st == 'review' %}
-        <span class="badge bg-warning text-dark">review</span>
+        <span class="badge warn">review</span>
       {% else %}
-        <span class="badge bg-danger">{{ st or 'error' }}</span>
+        <span class="badge bad">{{ st or 'error' }}</span>
       {% endif %}
-      <span class="badge bg-light text-dark border">{{ manifest.get('doc_type', '—') }}</span>
-      <span class="badge bg-light text-dark border">{{ manifest.get('language', '—') }}</span>
-      <span class="badge bg-light text-dark border">{{ manifest.get('extraction_method', '—') }}</span>
+      <span class="badge neutral">{{ manifest.get('doc_type', '—') }}</span>
+      <span class="badge neutral">{{ manifest.get('language', '—') }}</span>
+      <span class="badge neutral">{{ manifest.get('extraction_method', '—') }}</span>
     </div>
   </div>
-  <div class="d-flex gap-2 flex-shrink-0">
+  <div class="page-actions">
     <a href="/kb/pipeline/documents/{{ manifest.doc_id }}/download/original"
-       class="btn btn-sm btn-outline-secondary" title="Download original source file">
-      ⬇ Source
+       class="btn btn-sm" title="Download original source file">
+      {{ icon("download", 14) }} Source
     </a>
     <a href="/kb/pipeline/documents/{{ manifest.doc_id }}/download/markdown"
-       class="btn btn-sm btn-outline-secondary" title="Download Markdown">
-      ⬇ MD
+       class="btn btn-sm" title="Download Markdown">
+      {{ icon("download", 14) }} MD
     </a>
-    <button class="btn btn-sm btn-outline-primary"
+    <button type="button" class="btn btn-sm"
             hx-post="/kb/pipeline/reindex/{{ manifest.doc_id }}"
             hx-target="#reindex-result"
             hx-swap="innerHTML">
-      ↻ Re-index
+      {{ icon("refresh-cw", 14) }} Re-index
     </button>
     <a href="/kb/pipeline/ingest?supersedes={{ manifest.doc_id }}"
-       class="btn btn-sm btn-outline-secondary">
-      ↑ New version
+       class="btn btn-sm">
+      {{ icon("upload", 14) }} New version
     </a>
-    <button class="btn btn-sm btn-danger"
+    <button type="button" class="btn btn-sm danger"
             hx-delete="/kb/pipeline/documents/{{ manifest.doc_id }}"
             hx-confirm="Delete this document permanently? All index data and files will be removed. This cannot be undone."
             hx-target="body"
             hx-swap="innerHTML">
-      Delete
+      {{ icon("trash", 14) }} Delete
     </button>
   </div>
-</div>
-<div id="reindex-result" class="mb-2"></div>
+</header>
+<div id="reindex-result"></div>
 
 {# ── Version chain notices ─────────────────────────────────────────────── #}
 {% if manifest.get('supersedes') %}
-<div class="alert alert-info py-2 mb-3">
-  This document supersedes
-  <a href="/kb/pipeline/documents/{{ manifest.supersedes }}" class="font-monospace">
-    {{ manifest.supersedes[:12] }}…
-  </a>
+<div class="notice info" role="status">
+  {{ icon("info") }}
+  <div class="notice-text">
+    <p>
+      This document supersedes
+      <a href="/kb/pipeline/documents/{{ manifest.supersedes }}" class="mono">{{ manifest.supersedes[:12] }}…</a>
+    </p>
+  </div>
 </div>
 {% endif %}
 {% if superseded_by %}
-<div class="alert alert-warning py-2 mb-3">
-  Superseded by
-  <a href="/kb/pipeline/documents/{{ superseded_by.doc_id }}" class="font-monospace">
-    {{ superseded_by.doc_id[:12] }}…
-  </a>
-  — <em>{{ superseded_by.title | truncate(60) }}</em>
+<div class="notice warn" role="status">
+  {{ icon("triangle-alert") }}
+  <div class="notice-text">
+    <p>
+      Superseded by
+      <a href="/kb/pipeline/documents/{{ superseded_by.doc_id }}" class="mono">{{ superseded_by.doc_id[:12] }}…</a>
+      — <em>{{ superseded_by.title | truncate(60) }}</em>
+    </p>
+  </div>
 </div>
 {% endif %}
 {% if manifest.get('error') %}
-<div class="alert alert-danger py-2 mb-3">
-  <strong>Error:</strong> {{ manifest.error }}
+<div class="notice bad" role="alert">
+  {{ icon("circle-alert") }}
+  <div class="notice-text">
+    <p><strong>Error:</strong> {{ manifest.error }}</p>
+  </div>
 </div>
 {% endif %}
 
 {# ── Metadata card ─────────────────────────────────────────────────────── #}
-<div class="card shadow-sm mb-4">
-  <div class="card-header small text-uppercase text-muted">Document metadata</div>
-  <div class="card-body p-0">
-    <table class="table table-sm mb-0">
-      <tbody>
+<section class="section-card">
+  <div class="sc-header"><h2>Document metadata</h2></div>
+  <div class="sc-body">
+    <dl class="facts">
+      <dt>Doc ID</dt>
+      <dd>
+        <span class="row tight">
+          <code class="break-all" id="doc-id-val">{{ manifest.doc_id }}</code>
+          <button type="button" class="btn btn-xs"
+                  data-copy="{{ manifest.doc_id }}"
+                  onclick="navigator.clipboard.writeText(this.dataset.copy).then(()=>{this.textContent='✓';setTimeout(()=>{this.textContent='Copy'},1200)})">
+            Copy
+          </button>
+        </span>
+      </dd>
 
-        <tr>
-          <th class="ps-3 meta-label-col">Doc ID</th>
-          <td>
-            <code class="text-s" id="doc-id-val">{{ manifest.doc_id }}</code>
-            <button class="btn btn-xs btn-outline-secondary ms-2 text-xxs"
-                    data-copy="{{ manifest.doc_id }}"
-                    onclick="navigator.clipboard.writeText(this.dataset.copy).then(()=>{this.textContent='✓';setTimeout(()=>{this.textContent='Copy'},1200)})">
-              Copy
-            </button>
-          </td>
-        </tr>
-
-        <tr>
-          <th class="ps-3 meta-label-col">Source</th>
-          <td>
-            {% if manifest.get('source_uri', '').startswith('http') %}
-              <a href="{{ manifest.source_uri }}" target="_blank" rel="noopener"
-                 class="small text-break">{{ manifest.source_uri }}</a>
-            {% else %}
-              <span class="small text-break">{{ manifest.get('source_uri', '—') }}</span>
-            {% endif %}
-          </td>
-        </tr>
-
-        {% if manifest.get('source_version') %}
-        <tr>
-          <th class="ps-3 meta-label-col">Version</th>
-          <td class="small">{{ manifest.source_version }}</td>
-        </tr>
+      <dt>Source</dt>
+      <dd>
+        {% if manifest.get('source_uri', '').startswith('http') %}
+          <a href="{{ manifest.source_uri }}" target="_blank" rel="noopener"
+             class="break">{{ manifest.source_uri }}</a>
+        {% else %}
+          <span class="break">{{ manifest.get('source_uri', '—') }}</span>
         {% endif %}
+      </dd>
 
-        <tr>
-          <th class="ps-3 meta-label-col">SHA-256</th>
-          <td>
-            <code class="text-muted text-code">{{ manifest.get('source_sha256', '—') }}</code>
-          </td>
-        </tr>
+      {% if manifest.get('source_version') %}
+      <dt>Version</dt>
+      <dd>{{ manifest.source_version }}</dd>
+      {% endif %}
 
-        <tr>
-          <th class="ps-3 meta-label-col">Converter</th>
-          <td class="small">{{ manifest.get('converter', '—') }}</td>
-        </tr>
+      <dt>SHA-256</dt>
+      <dd><code class="xs muted break-all">{{ manifest.get('source_sha256', '—') }}</code></dd>
 
-        <tr>
-          <th class="ps-3 meta-label-col">Chunks</th>
-          <td>
-            <strong>{{ manifest.get('chunk_count', 0) }}</strong>
-          </td>
-        </tr>
+      <dt>Converter</dt>
+      <dd>{{ manifest.get('converter', '—') }}</dd>
 
-        {% if source_size is not none %}
-        <tr>
-          <th class="ps-3 meta-label-col">Source size</th>
-          <td class="small text-muted">
-            {% if source_size >= 1048576 %}
-              {{ (source_size / 1048576) | round(2) }} MB
-            {% elif source_size >= 1024 %}
-              {{ (source_size / 1024) | round(1) }} KB
-            {% else %}
-              {{ source_size }} B
-            {% endif %}
-          </td>
-        </tr>
+      <dt>Chunks</dt>
+      <dd><strong>{{ manifest.get('chunk_count', 0) }}</strong></dd>
+
+      {% if source_size is not none %}
+      <dt>Source size</dt>
+      <dd class="muted">
+        {% if source_size >= 1048576 %}
+          {{ (source_size / 1048576) | round(2) }} MB
+        {% elif source_size >= 1024 %}
+          {{ (source_size / 1024) | round(1) }} KB
+        {% else %}
+          {{ source_size }} B
         {% endif %}
+      </dd>
+      {% endif %}
 
-        <tr>
-          <th class="ps-3 meta-label-col">Retrieved at</th>
-          <td class="small text-muted">{{ manifest.get('retrieved_at', '—') }}</td>
-        </tr>
+      <dt>Retrieved at</dt>
+      <dd class="muted">{{ manifest.get('retrieved_at', '—') }}</dd>
 
-        <tr>
-          <th class="ps-3 meta-label-col">Converted at</th>
-          <td class="small text-muted">{{ manifest.get('converted_at', '—') }}</td>
-        </tr>
+      <dt>Converted at</dt>
+      <dd class="muted">{{ manifest.get('converted_at', '—') }}</dd>
 
-        {% if manifest.get('valid_until') %}
-        <tr>
-          <th class="ps-3 meta-label-col">Valid until</th>
-          <td>
-            <span class="badge bg-secondary">{{ manifest.valid_until }}</span>
-          </td>
-        </tr>
-        {% endif %}
-
-      </tbody>
-    </table>
+      {% if manifest.get('valid_until') %}
+      <dt>Valid until</dt>
+      <dd><span class="badge neutral">{{ manifest.valid_until }}</span></dd>
+      {% endif %}
+    </dl>
   </div>
-</div>
+</section>
 
 {# ── Lifecycle events ──────────────────────────────────────────────────── #}
 {% if manifest.get('events') %}
-<div class="card shadow-sm mb-4">
-  <div class="card-header small text-uppercase text-muted">Lifecycle events</div>
-  <div class="card-body p-0">
-    <table class="table table-sm mb-0">
-      <thead class="table-light">
+<section class="section-card">
+  <div class="sc-header"><h2>Lifecycle events</h2></div>
+  <div class="table-wrap">
+    <table class="compact">
+      <thead>
         <tr>
-          <th class="ps-3 text-s">Event</th>
-          <th class="text-s">When</th>
-          <th class="text-s">Detail</th>
+          <th>Event</th>
+          <th>When</th>
+          <th>Detail</th>
         </tr>
       </thead>
       <tbody>
         {% for ev in manifest.events %}
         <tr>
-          <td class="ps-3">
+          <td>
             {% if ev.event == 'ingested' %}
-              <span class="badge bg-success btn-xs">ingested</span>
+              <span class="badge good">ingested</span>
             {% elif ev.event == 'superseded' %}
-              <span class="badge bg-secondary btn-xs">superseded</span>
+              <span class="badge neutral">superseded</span>
             {% elif ev.event == 'reindexed' %}
-              <span class="badge bg-info text-dark btn-xs">reindexed</span>
+              <span class="badge info">reindexed</span>
             {% else %}
-              <span class="badge bg-light text-dark border btn-xs">{{ ev.event }}</span>
+              <span class="badge neutral">{{ ev.event }}</span>
             {% endif %}
           </td>
-          <td class="text-muted small">{{ ev.at }}</td>
-          <td class="small">{{ ev.detail }}</td>
+          <td class="muted nowrap">{{ ev.at }}</td>
+          <td class="break">{{ ev.detail }}</td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
-</div>
+</section>
 {% endif %}
 
 {# ── Document body ─────────────────────────────────────────────────────── #}
-<div class="card shadow-sm">
-  <div class="card-header small text-uppercase text-muted d-flex justify-content-between align-items-center">
-    <span>Document content</span>
-    <div class="d-flex align-items-center gap-3">
-        <span class="text-muted doc-content-stats">
-        {{ body | length }} chars · {{ body.splitlines() | length }} lines
-      </span>
-        <button class="btn btn-xs btn-outline-secondary"
-              onclick="(function(){var p=document.getElementById('doc-body');p.style.maxHeight=p.style.maxHeight?'':''})()">
-      </button>
-        <button class="btn btn-xs btn-outline-secondary"
+<section class="section-card">
+  <div class="sc-header">
+    <h2>Document content</h2>
+    <div class="row loose">
+      <span class="hint">{{ body | length }} chars · {{ body.splitlines() | length }} lines</span>
+      <button type="button" class="btn btn-xs"
               onclick="toggleBodyExpand(this)">Expand</button>
     </div>
   </div>
-  <div class="card-body p-0">
+  <div class="sc-body">
     {% if body %}
-    <pre id="doc-body" class="mb-0 p-3 doc-body-pre">{{ body }}</pre>
+    <pre id="doc-body" class="doc-body-pre">{{ body }}</pre>
     {% else %}
-    <p class="text-muted p-3 mb-0 small">No content available.</p>
+    <p class="muted small">No content available.</p>
     {% endif %}
   </div>
-</div>
+</section>
 
 <script>
 function toggleBodyExpand(btn) {
   var pre = document.getElementById('doc-body');
   if (!pre) return;
   if (pre.style.maxHeight === 'none') {
-    pre.style.maxHeight = '500px';
+    // Back to the stylesheet's height (.doc-body-pre).
+    pre.style.maxHeight = '';
     btn.textContent = 'Expand';
   } else {
     pre.style.maxHeight = 'none';

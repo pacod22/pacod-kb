@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <meta name="robots" content="noindex, nofollow">
+  <title>{% block title %}{% endblock %} · pacod-kb</title>
+  {% include "_head_assets.html" %}
+</head>
+{# The frame of the pages shown without the app: sign-in, no access, identity unavailable.
+   pacod-id's AuthCard: the page surface with one soft brand glow, a rounded card with the
+   brand mark, and the wordmark below. #}
+<body class="auth">
+  <div class="auth-glow" aria-hidden="true"></div>
+  <main class="auth-main">
+    <div class="auth-column">
+      <div class="auth-card">
+        <div class="auth-head">
+          <span class="mark mark-lg" aria-hidden="true">KB<span class="dot"></span></span>
+          <h1>{% block heading %}Knowledge Base{% endblock %}</h1>
+        </div>
+        <div class="stack">
+          {% block content %}{% endblock %}
+        </div>
+      </div>
+      <p class="auth-wordmark">pacod-kb</p>
+    </div>
+  </main>
+</body>
+</html>

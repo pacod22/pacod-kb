@@ -1,53 +1,47 @@
 <!-- Search results partial — swapped into #search-results -->
 {% if not results %}
-  <div class="alert alert-info">No results for <em>{{ query }}</em>.</div>
+  <div class="notice info" role="status">{{ icon("info") }}<div class="notice-text"><p>No results for <em>{{ query }}</em>.</p></div></div>
 {% else %}
 {# Reranked: score is an absolute relevance in [0, 1]. Otherwise an RRF score, shown relative to the best. #}
 {% set reranked = results[0].rerank_score is defined and results[0].rerank_score is not none %}
 {% set max_score = results[0].score %}
-<div class="mb-2 text-muted small">{{ results | length }} results for <em>{{ query }}</em>
-  · {% if reranked %}ranked by reranker relevance{% else %}ranked by rank fusion (RRF){% endif %}</div>
-<div class="d-flex flex-column gap-2">
+<div class="stack-sm">
+  <p class="muted small">{{ results | length }} results for <em>{{ query }}</em>
+    · {% if reranked %}ranked by reranker relevance{% else %}ranked by rank fusion (RRF){% endif %}</p>
   {% for r in results %}
   {% if reranked %}
     {% set pct = (r.score * 100) | round | int %}
   {% else %}
     {% set pct = ((r.score / max_score) * 100) | int if max_score > 0 else 0 %}
   {% endif %}
-  <div class="card shadow-sm border-start border-4
-    {% if pct >= 75 %}border-success{% elif pct >= 50 %}border-warning{% else %}border-secondary{% endif %}">
-    <div class="card-body py-2 px-3">
-      <div class="d-flex align-items-start justify-content-between gap-2">
-        <div class="flex-grow-1 min-w-0">
-          <!-- Heading breadcrumb -->
-          {% if r.heading_path %}
-          <div class="text-muted small mb-1 q-result-breadcrumb">
-            {{ r.heading_path | join(' › ') }}
-          </div>
+  {% set tone = 'good' if pct >= 75 else ('warn' if pct >= 50 else 'neutral') %}
+  <article class="card q-hit {{ tone }}">
+    <div class="row top nowrap loose">
+      <div class="grow stack-xs">
+        {% if r.heading_path %}
+        <div class="q-result-breadcrumb">{{ r.heading_path | join(' › ') }}</div>
+        {% endif %}
+        <div class="small q-result-text">{{ r.text[:300] }}{% if r.text | length > 300 %}…{% endif %}</div>
+        <div class="row tight q-result-meta">
+          <span class="mono" title="{{ r.chunk_id }}">{{ r.chunk_id[:32] }}…</span>
+          <span title="source_id: {{ r.source_id }}">doc {{ r.source_id[:8] }}…</span>
+          {% if r.valid_until %}
+          <span class="badge neutral">superseded {{ r.valid_until }}</span>
           {% endif %}
-          <!-- Embedded text excerpt -->
-          <div class="small q-result-text">{{ r.text[:300] }}{% if r.text | length > 300 %}…{% endif %}</div>
-          <!-- Metadata row -->
-          <div class="d-flex gap-2 mt-1 flex-wrap">
-            <span class="font-monospace text-muted q-result-meta" title="{{ r.chunk_id }}">{{ r.chunk_id[:32] }}…</span>
-            <span class="text-muted q-result-meta" title="source_id: {{ r.source_id }}">doc {{ r.source_id[:8] }}…</span>
-            {% if r.valid_until %}
-            <span class="badge bg-secondary badge-xxs">superseded {{ r.valid_until }}</span>
-            {% endif %}
-          </div>
         </div>
-        <!-- Score badge -->
-        <div class="text-end flex-shrink-0">
-          <span class="badge
-            {% if pct >= 75 %}bg-success{% elif pct >= 50 %}bg-warning text-dark{% else %}bg-secondary{% endif %}"
+      </div>
+      <div class="stack-xs num">
+        <div>
+          <span class="badge {{ tone }}"
             title="{% if reranked %}reranker relevance: {{ '%.3f' | format(r.score) }} (RRF {{ '%.6f' | format(r.rrf_score) }}){% else %}RRF score: {{ '%.6f' | format(r.score) }} (relative to the best result){% endif %}">
             {{ pct }}%
           </span>
-          <div class="text-muted q-result-rank">#{{ loop.index }}</div>
         </div>
+        <span class="meter" aria-hidden="true"><span style="width: {{ [pct, 100] | min }}%"></span></span>
+        <div class="q-result-rank">#{{ loop.index }}</div>
       </div>
     </div>
-  </div>
+  </article>
   {% endfor %}
 </div>
 {% endif %}

@@ -1,12 +1,12 @@
 {
-  "name": "Knowledge Base",
-  "short_name": "KB",
-  "description": "Knowledge Base web interface",
+  "name": "pacod-kb",
+  "short_name": "pacod-kb",
+  "description": "pacod-kb, the knowledge base: ingest, search and versioned documents",
   "start_url": "/kb",
   "scope": "/kb",
   "display": "standalone",
-  "background_color": "#ffffff",
-  "theme_color": "#1e40af",
+  "background_color": "#fbfbf8",
+  "theme_color": "#0e6e57",
   "icons": [
     {
       "src": "/kb/static/favicon-16x16.png",
@@ -22,6 +22,16 @@
       "src": "/kb/static/apple-touch-icon.png",
       "sizes": "180x180",
       "type": "image/png"
+    },
+    {
+      "src": "/kb/static/favicon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    },
+    {
+      "src": "/kb/static/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml"
     }
   ]
 }

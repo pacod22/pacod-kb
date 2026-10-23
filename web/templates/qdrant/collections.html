@@ -1,83 +1,82 @@
 {% extends "base.html" %}
 {% block title %}Collections{% endblock %}
 {% block content %}
-<div class="page-header">
+<header class="page-header">
   <div>
     <h1 class="page-title">Qdrant collections</h1>
     <p class="page-subtitle">Create, inspect, and manage vector collections.</p>
   </div>
-</div>
+</header>
 
-<div class="section-card mb-4">
-  <div class="sc-header">Create collection</div>
+<section class="section-card">
+  <div class="sc-header"><h2>Create collection</h2></div>
   <div class="sc-body">
-    <form hx-post="/kb/qdrant/"
+    <form class="grid-form"
+          hx-post="/kb/qdrant/"
           hx-target="#create-result"
           hx-swap="innerHTML">
-      <div class="row g-2 align-items-end">
-        <div class="col">
-          <label class="form-label">Name</label>
-          <input type="text" class="form-control form-control-sm" name="name" required>
-        </div>
-        <div class="col-auto">
-          <label class="form-label">Dims</label>
-          <input type="number" class="form-control form-control-sm w-inline-narrow" name="vector_size" value="1024">
-        </div>
-        <div class="col-auto">
-          <label class="form-label">Distance</label>
-          <select class="form-select form-select-sm w-inline-small" name="distance">
-            <option>Cosine</option>
-            <option>Dot</option>
-            <option>Euclid</option>
-          </select>
-        </div>
-        <div class="col-auto">
-          <button type="submit" class="btn btn-sm btn-primary">Create</button>
-        </div>
+      <div class="field">
+        <label for="create-name">Name</label>
+        <input type="text" class="sm" id="create-name" name="name" required>
+      </div>
+      <div class="field">
+        <label for="create-dims">Dims</label>
+        <input type="number" class="sm" id="create-dims" name="vector_size" value="1024">
+      </div>
+      <div class="field">
+        <label for="create-distance">Distance</label>
+        <select class="sm" id="create-distance" name="distance">
+          <option>Cosine</option>
+          <option>Dot</option>
+          <option>Euclid</option>
+        </select>
+      </div>
+      <div>
+        <button type="submit" class="btn btn-sm btn-primary">Create</button>
       </div>
     </form>
-    <div id="create-result" class="mt-2"></div>
+    <div id="create-result"></div>
   </div>
-</div>
+</section>
 
 {% if not collections %}
-  <p class="text-muted">No collections.</p>
+  <div class="empty">No collections.</div>
 {% else %}
 <div class="table-shell">
-<div class="table-responsive">
-<table class="table table-sm table-hover">
-  <thead class="table-light">
+<table class="compact">
+  <thead>
     <tr>
       <th>Name</th>
-      <th>Points</th>
+      <th class="num">Points</th>
       <th>Actions</th>
     </tr>
   </thead>
   <tbody>
     {% for c in collections %}
     <tr>
-      <td><a href="/kb/qdrant/{{ c.name }}">{{ c.name }}</a></td>
-      <td>{{ c.points }}</td>
+      <td><a class="mono" href="/kb/qdrant/{{ c.name }}">{{ c.name }}</a></td>
+      <td class="num">{{ c.points }}</td>
       <td>
-        <a href="/kb/qdrant/{{ c.name }}/export"
-           class="btn btn-xs btn-outline-secondary"
-           title="Export all points as JSON">Export all</a>
-        {% if user_can('admin') %}
-        <button class="btn btn-xs btn-outline-danger"
-                hx-delete="/kb/qdrant/{{ c.name }}"
-                hx-target="#del-{{ loop.index }}"
-                hx-swap="innerHTML"
-                hx-confirm="Delete collection '{{ c.name }}'?">Delete</button>
-        <span id="del-{{ loop.index }}"></span>
-        {% else %}
-        <span class="text-muted small">admin only</span>
-        {% endif %}
+        <div class="row tight">
+          <a href="/kb/qdrant/{{ c.name }}/export"
+             class="btn btn-xs"
+             title="Export all points as JSON">Export all</a>
+          {% if user_can('admin') %}
+          <button class="btn btn-xs btn-quiet danger"
+                  hx-delete="/kb/qdrant/{{ c.name }}"
+                  hx-target="#del-{{ loop.index }}"
+                  hx-swap="innerHTML"
+                  hx-confirm="Delete collection '{{ c.name }}'?">Delete</button>
+          <span id="del-{{ loop.index }}"></span>
+          {% else %}
+          <span class="muted xs">admin only</span>
+          {% endif %}
+        </div>
       </td>
     </tr>
     {% endfor %}
   </tbody>
 </table>
-</div>
 </div>
 {% endif %}
 {% endblock %}

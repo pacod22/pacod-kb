@@ -1,0 +1,25 @@
+{# The active project, as a trail in the top bar: "Projects / <project>". Editors pick another
+   one here (the page then reloads for it); `oob` makes this an out-of-band swap. #}
+{% set active = active_project or '' %}
+<nav id="project-bar" class="project-bar" aria-label="Active project"{% if oob %} hx-swap-oob="outerHTML"{% endif %}>
+  <a href="/kb/pipeline/projects" class="crumb-root">{{ icon("folders", 15) }}<span class="crumb-label">Projects</span></a>
+  <span class="sep" aria-hidden="true">/</span>
+  {% if user_can('editor') %}
+  <form hx-post="/kb/pipeline/settings/project" hx-target="#project-bar" hx-swap="outerHTML"
+        hx-trigger="change">
+    <input type="hidden" name="sidebar" value="1">
+    <label class="visually-hidden" for="project-bar-select">Active project</label>
+    <select id="project-bar-select" name="project" title="Active project: {{ active or 'none' }}">
+      {% for p in sidebar_projects %}
+      <option value="{{ p.slug }}" {% if p.slug == active %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+      {% if not sidebar_projects %}
+      <option value="{{ active }}" selected>{{ active or '(none)' }}</option>
+      {% endif %}
+    </select>
+  </form>
+  {% else %}
+  <span class="current" title="Active project">{{ active or 'none' }}</span>
+  {% endif %}
+  {% if error %}<span class="error" role="alert">{{ error }}</span>{% endif %}
+</nav>

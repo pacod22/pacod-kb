@@ -2,47 +2,46 @@
 {% block title %}AI Management{% endblock %}
 {% block content %}
 
-<div class="page-header">
+<header class="page-header">
   <div>
     <h1 class="page-title">AI Management</h1>
     <p class="page-subtitle">The AI gateway, the models kb uses, prompts, usage and costs.</p>
   </div>
-</div>
+</header>
 
 {# ── Tab buttons ─────────────────────────────────────────────────────── #}
-<ul class="nav nav-pills section-card mb-4 p-2 gap-1 ingest-tabs" id="aiMgmtTabs">
-  <li class="nav-item">
-    <button class="nav-link active" onclick="switchAiTab('gateway', this)">Gateway &amp; models</button>
-  </li>
-  <li class="nav-item">
-    <button class="nav-link" onclick="switchAiTab('usage-costs', this)">Usage &amp; costs</button>
-  </li>
-  <li class="nav-item">
-    <button class="nav-link" onclick="switchAiTab('interactions', this)">Interactions</button>
-  </li>
-  <li class="nav-item">
-    <button class="nav-link" onclick="switchAiTab('prompts', this)">Prompts</button>
-  </li>
-</ul>
+<div class="tabs line" role="tablist" id="aiMgmtTabs" aria-label="AI management">
+  <button type="button" class="tab" role="tab" id="ai-tab-gateway" aria-selected="true" aria-controls="ai-pane-gateway"
+          onclick="switchAiTab('gateway', this)">Gateway &amp; models</button>
+  <button type="button" class="tab" role="tab" id="ai-tab-usage-costs" aria-selected="false" aria-controls="ai-pane-usage-costs"
+          onclick="switchAiTab('usage-costs', this)">Usage &amp; costs</button>
+  <button type="button" class="tab" role="tab" id="ai-tab-interactions" aria-selected="false" aria-controls="ai-pane-interactions"
+          onclick="switchAiTab('interactions', this)">Interactions</button>
+  <button type="button" class="tab" role="tab" id="ai-tab-prompts" aria-selected="false" aria-controls="ai-pane-prompts"
+          onclick="switchAiTab('prompts', this)">Prompts</button>
+</div>
 
+{# The panes toggle the hidden attribute, so their layout class sits on an inner element. #}
 {# ── Gateway & models pane ───────────────────────────────────────────── #}
-<div id="ai-pane-gateway">
-  {% include "pipeline/_gateway_status_panel.html" %}
-  {% include "pipeline/_llm_config_panel.html" %}
+<div id="ai-pane-gateway" role="tabpanel" aria-labelledby="ai-tab-gateway">
+  <div class="stack-lg">
+    {% include "pipeline/_gateway_status_panel.html" %}
+    {% include "pipeline/_llm_config_panel.html" %}
+  </div>
 </div>
 
 {# ── Usage & costs pane ──────────────────────────────────────────────── #}
-<div id="ai-pane-usage-costs" hidden>
+<div id="ai-pane-usage-costs" role="tabpanel" aria-labelledby="ai-tab-usage-costs" hidden>
   {% include "pipeline/_usage_costs_panel.html" %}
 </div>
 
 {# ── Interactions pane ───────────────────────────────────────────────── #}
-<div id="ai-pane-interactions" hidden>
+<div id="ai-pane-interactions" role="tabpanel" aria-labelledby="ai-tab-interactions" hidden>
   {% include "pipeline/_ai_interactions_panel.html" %}
 </div>
 
 {# ── Prompts pane ─────────────────────────────────────────────────────── #}
-<div id="ai-pane-prompts" hidden>
+<div id="ai-pane-prompts" role="tabpanel" aria-labelledby="ai-tab-prompts" hidden>
   {% include "pipeline/_llm_prompts_panel.html" %}
 </div>
 
@@ -53,10 +52,9 @@ function switchAiTab(tab, btn) {
     var pane = document.getElementById('ai-pane-' + t);
     if (pane) pane.hidden = t !== tab;
   });
-  document.querySelectorAll('#aiMgmtTabs .nav-link').forEach(function(b) {
-    b.classList.remove('active');
+  document.querySelectorAll('#aiMgmtTabs .tab').forEach(function(b) {
+    b.setAttribute('aria-selected', b === btn ? 'true' : 'false');
   });
-  btn.classList.add('active');
 }
 </script>
 

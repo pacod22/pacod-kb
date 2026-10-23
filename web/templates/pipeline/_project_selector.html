@@ -7,9 +7,8 @@
   </div>
   <form hx-post="/kb/pipeline/settings/project"
         hx-target="#project-selector"
-        hx-swap="outerHTML"
-        class="d-flex align-items-center gap-2">
-    <select name="project" class="form-select form-select-sm select-project">
+        hx-swap="outerHTML">
+    <select name="project" class="sm" aria-label="Active project">
       {% for p in projects_data.get('projects', []) %}
         <option value="{{ p.slug }}" {% if p.slug == active %}selected{% endif %}>
           {{ p.name }} ({{ p.doc_count }})
@@ -19,15 +18,16 @@
         <option value="{{ active }}" selected>{{ active or '(none)' }}</option>
       {% endif %}
     </select>
-    <button type="submit" class="btn btn-sm btn-outline-secondary">Switch</button>
-    <a href="/kb/pipeline/projects" class="btn btn-sm btn-outline-secondary">Manage</a>
+    <button type="submit" class="btn btn-sm">Switch</button>
+    <a href="/kb/pipeline/projects" class="btn btn-sm">Manage</a>
     {% if error %}<span class="text-danger small">{{ error }}</span>{% endif %}
   </form>
 </div>
 
-<div id="sidebar-project-switcher" hx-swap-oob="outerHTML">
-  {% set sidebar_projects = projects_data.get('projects', []) %}
-  {% set active_project = active %}
-  {% include "pipeline/_sidebar_project_switcher.html" %}
-</div>
-
+{# The top bar's project trail follows the switch. The dashboard already has the top bar, so its
+   include (on_dashboard) leaves it out: on a full page load the out-of-band copy would show twice. #}
+{% if not on_dashboard %}
+{% with sidebar_projects = projects_data.get('projects', []), active_project = active, oob = true %}
+{% include "pipeline/_project_bar.html" %}
+{% endwith %}
+{% endif %}

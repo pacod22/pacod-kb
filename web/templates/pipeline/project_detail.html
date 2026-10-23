@@ -2,142 +2,138 @@
 {% block title %}{{ project.name }} - Project{% endblock %}
 {% block content %}
 
-<div class="page-header">
+<header class="page-header">
   <div>
+    <nav class="crumbs" aria-label="Breadcrumb"><a href="/kb/pipeline/projects">Projects</a><span aria-hidden="true">/</span></nav>
     <h1 class="page-title">{{ project.name }}</h1>
-    <p class="page-subtitle">
-      <span class="badge bg-secondary">{{ project.slug }}</span>
-      <span class="text-muted ms-2">Collection: <code>{{ project.collection_name or project.slug }}</code></span>
+    <p class="page-subtitle row">
+      <span class="badge neutral">{{ project.slug }}</span>
+      <span>Collection: <code>{{ project.collection_name or project.slug }}</code></span>
       {% if project.slug == active_slug %}
-      <span class="badge bg-success ms-2">active</span>
+      <span class="badge good">active</span>
       {% endif %}
     </p>
   </div>
-  <a href="/kb/pipeline/projects" class="btn btn-sm btn-outline-secondary">Back to projects</a>
-</div>
+  <div class="page-actions">
+    <a href="/kb/pipeline/projects" class="btn btn-sm">{{ icon("arrow-left") }} Back to projects</a>
+  </div>
+</header>
 
 {% if error %}
-<div class="alert alert-danger py-2 mb-3 text-compact">{{ error }}</div>
+{{ notice("bad", error | e) }}
 {% endif %}
 
-<div class="row g-4">
+<div class="grid-2">
 
   {# ── Left: Project Info ──────────────────────────────────────────── #}
-  <div class="col-lg-5">
-    <div class="section-card">
-      <div class="sc-header">Project Details</div>
-      <div class="sc-body">
-        <div class="config-row">
-          <div class="config-label">
-            <strong>Name</strong>
-            <div class="config-hint">Project identifier</div>
-          </div>
-          <div class="text-end">{{ project.name }}</div>
-        </div>
-        <div class="config-row">
-          <div class="config-label">
-            <strong>Slug</strong>
-            <div class="config-hint">Unique key</div>
-          </div>
-          <div class="text-end"><code class="fmt-badge">{{ project.slug }}</code></div>
-        </div>
-        <div class="config-row">
-          <div class="config-label">
-            <strong>Collection</strong>
-            <div class="config-hint">Qdrant collection name</div>
-          </div>
-          <div class="text-end"><code class="fmt-badge">{{ project.collection_name or project.slug }}</code></div>
-        </div>
-        <div class="config-row">
-          <div class="config-label">
-            <strong>Documents</strong>
-            <div class="config-hint">Total in project</div>
-          </div>
-          <div class="text-end"><span class="badge bg-info">{{ project.doc_count or 0 }}</span></div>
-        </div>
-        <div class="config-row">
-          <div class="config-label">
-            <strong>Created</strong>
-            <div class="config-hint">Project creation date</div>
-          </div>
-          <div class="text-end text-muted small">{{ (project.created_at or '')[:10] }}</div>
-        </div>
-        {% if project.description %}
-        <div class="config-row">
-          <div class="config-label">
-            <strong>Description</strong>
-            <div class="config-hint">Project notes</div>
-          </div>
-          <div class="text-end text-muted">{{ project.description }}</div>
-        </div>
-        {% endif %}
+  <section class="section-card">
+    <div class="sc-header"><h2>Project Details</h2></div>
+    <div class="config-row">
+      <div>
+        <div class="config-label">Name</div>
+        <div class="config-hint">Project identifier</div>
       </div>
+      <div class="break">{{ project.name }}</div>
     </div>
-  </div>
+    <div class="config-row">
+      <div>
+        <div class="config-label">Slug</div>
+        <div class="config-hint">Unique key</div>
+      </div>
+      <div><code class="fmt-badge">{{ project.slug }}</code></div>
+    </div>
+    <div class="config-row">
+      <div>
+        <div class="config-label">Collection</div>
+        <div class="config-hint">Qdrant collection name</div>
+      </div>
+      <div><code class="fmt-badge">{{ project.collection_name or project.slug }}</code></div>
+    </div>
+    <div class="config-row">
+      <div>
+        <div class="config-label">Documents</div>
+        <div class="config-hint">Total in project</div>
+      </div>
+      <div><span class="badge info">{{ project.doc_count or 0 }}</span></div>
+    </div>
+    <div class="config-row">
+      <div>
+        <div class="config-label">Created</div>
+        <div class="config-hint">Project creation date</div>
+      </div>
+      <div class="muted small nowrap">{{ (project.created_at or '')[:10] }}</div>
+    </div>
+    {% if project.description %}
+    <div class="config-row">
+      <div>
+        <div class="config-label">Description</div>
+        <div class="config-hint">Project notes</div>
+      </div>
+      <div class="muted break">{{ project.description }}</div>
+    </div>
+    {% endif %}
+  </section>
 
   {# ── Right: Maintenance Tasks ─────────────────────────────────────── #}
-  <div class="col-lg-7">
-    <div class="section-card">
-      <div class="sc-header">Maintenance Tasks</div>
+  <div class="stack">
+    <section class="section-card">
+      <div class="sc-header"><h2>Maintenance Tasks</h2></div>
       <div class="sc-body">
-        <div class="action-list">
 
           {# Activate ─────────────────────────────────────────────────── #}
           {% if user_can('editor') %}
           {% if project.slug != active_slug %}
-          <div class="mb-3">
-            <form method="post" action="/kb/pipeline/projects/{{ project.slug }}/activate" class="mb-0">
-              <button type="submit" class="btn btn-sm btn-outline-primary w-100">
-                🎯 Activate Project
+          <div class="stack-xs">
+            <form method="post" action="/kb/pipeline/projects/{{ project.slug }}/activate">
+              <button type="submit" class="btn btn-sm btn-wide">
+                Activate Project
               </button>
             </form>
-            <p class="text-muted small mt-1 mb-0">Make this the active project for document management.</p>
+            <p class="hint">Make this the active project for document management.</p>
           </div>
-          <hr class="my-2">
+          <hr>
           {% else %}
-          <div class="alert alert-success py-2 mb-3">
-            ✓ This is the active project
-          </div>
-          <hr class="my-2">
+          {{ notice("good", "This is the active project") }}
+          <hr>
           {% endif %}
 
           {# Regenerate from Vector DB ────────────────────────────────── #}
-          <div class="mb-3">
-            <button class="btn btn-sm btn-outline-info w-100"
+          <div class="stack-xs">
+            <button class="btn btn-sm btn-wide"
                     hx-post="/kb/pipeline/projects/{{ project.slug }}/regenerate-from-vector-db"
                     hx-target="#action-result"
                     hx-swap="innerHTML">
-              🔄 Regenerate from Vector DB
-              <span class="htmx-indicator spinner-border spinner-border-sm ms-2"></span>
+              {{ icon("refresh-cw") }} Regenerate from Vector DB
+              <span class="htmx-indicator spinner" aria-hidden="true"></span>
             </button>
-            <p class="text-muted small mt-1 mb-0">Reconstruct documents list from Qdrant collection.</p>
+            <p class="hint">Reconstruct documents list from Qdrant collection.</p>
           </div>
-          <hr class="my-2">
+          <hr>
 
           {# Convert Without Index ────────────────────────────────────── #}
-          <div class="mb-3">
-            <button class="btn btn-sm btn-outline-warning w-100"
+          <div class="stack-xs">
+            <button class="btn btn-sm btn-wide"
                     hx-post="/kb/pipeline/projects/{{ project.slug }}/convert-without-index"
                     hx-target="#action-result"
                     hx-swap="innerHTML">
-              📝 Convert Without Index
-              <span class="htmx-indicator spinner-border spinner-border-sm ms-2"></span>
+              {{ icon("file-text") }} Convert Without Index
+              <span class="htmx-indicator spinner" aria-hidden="true"></span>
             </button>
-            <p class="text-muted small mt-1 mb-0">Parse and convert dropzone files without indexing.</p>
+            <p class="hint">Parse and convert dropzone files without indexing.</p>
           </div>
-          <hr class="my-2">
+          <hr>
 
           {# Edit ──────────────────────────────────────────────────────── #}
           {% set edit_blocked = (project.slug == active_slug) or (project.doc_count | int > 0) %}
           {% if edit_blocked %}
-          <div class="mb-3">
-            <button class="btn btn-sm btn-outline-secondary w-100" disabled>
-              ✏️ Edit Collection
+          <div class="stack-xs">
+            <button class="btn btn-sm btn-wide" disabled>
+              Edit Collection
             </button>
-            <p class="text-muted small mt-1 mb-0">
+            <p class="hint">
               <strong>Cannot edit:</strong> Only inactive projects with no documents can be edited.
             </p>
-            <ul class="text-muted small mb-0 ps-3 mt-1">
+            <ul class="hint">
               {% if project.slug == active_slug %}
               <li>This is the active project</li>
               {% endif %}
@@ -147,39 +143,38 @@
             </ul>
           </div>
           {% else %}
-          <div class="mb-3">
-            <a href="/kb/pipeline/projects/{{ project.slug }}/edit" class="btn btn-sm btn-outline-secondary w-100">
-              ✏️ Edit Collection
+          <div class="stack-xs">
+            <a href="/kb/pipeline/projects/{{ project.slug }}/edit" class="btn btn-sm btn-wide">
+              Edit Collection
             </a>
-            <p class="text-muted small mt-1 mb-0">Update the Qdrant collection name for this project.</p>
+            <p class="hint">Update the Qdrant collection name for this project.</p>
           </div>
           {% endif %}
-          <hr class="my-2">
 
           {# Delete ────────────────────────────────────────────────────── #}
           {% if user_can('admin') %}
-          <div class="mb-0">
-            <button class="btn btn-sm btn-outline-danger w-100"
+          <hr>
+          <div class="stack-xs">
+            <button class="btn btn-sm btn-wide danger"
                     data-slug="{{ project.slug }}" data-name="{{ project.name }}"
                     onclick="confirmDelete(this.dataset.slug, this.dataset.name)">
-              🗑️ Delete Project
+              {{ icon("trash") }} Delete Project
             </button>
-            <p class="text-muted small mt-1 mb-0">
+            <p class="hint">
               <strong>Permanent action:</strong> Removes all documents and collection data.
             </p>
           </div>
           {% endif %}
 
           {% else %}
-          <p class="text-muted mb-0">Editor role required to manage project maintenance tasks.</p>
+          <p class="muted">Editor role required to manage project maintenance tasks.</p>
           {% endif %}
 
-        </div>
       </div>
-    </div>
+    </section>
 
     {# Action Result ─────────────────────────────────────────────────── #}
-    <div id="action-result" class="mt-3"></div>
+    <div id="action-result"></div>
   </div>
 
 </div>

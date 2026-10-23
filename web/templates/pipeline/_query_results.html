@@ -1,25 +1,25 @@
 <!-- Search results partial — swapped into #results by HTMX -->
 {% if error %}
-  <div class="alert alert-danger">{{ error }}</div>
+  {{ notice("bad", error | e) }}
 {% elif results is not none %}
   {% if not results %}
-    <p class="text-muted">No results.</p>
+    <p class="muted">No results.</p>
   {% else %}
+  <div class="stack-sm">
     {% for r in results %}
-    <div class="card mb-3 shadow-sm">
-      <div class="card-body">
-        <div class="d-flex justify-content-between mb-1">
-          <small class="text-muted">{{ r.heading_path | join(' › ') }}</small>
-          {% if r.rerank_score is defined and r.rerank_score is not none %}
-          <span class="badge bg-secondary" title="cross-encoder relevance, 0–1">relevance {{ "%.2f"|format(r.rerank_score) }}</span>
-          {% else %}
-          <span class="badge bg-secondary" title="reciprocal rank fusion score (relative, not a probability)">RRF {{ "%.4f"|format(r.score) }}</span>
-          {% endif %}
-        </div>
-        <pre>{{ r.text }}</pre>
-        <small class="text-muted">doc: {{ r.source_id[:16] }}… · bytes {{ r.byte_start }}–{{ r.byte_end }}</small>
+    <article class="card">
+      <div class="spread top">
+        <span class="q-result-breadcrumb">{{ r.heading_path | join(' › ') }}</span>
+        {% if r.rerank_score is defined and r.rerank_score is not none %}
+        <span class="badge info" title="cross-encoder relevance, 0–1">relevance {{ "%.2f"|format(r.rerank_score) }}</span>
+        {% else %}
+        <span class="badge neutral" title="reciprocal rank fusion score (relative, not a probability)">RRF {{ "%.4f"|format(r.score) }}</span>
+        {% endif %}
       </div>
-    </div>
+      <pre>{{ r.text }}</pre>
+      <p class="q-result-meta">doc: <span class="mono">{{ r.source_id[:16] }}…</span> · bytes {{ r.byte_start }}–{{ r.byte_end }}</p>
+    </article>
     {% endfor %}
+  </div>
   {% endif %}
 {% endif %}

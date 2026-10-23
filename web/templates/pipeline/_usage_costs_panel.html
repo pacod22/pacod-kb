@@ -2,158 +2,150 @@
 {% set models = usage_summary.get('model_options', []) %}
 {% set selected_bucket = bucket_filter or usage_summary.get('bucket', 'day') %}
 {% set selected_metric = metric_filter or 'cost' %}
-<div id="usage-costs-panel" class="section-card mt-4">
-  <div class="sc-header">LLM usage &amp; costs (priced by the AI gateway)</div>
+<section id="usage-costs-panel" class="section-card">
+  <div class="sc-header"><h2>LLM usage &amp; costs (priced by the AI gateway)</h2></div>
   <div class="sc-body">
-    <form class="row g-2 mb-3" hx-get="/kb/pipeline/usage/summary" hx-target="#usage-costs-panel" hx-swap="outerHTML">
-      <div class="col-sm-2">
-        <label class="form-label form-label-sm">Bucket</label>
-        <select class="form-select form-select-sm" name="bucket">
+    <form class="grid-form" hx-get="/kb/pipeline/usage/summary" hx-target="#usage-costs-panel" hx-swap="outerHTML">
+      <div class="field">
+        <label for="usage-bucket">Bucket</label>
+        <select id="usage-bucket" class="sm" name="bucket">
           {% for b in ['hour', 'day', 'week', 'month'] %}
           <option value="{{ b }}" {% if selected_bucket == b %}selected{% endif %}>{{ b }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-sm-2">
-        <label class="form-label form-label-sm">Metric</label>
-        <select class="form-select form-select-sm" name="metric">
+      <div class="field">
+        <label for="usage-metric">Metric</label>
+        <select id="usage-metric" class="sm" name="metric">
           <option value="cost" {% if selected_metric == 'cost' %}selected{% endif %}>Cost</option>
           <option value="tokens" {% if selected_metric == 'tokens' %}selected{% endif %}>Tokens</option>
         </select>
       </div>
-      <div class="col-sm-2">
-        <label class="form-label form-label-sm">Provider</label>
-        <select id="usage-provider-filter" class="form-select form-select-sm" name="provider">
+      <div class="field">
+        <label for="usage-provider-filter">Provider</label>
+        <select id="usage-provider-filter" class="sm" name="provider">
           <option value="">All providers</option>
           {% for p in providers %}
           <option value="{{ p }}" {% if provider_filter == p %}selected{% endif %}>{{ p }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-sm-3">
-        <label class="form-label form-label-sm">Model</label>
-        <select id="usage-model-filter" class="form-select form-select-sm" name="model">
+      <div class="field">
+        <label for="usage-model-filter">Model</label>
+        <select id="usage-model-filter" class="sm" name="model">
           <option value="">All models</option>
           {% for m in models %}
           <option value="{{ m }}" {% if model_filter == m %}selected{% endif %}>{{ m }}</option>
           {% endfor %}
         </select>
       </div>
-      <div class="col-sm-3 d-flex gap-2 align-items-end">
-        <button class="btn btn-sm btn-outline-secondary w-100" type="submit">Apply filters</button>
+      <div class="field">
+        <label for="usage-range-start">Range start (ISO)</label>
+        <input id="usage-range-start" class="sm" name="range_start" value="{{ range_start_filter or '' }}" placeholder="2026-01-01T00:00:00Z">
       </div>
-      <div class="col-sm-3">
-        <label class="form-label form-label-sm">Range start (ISO)</label>
-        <input class="form-control form-control-sm" name="range_start" value="{{ range_start_filter or '' }}" placeholder="2026-01-01T00:00:00Z">
+      <div class="field">
+        <label for="usage-range-end">Range end (ISO)</label>
+        <input id="usage-range-end" class="sm" name="range_end" value="{{ range_end_filter or '' }}" placeholder="2026-06-28T23:59:59Z">
       </div>
-      <div class="col-sm-3">
-        <label class="form-label form-label-sm">Range end (ISO)</label>
-        <input class="form-control form-control-sm" name="range_end" value="{{ range_end_filter or '' }}" placeholder="2026-06-28T23:59:59Z">
+      <div class="row end span-all">
+        <button class="btn btn-sm" type="submit">Apply filters</button>
       </div>
     </form>
 
-    <div class="row g-2 mb-3">
+    <ul class="figures">
       {% for label in ['hour', 'day', 'week', 'month'] %}
       {% set w = usage_overview.get(label, {}) %}
-      <div class="col-6 col-md-3">
-        <div class="border rounded p-2 h-100">
-          <div class="text-muted text-uppercase small">{{ label }}</div>
-          <div class="fw-semibold">${{ '%.4f'|format(w.get('cost_usd', 0.0)) }}</div>
-          <div class="small text-muted">{{ w.get('input_tokens', 0) + w.get('output_tokens', 0) + w.get('cached_tokens', 0) }} tokens</div>
-          <div class="small text-muted">{{ w.get('event_count', 0) }} calls</div>
-        </div>
-      </div>
+      <li class="stat-card">
+        <span class="stat-label">{{ label }}</span>
+        <span class="stat-value">${{ '%.4f'|format(w.get('cost_usd', 0.0)) }}</span>
+        <span class="stat-note">{{ w.get('input_tokens', 0) + w.get('output_tokens', 0) + w.get('cached_tokens', 0) }} tokens</span>
+        <span class="stat-note">{{ w.get('event_count', 0) }} calls</span>
+      </li>
       {% endfor %}
-    </div>
+    </ul>
 
-    <div class="section-card mb-3">
-      <div class="sc-header">Trend chart</div>
-      <div class="sc-body">
-        <canvas id="usage-trends-chart" height="96"></canvas>
+    <figure class="stack-sm">
+      <figcaption class="caption">Trend chart</figcaption>
+      <div><canvas id="usage-trends-chart" role="img" aria-label="LLM usage per bucket, stacked by model"></canvas></div>
+    </figure>
+
+    <div class="grid-2">
+      <div class="table-wrap">
+        <table class="compact">
+          <thead>
+            <tr><th>By provider</th><th class="num">Cost</th><th class="num">Calls</th></tr>
+          </thead>
+          <tbody>
+            {% for row in usage_summary.get('by_provider', []) %}
+            <tr>
+              <td>{{ row.provider }}</td>
+              <td class="num">${{ '%.4f'|format(row.cost_usd) }}</td>
+              <td class="num">{{ row.event_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap">
+        <table class="compact">
+          <thead>
+            <tr><th>By purpose</th><th class="num">Cost</th><th class="num">Calls</th></tr>
+          </thead>
+          <tbody>
+            {% for row in usage_summary.get('by_purpose', []) %}
+            <tr>
+              <td>{{ row.purpose }}</td>
+              <td class="num">${{ '%.4f'|format(row.cost_usd) }}</td>
+              <td class="num">{{ row.event_count }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
       </div>
     </div>
 
-    <div class="row g-3">
-      <div class="col-lg-6">
-        <div class="table-responsive mb-3">
-          <table class="table table-sm">
-            <thead>
-              <tr><th>By provider</th><th class="text-end">Cost</th><th class="text-end">Calls</th></tr>
-            </thead>
-            <tbody>
-              {% for row in usage_summary.get('by_provider', []) %}
-              <tr>
-                <td>{{ row.provider }}</td>
-                <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
-                <td class="text-end">{{ row.event_count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      <div class="col-lg-6">
-        <div class="table-responsive mb-3">
-          <table class="table table-sm">
-            <thead>
-              <tr><th>By purpose</th><th class="text-end">Cost</th><th class="text-end">Calls</th></tr>
-            </thead>
-            <tbody>
-              {% for row in usage_summary.get('by_purpose', []) %}
-              <tr>
-                <td>{{ row.purpose }}</td>
-                <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
-                <td class="text-end">{{ row.event_count }}</td>
-              </tr>
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </div>
-    </div>
-
-    <div class="table-responsive mb-3">
-      <table class="table table-sm">
+    <div class="table-wrap">
+      <table class="compact">
         <thead>
-          <tr><th>By model</th><th class="text-end">Cost</th><th class="text-end">In</th><th class="text-end">Out</th><th class="text-end">Cached</th><th class="text-end">Calls</th></tr>
+          <tr><th>By model</th><th class="num">Cost</th><th class="num">In</th><th class="num">Out</th><th class="num">Cached</th><th class="num">Calls</th></tr>
         </thead>
         <tbody>
           {% for row in usage_summary.get('by_model', []) %}
           <tr>
             <td><code>{{ row.model }}</code></td>
-            <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
-            <td class="text-end">{{ row.input_tokens }}</td>
-            <td class="text-end">{{ row.output_tokens }}</td>
-            <td class="text-end">{{ row.cached_tokens }}</td>
-            <td class="text-end">{{ row.event_count }}</td>
+            <td class="num">${{ '%.4f'|format(row.cost_usd) }}</td>
+            <td class="num">{{ row.input_tokens }}</td>
+            <td class="num">{{ row.output_tokens }}</td>
+            <td class="num">{{ row.cached_tokens }}</td>
+            <td class="num">{{ row.event_count }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
 
-    <div class="table-responsive">
-      <table class="table table-sm mb-0">
+    <div class="table-wrap">
+      <table class="compact">
         <thead>
-          <tr><th>Top users</th><th class="text-end">Cost</th><th class="text-end">In</th><th class="text-end">Out</th><th class="text-end">Cached</th><th class="text-end">Calls</th></tr>
+          <tr><th>Top users</th><th class="num">Cost</th><th class="num">In</th><th class="num">Out</th><th class="num">Cached</th><th class="num">Calls</th></tr>
         </thead>
         <tbody>
           {% for row in usage_summary.get('by_user', []) %}
           <tr>
             <td>{{ row.user_id }}</td>
-            <td class="text-end">${{ '%.4f'|format(row.cost_usd) }}</td>
-            <td class="text-end">{{ row.input_tokens }}</td>
-            <td class="text-end">{{ row.output_tokens }}</td>
-            <td class="text-end">{{ row.cached_tokens }}</td>
-            <td class="text-end">{{ row.event_count }}</td>
+            <td class="num">${{ '%.4f'|format(row.cost_usd) }}</td>
+            <td class="num">{{ row.input_tokens }}</td>
+            <td class="num">{{ row.output_tokens }}</td>
+            <td class="num">{{ row.cached_tokens }}</td>
+            <td class="num">{{ row.event_count }}</td>
           </tr>
           {% endfor %}
         </tbody>
       </table>
     </div>
   </div>
-</div>
+</section>
 
 <script>
 (function() {
@@ -216,27 +208,42 @@
   if (modelSel) modelSel.value = selectedModel;
   syncModelOptions();
 
+  // The chart's colours come from the design tokens, resolved when it is drawn: a canvas cannot
+  // read CSS variables, and the tokens use light-dark(), so each one is read back through a
+  // hidden element that uses it (pacod-gw's chart-theme.ts).
+  function themeColours() {
+    var probe = document.createElement('span');
+    probe.hidden = true;
+    document.body.appendChild(probe);
+    function colour(token) {
+      probe.style.color = 'var(' + token + ')';
+      return getComputedStyle(probe).color;
+    }
+    var series = [];
+    for (var i = 1; i <= 8; i++) series.push(colour('--series-' + i));
+    var result = {
+      series: series,
+      muted: colour('--text-muted'),
+      border: colour('--border'),
+      text: colour('--text'),
+      font: getComputedStyle(document.body).fontFamily
+    };
+    probe.remove();
+    return result;
+  }
+
   function drawChart() {
     var canvas = document.getElementById('usage-trends-chart');
     if (!canvas || !window.Chart) return;
     var labels = (summary.timeseries || []).map(function(x) { return x.bucket; });
     var metricKey = selectedMetric === 'tokens' ? 'tokens' : 'cost_usd';
-    var palette = [
-      'rgba(54, 162, 235, 0.8)',
-      'rgba(75, 192, 192, 0.8)',
-      'rgba(255, 99, 132, 0.8)',
-      'rgba(255, 205, 86, 0.8)',
-      'rgba(153, 102, 255, 0.8)',
-      'rgba(255, 159, 64, 0.8)',
-      'rgba(100, 181, 246, 0.8)',
-      'rgba(129, 199, 132, 0.8)',
-      'rgba(174, 213, 129, 0.8)'
-    ];
+    var theme = themeColours();
     var datasets = (summary.model_series || []).map(function(series, idx) {
       return {
         label: series.model,
         data: series[metricKey] || [],
-        backgroundColor: palette[idx % palette.length],
+        backgroundColor: theme.series[idx % theme.series.length],
+        borderWidth: 0,
         stack: 'usage'
       };
     });
@@ -244,15 +251,30 @@
     if (window._kbUsageChart) {
       window._kbUsageChart.destroy();
     }
+    // Wide screens get a flat chart, narrow ones a taller one; the chart may first be drawn in
+    // a hidden tab (width 0), so the ratio follows the size it gets.
+    function ratioFor(width) { return width && width < 600 ? 1.6 : 3; }
     window._kbUsageChart = new window.Chart(canvas.getContext('2d'), {
       type: 'bar',
       data: { labels: labels, datasets: datasets },
       options: {
         responsive: true,
-        maintainAspectRatio: false,
+        maintainAspectRatio: true,
+        aspectRatio: ratioFor(canvas.parentElement ? canvas.parentElement.clientWidth : 0),
+        onResize: function(chart, size) {
+          var want = ratioFor(size.width);
+          if (chart.options.aspectRatio !== want) {
+            chart.options.aspectRatio = want;
+            chart.resize();
+          }
+        },
+        color: theme.muted,
+        font: { family: theme.font },
         plugins: {
-          legend: { position: 'bottom' },
+          legend: { position: 'bottom', labels: { color: theme.text, font: { family: theme.font } } },
           tooltip: {
+            titleFont: { family: theme.font },
+            bodyFont: { family: theme.font },
             callbacks: {
               label: function(ctx) {
                 var v = Number(ctx.raw || 0);
@@ -265,11 +287,32 @@
           }
         },
         scales: {
-          x: { stacked: true },
-          y: { stacked: true, beginAtZero: true }
+          x: {
+            stacked: true,
+            grid: { display: false },
+            border: { color: theme.border },
+            ticks: { color: theme.muted, font: { family: theme.font } }
+          },
+          y: {
+            stacked: true,
+            beginAtZero: true,
+            grid: { color: theme.border },
+            border: { display: false },
+            ticks: { color: theme.muted, font: { family: theme.font } }
+          }
         }
       }
     });
+  }
+
+  // The panel is swapped in again on every filter change: the theme listeners are bound once
+  // and always redraw the chart of the panel on the page now.
+  window._kbUsageDraw = drawChart;
+  if (!window._kbUsageThemeBound) {
+    window._kbUsageThemeBound = true;
+    var redraw = function() { if (window._kbUsageDraw) window._kbUsageDraw(); };
+    new MutationObserver(redraw).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', redraw);
   }
 
   function ensureChartJsAndDraw() {

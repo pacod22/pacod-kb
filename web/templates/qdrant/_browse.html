@@ -1,5 +1,5 @@
 <!-- Browse partial — loaded into #browse-content via HTMX -->
-<div>
+<div class="stack">
   {# Collect unique titles on this page for the datalist #}
   {% set titles = points | map(attribute='title') | unique | list %}
 
@@ -10,69 +10,67 @@
   </datalist>
 
   <!-- Filter bar -->
-  <form class="toolbar-wrap mb-3"
+  <form class="toolbar-wrap"
         hx-get="/kb/qdrant/{{ collection }}/browse"
         hx-target="#browse-content"
         hx-swap="innerHTML">
 
     <div class="toolbar-row">
-      <div class="form-check mb-0">
-      <input class="form-check-input" type="checkbox" id="active-only-chk"
-             name="active_only" value="true"
-             {% if active_only == "true" %}checked{% endif %}
-             onchange="this.form.requestSubmit()">
-      <label class="form-check-label small" for="active-only-chk">Active only</label>
-    </div>
+      <label class="check">
+        <input type="checkbox" id="active-only-chk"
+               name="active_only" value="true"
+               {% if active_only == "true" %}checked{% endif %}
+               onchange="this.form.requestSubmit()">
+        Active only
+      </label>
     </div>
 
     <div class="toolbar-row">
-      <input type="text" class="form-control form-control-sm toolbar-grow text-s"
+      <input type="text" class="sm toolbar-grow"
              name="doc_title" id="doc-title-input"
              value="{{ doc_title }}"
              list="doc-title-list"
              placeholder="Filter by document title…"
              title="Enter or select a document title to filter its points">
       {% if doc_title %}
-      <a class="btn btn-sm btn-outline-secondary"
+      <a class="btn btn-sm"
          hx-get="/kb/qdrant/{{ collection }}/browse?active_only={{ active_only }}"
          hx-target="#browse-content"
          hx-swap="innerHTML"
-         title="Clear document filter">✕</a>
+         title="Clear document filter"
+         aria-label="Clear document filter">{{ icon("x", 14) }}</a>
       {% endif %}
-      <button type="submit" class="btn btn-sm btn-outline-secondary">Filter</button>
+      <button type="submit" class="btn btn-sm">Filter</button>
     </div>
 
     <div class="toolbar-row">
-      <select name="page_size" class="form-select form-select-sm w-inline-auto"
+      <select name="page_size" class="sm w-auto"
               onchange="this.form.requestSubmit()" title="Points per page">
       {% for opt in ["50", "100", "1000", "2000", "5000", "all"] %}
       <option value="{{ opt }}" {% if page_size == opt %}selected{% endif %}>
         {{ opt }}{% if opt != "all" %} pts{% endif %}
       </option>
       {% endfor %}
-    </select>
+      </select>
 
-    <input type="text" class="form-control form-control-sm w-inline-search" id="txt-filter"
-           placeholder="Search visible rows..."
-           oninput="filterBrowseRows(this.value)">
+      <input type="text" class="sm w-md" id="txt-filter"
+             placeholder="Search visible rows..."
+             oninput="filterBrowseRows(this.value)">
 
-    <span class="text-muted small">{{ points | length }} shown</span>
+      <span class="muted xs">{{ points | length }} shown</span>
     </div>
   </form>
 
   {% if doc_title %}
-  <div class="alert alert-info py-2 mb-3 d-flex align-items-center gap-2 search-row-note">
-    Filtered to document <strong class="ms-1">{{ doc_title }}</strong>
-  </div>
+  <div class="notice info" role="status">{{ icon("info") }}<div class="notice-text"><span>Filtered to document <strong>{{ doc_title }}</strong></span></div></div>
   {% endif %}
 
   {% if not points %}
-    <p class="text-muted small">No points found.</p>
+    <p class="muted small">No points found.</p>
   {% else %}
   <div class="table-shell">
-  <div class="table-responsive">
-    <table class="table table-sm table-hover stack-table browse-table">
-      <thead class="table-light">
+    <table class="compact stack-table">
+      <thead>
         <tr>
           <th class="table-col-check">
             <input type="checkbox" id="select-all-pts" onclick="toggleAllPts(this)" title="Select all on this page">
@@ -80,8 +78,8 @@
           <th>Chunk ID</th>
           <th>Document</th>
           <th>Heading path</th>
-          <th class="d-none d-md-table-cell">Seq</th>
-          <th class="d-none d-md-table-cell">Method</th>
+          <th class="hide-narrow">Seq</th>
+          <th class="hide-narrow">Method</th>
           <th>Valid until</th>
           <th></th>
         </tr>
@@ -99,50 +97,51 @@
           </td>
           <td data-label="Chunk ID">
             <a href="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
-               class="font-monospace text-decoration-none text-xs"
+               class="mono xs"
                title="{{ p.chunk_id }}">
               {{ p.chunk_id[:28] }}{% if p.chunk_id | length > 28 %}…{% endif %}
             </a>
           </td>
           <td data-label="Document">
-            <a class="text-decoration-none"
-               title="Filter to this document ({{ p.title }})"
+            <a title="Filter to this document ({{ p.title }})"
                hx-get="/kb/qdrant/{{ collection }}/browse?doc_title={{ p.title | urlencode }}&active_only={{ active_only }}"
                hx-target="#browse-content"
                hx-swap="innerHTML">
               {{ p.title[:40] }}{% if p.title | length > 40 %}…{% endif %}
             </a>
           </td>
-          <td data-label="Heading path" class="heading-truncate"
-              title="{{ p.heading_path | join(' › ') }}">
-            <span class="small">{{ p.heading_path | join(' › ') }}</span>
+          <td data-label="Heading path">
+            <span class="small heading-truncate"
+                  title="{{ p.heading_path | join(' › ') }}">{{ p.heading_path | join(' › ') }}</span>
           </td>
-          <td data-label="Seq" class="text-muted small">{{ p.sequence }}</td>
+          <td data-label="Seq" class="muted small">{{ p.sequence }}</td>
           <td data-label="Method">
             {% if p.extraction_method == "ocr" %}
-              <span class="badge badge-xs bg-warning text-dark">OCR</span>
+              <span class="badge warn">OCR</span>
             {% elif p.extraction_method == "vlm" %}
-              <span class="badge badge-xs bg-info text-dark">VLM</span>
+              <span class="badge info">VLM</span>
             {% else %}
-              <span class="badge badge-xs bg-light text-muted">det.</span>
+              <span class="badge neutral">det.</span>
             {% endif %}
           </td>
           <td data-label="Valid until">
             {% if p.valid_until %}
-              <span class="badge badge-xs bg-secondary">{{ p.valid_until }}</span>
+              <span class="badge neutral">{{ p.valid_until }}</span>
             {% else %}
-              <span class="badge badge-xs bg-success">active</span>
+              <span class="badge good">active</span>
             {% endif %}
           </td>
-          <td data-label="Actions" class="text-end">
-            <div class="d-flex gap-1 justify-content-end">
+          <td data-label="Actions" class="num">
+            <div class="row tight nowrap end">
               <a href="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
-                 class="btn btn-xs btn-outline-secondary">View</a>
-              <button class="btn btn-xs btn-outline-danger"
+                 class="btn btn-xs">View</a>
+              <button class="btn btn-xs btn-quiet danger"
                       hx-delete="/kb/qdrant/{{ collection }}/points/{{ p.id }}"
                       hx-target="#point-row-{{ p.id }}"
                       hx-swap="outerHTML"
-                      hx-confirm="Delete this point?">✕</button>
+                      hx-confirm="Delete this point?"
+                      title="Delete this point"
+                      aria-label="Delete this point">{{ icon("x", 14) }}</button>
             </div>
           </td>
         </tr>
@@ -150,60 +149,59 @@
       </tbody>
     </table>
   </div>
-  </div>
   {% endif %}
 
   <!-- Export / selection bar -->
-  <div class="d-flex align-items-center gap-2 mt-2 mb-2 flex-wrap">
+  <div class="row">
     <button id="export-pts-btn"
-            class="btn btn-sm btn-outline-secondary"
+            class="btn btn-sm"
             onclick="exportPoints()"
             disabled>
       Export selected (<span id="pt-sel-count">0</span>)
     </button>
     {% if doc_title %}
     <a href="/kb/qdrant/{{ collection }}/export?doc_title={{ doc_title | urlencode }}"
-       class="btn btn-sm btn-outline-primary">
+       class="btn btn-sm">
       Export all for this document
     </a>
     {% endif %}
   </div>
 
   <!-- Pagination -->
-  <div id="browse-pagination" class="d-flex align-items-center gap-3 mt-1 mb-4">
+  <div id="browse-pagination" class="row loose">
     {% if has_more %}
-    <a class="btn btn-sm btn-outline-secondary"
+    <a class="btn btn-sm"
        hx-get="/kb/qdrant/{{ collection }}/browse?offset={{ next_offset }}&active_only={{ active_only }}&doc_title={{ doc_title | urlencode }}&page_size={{ page_size }}"
        hx-target="#browse-content"
        hx-swap="innerHTML">
       Next {{ page_size }} →
     </a>
     {% else %}
-    <small class="text-muted">End of results.</small>
+    <small class="muted">End of results.</small>
     {% endif %}
   </div>
 
   <!-- Bulk delete -->
-  <div class="card shadow-sm mt-2 col-lg-6 px-0">
-    <div class="card-header text-muted small text-uppercase">Bulk delete</div>
-    <div class="card-body">
-      <div id="bulk-delete-result" class="mb-2"></div>
+  <section class="section-card mw-prose">
+    <div class="sc-header"><h2>Bulk delete</h2></div>
+    <div class="sc-body">
+      <div id="bulk-delete-result"></div>
       <form hx-post="/kb/qdrant/{{ collection }}/delete"
             hx-target="#bulk-delete-result"
             hx-swap="innerHTML"
             hx-confirm="This will permanently delete matching points. Proceed?"
-            class="d-flex flex-column gap-2">
+            class="stack-sm">
         <input type="hidden" name="mode" id="bulk-mode" value="doc_id">
-        <div class="d-flex gap-2 align-items-center">
-          <input type="text" class="form-control form-control-sm font-monospace text-s" name="doc_id"
+        <div class="row nowrap">
+          <input type="text" class="sm mono grow" name="doc_id" aria-label="doc_id"
                  placeholder="doc_id (full SHA-256 hex)">
-          <button type="submit" class="btn btn-sm btn-outline-danger"
+          <button type="submit" class="btn btn-sm danger"
                   onclick="document.getElementById('bulk-mode').value='doc_id'">
             Delete by doc_id
           </button>
         </div>
         {% if user_can('admin') %}
-        <div class="d-flex">
+        <div>
           <button type="submit" class="btn btn-sm btn-danger"
                   onclick="document.getElementById('bulk-mode').value='superseded'">
             Delete all superseded
@@ -212,7 +210,7 @@
         {% endif %}
       </form>
     </div>
-  </div>
+  </section>
 </div>
 
 <script>
