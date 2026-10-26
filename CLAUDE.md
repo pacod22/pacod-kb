@@ -63,7 +63,8 @@ make check          # still runs locally via uv — no Docker equivalent
 
 # Every service gets an explicit environment (no env_file): tests/test_compose_env.py checks that the
 # pipeline receives every variable it reads and never pacod-id's secrets, the UI never the gw key,
-# and every service joins pacod-net alone under container_name = service key.
+# and every service joins pacod-net under container_name = service key; only pacod-id (alias
+# pacod-id-internal, which its internal listener binds to) and kb-ui also join pacod-admin-net.
 # Data mounts: KB_DATA (falls back to KB_ROOT), KB_MODEL_CACHE, KB_QDRANT_DATA, KB_POSTGRES_DATA
 # default to /data/...; a value without a slash is a named volume (make setup writes those on macOS).
 # platform/: kb's fragments for the shared components -- postgres/kb-db.sh (role + db kb, then

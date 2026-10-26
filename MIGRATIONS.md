@@ -13,6 +13,21 @@ For SQLAlchemy-backed tables (tables defined in `pipeline/db_models.py`), the pi
 
 ---
 
+## Upgrade notes: October 2026 — pacod-admin-net
+
+pacod-id's internal listener (8071) moved off `pacod-net` to `pacod-admin-net`, a second shared
+network that is internal (no route out): pacod-id binds it to `pacod-id-internal`, an alias it has
+there alone, and kb-ui joins it to call that address. Pull, then:
+
+1. `make network` creates `pacod-admin-net` (`make up` runs it). With plain `docker compose`:
+   `docker network create --internal pacod-admin-net`.
+2. In `.env`, `PACOD_ID_INTERNAL_URL=http://pacod-id:8071` becomes
+   `http://pacod-id-internal:8071`, or blank; `make check-env` refuses the old value.
+3. Rebuild the bundled pacod-id's image (`make images FORCE=1`): older images refuse a host name
+   as a listen address.
+
+---
+
 ## Upgrade notes: October 2026 — the logging convention
 
 kb-pipeline and kb-ui now log one JSON object per line (pacod-demo/docs/LOGGING.md; docs/runbook.md
@@ -39,7 +54,7 @@ own or as part of the full stack. Pull, then:
 2. **`.env`.** `make check-env` (run by `make up`) stops on the old hosts. Change them:
    `KB_DATABASE_HOST=pacod-postgres`, `QDRANT_URL=http://pacod-qdrant:6333`,
    `PACOD_GW_URL=http://pacod-gw:8080`, `PID_SMTP_HOST=pacod-mailpit` (or blank),
-   `PACOD_ID_INTERNAL_URL=http://pacod-id:8071` (or blank). `COMPOSE_PROFILES` no longer needs
+   `PACOD_ID_INTERNAL_URL=http://pacod-id-internal:8071` (or blank; see the note above). `COMPOSE_PROFILES` no longer needs
    `pipeline` and `ui` (kb itself always runs; the names are ignored). `PID_PG_SUPERUSER_PASSWORD`
    is no longer read.
 3. **Compose files.** `docker-compose.yml` holds kb-pipeline and kb-ui only; kb's copies of the

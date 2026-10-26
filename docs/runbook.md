@@ -15,7 +15,7 @@ make up        # builds pacod-id's and the dev gateway's images the first time (
 ```
 
 Every container joins the shared Docker network `pacod-net` (`make network`, run by `make setup`
-and `make up`) under the names of the pacod convention (pacod-demo/docs/NETWORK.md). kb itself,
+and `make up`, creates it and `pacod-admin-net`, where kb-ui reaches pacod-id's internal listener) under the names of the pacod convention (pacod-demo/docs/NETWORK.md). kb itself,
 `kb-pipeline` and `kb-ui`, always runs (`docker-compose.yml`). The default profiles
 (`COMPOSE_PROFILES` in `.env`) add kb's copies of the shared components
 (`docker-compose.standalone.yml`): `pacod-qdrant` (server), `pacod-postgres` with the one-shot

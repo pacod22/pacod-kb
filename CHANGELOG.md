@@ -8,6 +8,9 @@ All notable changes to this project are recorded here. The format follows
 
 ### Changed
 
+- pacod-id's internal listener is on `pacod-admin-net` only, an internal network shared by the pacod
+  stacks, bound to its alias there, `pacod-id-internal:8071`; kb-ui joins it to call that
+  address. `make network` creates the network (MIGRATIONS.md).
 - The shared network pacod-net (pacod-demo/docs/NETWORK.md): every container joins it alone, under
   the convention's names (`kb-pipeline`, `kb-ui`; `pacod-qdrant`, `pacod-postgres`, `pacod-id`,
   `pacod-gw`, `pacod-mailpit`, `gw-mock`). `docker-compose.yml` holds kb's own services, the new

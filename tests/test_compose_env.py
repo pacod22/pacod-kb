@@ -93,11 +93,22 @@ def test_profile_gated_services_never_demand_variables() -> None:
         assert not re.search(r"\$\{[A-Z0-9_]+:?\?", text), name
 
 
-def test_every_service_joins_pacod_net_alone() -> None:
+def test_every_service_joins_pacod_net_and_only_id_traffic_joins_pacod_admin_net() -> None:
+    # pacod-admin-net carries pacod-id's internal listener alone: pacod-id there under the alias
+    # it binds the listener to, and the UI, its one caller here.
+    external = {"external": True}
     for doc in _COMPOSE.values():
-        assert doc["networks"] == {"pacod-net": {"external": True}}
+        assert doc["networks"] == {"pacod-net": external, "pacod-admin-net": external}
     for name, service in _SERVICES.items():
-        assert service["networks"] == ["pacod-net"], name
+        networks = service["networks"]
+        if name == "pacod-id":
+            alias = {"aliases": ["pacod-id-internal"]}
+            assert networks == {"pacod-net": None, "pacod-admin-net": alias}
+            assert service["environment"]["PID_INTERNAL_LISTEN"] == "pacod-id-internal:8071"
+        elif name == "kb-ui":
+            assert networks == ["pacod-net", "pacod-admin-net"], name
+        else:
+            assert networks == ["pacod-net"], name
         assert service["container_name"] == name
 
 

@@ -17,7 +17,7 @@ SHELL := /bin/bash
 comma := ,
 hash  := \#
 env_get = $(shell sed -n 's/^$(1)=\([^ $(hash)]*\).*/\1/p' .env 2>/dev/null | tail -n 1)
-INFERRED_ID = $(if $(filter-out http://pacod-id:8071,$(call env_get,PACOD_ID_INTERNAL_URL)),,$(comma)id$(if $(filter-out pacod-mailpit,$(call env_get,PID_SMTP_HOST)),,$(comma)mailpit))
+INFERRED_ID = $(if $(filter-out http://pacod-id-internal:8071,$(call env_get,PACOD_ID_INTERNAL_URL)),,$(comma)id$(if $(filter-out pacod-mailpit,$(call env_get,PID_SMTP_HOST)),,$(comma)mailpit))
 INFERRED_PROFILES = $(if $(filter server,$(call env_get,QDRANT_MODE)),server)$(if $(filter pacod-postgres,$(call env_get,KB_DATABASE_HOST)),$(comma)db)$(INFERRED_ID)$(if $(filter-out http://pacod-gw:8080,$(call env_get,PACOD_GW_URL)),,$(comma)dev-gateway)
 PROFILES ?= $(or $(COMPOSE_PROFILES),$(call env_get,COMPOSE_PROFILES),$(patsubst $(comma)%,%,$(INFERRED_PROFILES)))
 PROFILE_LIST = $(subst $(comma), ,$(PROFILES))
@@ -48,10 +48,11 @@ LEGACY_ENV = ANTHROPIC_API_KEY LLM_CONVERTER_API_KEY LLM_CONVERTER_BASE_URL SECR
   TABLE_RECONSTRUCTION_MODEL VLM_TABLE_RECONSTRUCTION_ENABLED ADMIN_PASSWORD UI_SECRET \
   GOOGLE_OAUTH_CLIENT_ID GOOGLE_OAUTH_CLIENT_SECRET OAUTH_REDIRECT_BASE_URL \
   PID_PG_SUPERUSER_PASSWORD
-# Values from before the shared network: these hosts no longer exist on pacod-net.
+# Values from before the shared networks: these hosts no longer exist, or no longer answer
+# (pacod-id's internal listener moved to pacod-admin-net, as pacod-id-internal).
 STALE_HOSTS = KB_DATABASE_HOST=postgres KB_DATABASE_HOST=kb-postgres PID_SMTP_HOST=mailpit \
   QDRANT_URL=http://kb-qdrant:6333 QDRANT_URL=http://qdrant:6333 PACOD_GW_URL=http://gw:8080 \
-  PACOD_ID_INTERNAL_URL=http://id:8071
+  PACOD_ID_INTERNAL_URL=http://id:8071 PACOD_ID_INTERNAL_URL=http://pacod-id:8071
 # The data mounts' sources (docker-compose*.yml): a host directory, made by make setup, or a
 # value without a slash, a named volume <project>_<name>. KB_DATA falls back to KB_ROOT.
 DATA_ENV = KB_DATA=/data/kb KB_MODEL_CACHE=/data/model-cache KB_QDRANT_DATA=/data/qdrant/storage \
@@ -94,9 +95,14 @@ setup: network ## Write or complete .env (generated secrets, never printed); cre
 		esac; \
 	done
 
-# The shared network every pacod stack joins; created once, kept by "down".
-network: ## Create the shared Docker network pacod-net, if missing
+# The shared networks every pacod stack joins; created once, kept by "down". pacod-admin-net
+# carries the listeners only servers reach (pacod-id's internal one) and must be internal, with
+# no route out; compose never checks that, so this does.
+network: ## Create the shared Docker networks pacod-net and pacod-admin-net, if missing
 	@docker network inspect pacod-net >/dev/null 2>&1 || docker network create pacod-net >/dev/null
+	@docker network inspect pacod-admin-net >/dev/null 2>&1 || docker network create --internal pacod-admin-net >/dev/null
+	@test "$$(docker network inspect -f '{{.Internal}}' pacod-admin-net)" = true || \
+		{ echo "pacod-admin-net is not internal: remove it (docker network rm pacod-admin-net) and run make network" >&2; exit 1; }
 
 images: ## Build pacod-id's image (profile id) and the dev gateway's (dev-gateway) if missing; FORCE=1 rebuilds
 	@case " $(PROFILE_LIST) " in *" id "*) ;; *) exit 0;; esac; \
@@ -135,7 +141,7 @@ check-env: ## Check that .env holds what the configured services need (and name 
 	done; \
 	if [ -n "$$stale" ]; then \
 		echo "in .env, hosts from before the shared network pacod-net:$$stale"; \
-		echo "use pacod-postgres, pacod-mailpit, http://pacod-qdrant:6333, http://pacod-gw:8080, http://pacod-id:8071 (MIGRATIONS.md)"; \
+		echo "use pacod-postgres, pacod-mailpit, http://pacod-qdrant:6333, http://pacod-gw:8080, http://pacod-id-internal:8071 (MIGRATIONS.md)"; \
 		exit 1; \
 	fi; \
 	case " $(PROFILE_LIST) " in *" id "*) \

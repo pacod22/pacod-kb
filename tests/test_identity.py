@@ -56,7 +56,7 @@ def test_settings_from_env(monkeypatch: pytest.MonkeyPatch) -> None:
     s = IdSettings.from_env()
     assert s is not None
     assert s.issuer == "http://127.0.0.1:18070"
-    assert s.internal_url == "http://pacod-id:8071"
+    assert s.internal_url == "http://pacod-id-internal:8071"
     assert s.redirect_uri == "http://localhost:8080/kb/auth/callback"
     assert s.post_logout_uri == "http://localhost:8080/kb/login?signed_out=1"
     assert s.account_url == "http://127.0.0.1:18070/account"

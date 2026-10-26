@@ -160,17 +160,21 @@ services:
       # The log (pacod-demo/docs/LOGGING.md): a filter directive, and json|text.
       PID_LOG: ${PID_LOG:-info,sqlx=warn}
       PID_LOG_FORMAT: ${PID_LOG_FORMAT:-text}
+      # Its address on pacod-admin-net alone: on 0.0.0.0 all of pacod-net would reach it.
+      PID_INTERNAL_LISTEN: pacod-id-internal:8071
     volumes:
       - ./docker/pacod-id/pacod-id.toml:/etc/pacod-id/pacod-id.toml:ro
     read_only: true
     tmpfs:
       - /tmp:size=16m
     ports:
-      # The public listener (sign-in pages, authorize, logout). The internal listener (8071) and
-      # metrics (9170) are reached over pacod-net only.
+      # The public listener (sign-in pages, authorize, logout). The internal listener (8071) is
+      # reached over pacod-admin-net only, as pacod-id-internal, and metrics (9170) over pacod-net.
       - "127.0.0.1:${KB_ID_PORT:-18070}:8070"
     networks:
-      - pacod-net
+      pacod-net:
+      pacod-admin-net:
+        aliases: [pacod-id-internal]
     healthcheck:
       test: ["CMD", "/usr/local/bin/healthcheck", "http://127.0.0.1:9170/readyz"]
       interval: 5s
@@ -262,4 +266,6 @@ volumes:
 
 networks:
   pacod-net:
+    external: true
+  pacod-admin-net:
     external: true

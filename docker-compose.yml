@@ -2,7 +2,8 @@
 # pipeline API and the UI; the shared components they use (pacod-postgres, pacod-db-init,
 # pacod-qdrant, pacod-id, pacod-gw, pacod-mailpit) come from docker-compose.standalone.yml in kb's
 # own stack, or from the full stack (pacod-demo), which loads this file and provides them once.
-# The naming convention is in pacod-demo/docs/NETWORK.md.
+# The naming convention is in pacod-demo/docs/NETWORK.md. kb-ui also joins pacod-admin-net, the
+# internal network on which pacod-id's internal listener (pacod-id-internal:8071) alone listens.
 #
 #   make up      this file + docker-compose.standalone.yml, with the profiles in COMPOSE_PROFILES
 #
@@ -170,6 +171,8 @@ services:
       - kb-ui-data:/data/kb-ui
     networks:
       - pacod-net
+      # pacod-id's internal listener is there alone.
+      - pacod-admin-net
     ports:
       # Loopback by default; a server behind a proxy, or a LAN install, sets UI_BIND. The full
       # stack publishes nothing (its edge, pacod-caddy, serves platform/caddy/kb.caddy).
@@ -193,7 +196,7 @@ services:
       # KB_UI_ORIGIN is the UI's address as browsers use it.
       - KB_UI_ORIGIN=${KB_UI_ORIGIN:-http://localhost:8080}
       - PACOD_ID_ISSUER=${KB_ID_ISSUER:-http://127.0.0.1:18070}
-      - PACOD_ID_INTERNAL_URL=${PACOD_ID_INTERNAL_URL:-http://pacod-id:8071}
+      - PACOD_ID_INTERNAL_URL=${PACOD_ID_INTERNAL_URL:-http://pacod-id-internal:8071}
       - PACOD_ID_UI_CLIENT_ID=pacod-kb-ui
       - PACOD_ID_UI_SECRET=${KB_ID_UI_SECRET:-}
       - PACOD_ID_SERVICE_CLIENT_ID=pacod-kb-service
@@ -217,4 +220,7 @@ volumes:
 
 networks:
   pacod-net:
+    external: true
+  # Internal (no route out): the listeners only servers reach, here pacod-id's internal one.
+  pacod-admin-net:
     external: true

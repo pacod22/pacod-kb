@@ -32,8 +32,10 @@ and loads only kb's app file. In the full stack kb also shares Qdrant (its colle
 `kb_*`; the UI's Qdrant pages show nothing else) and, with `EMBEDDINGS_URL`, pacod-ap's
 embeddings service.
 
-One flat network gives up the separation kb had before (the pipeline shared no network with
-pacod-id). The pipeline still receives none of pacod-id's secrets, and the UI never receives
+pacod-id's internal listener is the exception: it is bound to `pacod-id-internal`, pacod-id's
+alias on `pacod-admin-net`, an internal network that only kb-ui joins here. The pipeline does not
+reach it. Otherwise the flat network gives up the separation kb had before (the pipeline shared no
+network with pacod-id). The pipeline still receives none of pacod-id's secrets, and the UI never receives
 the gateway key: each container gets an explicit environment (`tests/test_compose_env.py`
 checks this).
 
