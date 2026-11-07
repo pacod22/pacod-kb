@@ -172,10 +172,33 @@ def test_the_models_panel_labels_templates_and_names_a_refused_model(refuse: boo
             "/kb/pipeline/settings/llm-config",
             data={"converter_model": "@x", "security_model": "openai/gpt-5"},
         ).text
-    # The label repeats the id: Firefox and Safari show the label instead of the value.
-    assert 'label="@careful — template, uses anthropic/claude-sonnet-5-5"' in html
+    assert "@careful — uses anthropic/claude-sonnet-5-5" in html
+    assert "<select" in html
     if refuse:
         assert "The AI gateway does not offer @x &lt;b&gt;." in html
-        assert 'value="@x"' in html  # the value as typed stays in the field
+        # the value as typed stays selectable, marked as current
+        assert '<option value="@x" selected>@x (current)</option>' in html
     else:
         assert "Saved." in html
+
+
+def test_the_models_panel_lists_broker_models_the_gateway_lacks_as_disabled() -> None:
+    from jinja2 import Environment, FileSystemLoader
+
+    env = Environment(loader=FileSystemLoader("web/templates"), autoescape=True)
+    env.globals["notice"] = lambda *a, **k: ""
+    state = {
+        "effective": {"converter_model": "openai/gpt-5"},
+        "env_default": {},
+        "available_models": ["openai/gpt-5", "@careful"],
+        "templates": {"@careful": "openai/gpt-5"},
+        "broker_models": [
+            {"name": "acme/big", "price": "EUR input 1", "usable": False},
+            {"name": "openai/gpt-5", "price": "", "usable": True},
+        ],
+        "broker_error": None,
+    }
+    html = env.get_template("pipeline/_llm_config_panel.html").render(llm_state=state)
+    assert "<option disabled>acme/big (EUR input 1)</option>" in html
+    assert "<option disabled>openai/gpt-5" not in html
+    assert '<option value="openai/gpt-5" selected>' in html

@@ -171,16 +171,33 @@ def _gateway_model_rows(gateway: Gateway) -> list[GatewayModel]:
         return []
 
 
-def _llm_state(factory: Any, rows: list[GatewayModel]) -> dict[str, Any]:
+def _broker_listing(request: Request, rows: list[GatewayModel]) -> dict[str, Any] | None:
+    """The broker's models for the picker; None with no broker, ``error`` when it fails."""
+    from pipeline import broker, broker_config
+
+    conn = broker_config.get_connection(
+        request.app.state.config, _ledger_factory_from_app(request), core._PIPELINE_API_SECRET
+    )
+    if not conn.configured:
+        return None
+    try:
+        transport = getattr(request.app.state, "broker_transport", None)
+        return {**broker.catalogue(conn, rows, transport=transport), "error": None}
+    except broker.BrokerUnavailableError as exc:
+        return {"items": [], "error": str(exc)}
+
+
+def _llm_state(
+    factory: Any, rows: list[GatewayModel], broker_listing: dict[str, Any] | None = None
+) -> dict[str, Any]:
     templates = {r.id: r.model for r in rows if r.kind == "template" and r.model}
-    return get_runtime_config_state(factory, [r.id for r in rows], templates)
+    return get_runtime_config_state(factory, [r.id for r in rows], templates, broker_listing)
 
 
 @router.get("/llm-config")
 def get_llm_config(request: Request, _auth: AuthDep) -> dict[str, Any]:
-    return _llm_state(
-        _ledger_factory_from_app(request), _gateway_model_rows(_gateway_from_app(request))
-    )
+    rows = _gateway_model_rows(_gateway_from_app(request))
+    return _llm_state(_ledger_factory_from_app(request), rows, _broker_listing(request, rows))
 
 
 @router.patch("/llm-config")
@@ -209,7 +226,7 @@ def patch_llm_config(
                     },
                 )
     set_runtime_config(factory, updates, updated_by=request_actor() or "api")
-    return _llm_state(factory, rows)
+    return _llm_state(factory, rows, _broker_listing(request, rows))
 
 
 @router.get("/llm-prompts")
