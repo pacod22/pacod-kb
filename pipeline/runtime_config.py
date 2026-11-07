@@ -153,12 +153,14 @@ def get_runtime_config_state(
     session_factory: Any | None,
     available: list[str] | None = None,
     templates: dict[str, str] | None = None,
+    broker: dict[str, Any] | None = None,
 ) -> dict[str, Any]:
     """Effective values, env defaults, and the names to offer.
 
     *available* is the gateway's list in its order (models, then templates); the names in
     use follow when the gateway does not list them. *templates* maps each ``@name`` to
-    the model it uses, for the picker's labels.
+    the model it uses, for the picker's labels. *broker* is ``{"items": [...], "error": str|None}``
+    from the broker's catalogue; its models the gateway does not offer are listed, disabled.
     """
     effective = get_runtime_config(session_factory)
     env_default = _CACHE.get("env_default")
@@ -171,6 +173,17 @@ def get_runtime_config_state(
         "env_default": dict(env_default),
         "available_models": models,
         "templates": dict(templates or {}),
+        "broker_models": [
+            {
+                "name": str(i.get("name") or i.get("id") or ""),
+                "provider": str(i.get("provider") or ""),
+                "price": str(i.get("price") or ""),
+                "usable": (i.get("usage") or {}).get("state") == "usable",
+            }
+            for i in (broker or {}).get("items") or []
+            if isinstance(i, dict) and i.get("kind") == "model"
+        ],
+        "broker_error": (broker or {}).get("error"),
     }
 
 

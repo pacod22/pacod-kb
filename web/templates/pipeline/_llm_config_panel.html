@@ -11,22 +11,36 @@
     </p>
     {% if saved %}{{ notice("good", "Saved.") }}{% endif %}
     {% if error %}{{ notice("bad", error | e) }}{% endif %}
-    <datalist id="gateway-models">
-      {# Firefox and Safari show an option's label instead of its value: the label repeats the id. #}
-      {% for m in models %}{% if m in template_models %}<option value="{{ m }}" label="{{ m }} — template, uses {{ template_models[m] }}">{% else %}<option value="{{ m }}">{% endif %}{% endfor %}
-    </datalist>
+    {% set broker_models = llm_state.get('broker_models', []) %}
+    {% macro model_select(field) %}
+      {% set current = cfg.get(field, '') or defaults.get(field, '') %}
+      <select id="{{ field }}" class="sm mono" name="{{ field }}">
+        <optgroup label="Templates">
+          {% for m in models if m in template_models %}<option value="{{ m }}" {% if m == current %}selected{% endif %}>{{ m }} — uses {{ template_models[m] }}</option>{% endfor %}
+        </optgroup>
+        <optgroup label="Gateway models">
+          {% for m in models if m not in template_models %}<option value="{{ m }}" {% if m == current %}selected{% endif %}>{{ m }}</option>{% endfor %}
+        </optgroup>
+        {% set missing = broker_models | rejectattr('usable') | list %}
+        {% if missing %}
+        <optgroup label="Broker — not in the gateway (cannot be chosen)">
+          {% for b in missing %}<option disabled>{{ b.name }}{% if b.price %} ({{ b.price }}){% endif %}</option>{% endfor %}
+        </optgroup>
+        {% endif %}
+        {% if current and current not in models %}<option value="{{ current }}" selected>{{ current }} (current)</option>{% endif %}
+      </select>
+    {% endmacro %}
+    {% if llm_state.get('broker_error') %}<p class="hint">Broker models unavailable: {{ llm_state.broker_error | e }}</p>{% endif %}
     <form hx-post="/kb/pipeline/settings/llm-config" hx-target="#llm-config-panel" hx-swap="outerHTML" class="stack">
       <div class="grid-2">
         <div class="field">
           <label for="converter_model">Document conversion</label>
-          <input id="converter_model" class="sm mono" name="converter_model" list="gateway-models"
-                 value="{{ cfg.get('converter_model', '') }}" placeholder="{{ defaults.get('converter_model', '') }}">
+          {{ model_select('converter_model') }}
           <p class="hint break">Default <code>{{ defaults.get('converter_model', '—') }}</code> (<code>LLM_CONVERTER_MODEL</code>)</p>
         </div>
         <div class="field">
           <label for="security_model">Content-security second opinion</label>
-          <input id="security_model" class="sm mono" name="security_model" list="gateway-models"
-                 value="{{ cfg.get('security_model', '') }}" placeholder="{{ defaults.get('security_model', '') }}">
+          {{ model_select('security_model') }}
           <p class="hint break">Default <code>{{ defaults.get('security_model', '—') }}</code>; used when <code>CONTENT_SECURITY_LLM_ENABLED=true</code></p>
         </div>
       </div>
