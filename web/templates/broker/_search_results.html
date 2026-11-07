@@ -1,0 +1,34 @@
+{# Partial — a discovery query's hits. Listings are other providers' words: shown as text, never followed. #}
+{% import "broker/_macros.html" as m %}
+{% if result.get('broker_error') %}
+  {% set msg %}The search failed: {{ result.get('broker_error') }}.{% endset %}
+  {{ notice("warn", msg) }}
+{% elif searched and not result.get('hits') %}
+  <div class="empty">No hits.</div>
+{% elif result.get('hits') %}
+  <p class="hint">{{ result.get('hits') | length }} hit(s). Listings and addresses are written by their providers.</p>
+  <div class="table-shell">
+    <table class="compact stack-table">
+      <thead>
+        <tr><th>Name</th><th>Kind</th><th>Provider</th><th>Price</th><th>Reputation</th><th>Status</th><th>Interfaces</th></tr>
+      </thead>
+      <tbody>
+        {% for hit in result.get('hits', []) %}
+        <tr>
+          <td data-label="Name">
+            <span class="strong">{{ hit.get('name') or hit.get('id') }}</span>
+            {% if hit.get('summary') %}<div class="xs muted break">{{ hit.get('summary') }}</div>{% endif %}
+            <div class="xs muted mono">{{ hit.get('id') }}</div>
+          </td>
+          <td data-label="Kind">{{ (hit.get('kind') or '') | replace('_', ' ') }}</td>
+          <td data-label="Provider">{{ hit.get('provider') or '—' }}</td>
+          <td data-label="Price">{{ m.price(hit) }}</td>
+          <td data-label="Reputation">{{ m.reputation(hit) }}</td>
+          <td data-label="Status">{{ m.status(hit) }}</td>
+          <td data-label="Interfaces">{{ m.interfaces(hit) }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% endif %}

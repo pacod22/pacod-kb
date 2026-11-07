@@ -4,9 +4,14 @@ Every LLM call — document conversion, the content-security second opinion, the
 Management connection test — goes through :class:`Gateway`, which speaks the OpenAI
 chat-completions shape to pacod-gw: ``POST {PACOD_GW_URL}/v1/chat/completions`` with a
 ``pgw_`` key. The gateway picks the provider from the model name
-(``anthropic/claude-opus-5-5``, a pool ``@name``), translates a PDF file part for the
-models that read documents, fails over, and prices each call; kb keeps the cost and the
-gateway's request id with its usage rows.
+(``anthropic/claude-opus-5-5``, or a template ``@name``), translates a PDF file part for
+the models that read documents, fails over, and prices each call; kb keeps the cost and
+the gateway's request id with its usage rows.
+
+``GET /v1/models`` lists what the key may call: its models, then the workspace's
+templates (``@name``, each naming the model it uses). A call on a template sends
+``@name`` as is; :meth:`Gateway.uses` names the model behind it, for labels and the
+Broker page's reputation lookup (``broker_resource_id``, models only).
 
 Rules (shared with pacod-cms's AiGateway):
 
@@ -112,6 +117,39 @@ class Completion:
     usage: Usage
     dropped_params: tuple[str, ...] = ()
     duration_ms: int = 0
+
+
+@dataclass(frozen=True)
+class GatewayModel:
+    """One entry of ``GET /v1/models``: a model, or a template (``@name``)."""
+
+    id: str
+    kind: str  # "model" or "template"
+    model: str | None = None  # a template's model (the first of its pool); None for a model
+    owned_by: str | None = None
+    broker_resource_id: str | None = None  # models only: the broker resource it is linked to
+    state: str | None = None  # models only: active, deprecated or disabled
+
+
+def _model_row(entry: dict[str, Any]) -> GatewayModel:
+    mid = str(entry["id"])
+    raw = entry.get("gateway")
+    gw: dict[str, Any] = raw if isinstance(raw, dict) else {}
+    kind = str(gw.get("kind") or ("template" if mid.startswith("@") else "model"))
+    if kind not in ("model", "template"):
+        kind = "template" if mid.startswith("@") else "model"
+
+    def text(value: Any) -> str | None:
+        return str(value) if isinstance(value, str) and value else None
+
+    return GatewayModel(
+        id=mid,
+        kind=kind,
+        model=text(gw.get("model")) if kind == "template" else None,
+        owned_by=text(entry.get("owned_by")),
+        broker_resource_id=text(gw.get("broker_resource_id")) if kind == "model" else None,
+        state=text(gw.get("state")) if kind == "model" else None,
+    )
 
 
 class GatewayError(Exception):
@@ -227,7 +265,7 @@ class Gateway:
         self._sleep = sleep
         self._clock = clock
         self._client = httpx.Client(transport=transport, follow_redirects=False)
-        self._models: tuple[float, list[str]] | None = None
+        self._models: tuple[float, list[GatewayModel]] | None = None
 
     @classmethod
     def from_config(cls, config: Config) -> Gateway:
@@ -321,7 +359,28 @@ class Gateway:
         return done
 
     def models(self) -> list[str]:
-        """The model names this key may use (``GET /v1/models``), cached for a minute."""
+        """The names this key may call: its models, then its templates (``@name``)."""
+        return [row.id for row in self.model_rows()]
+
+    def template_models(self) -> dict[str, str]:
+        """``{"@name": model}`` for each template whose model the gateway names."""
+        return {r.id: r.model for r in self.model_rows() if r.kind == "template" and r.model}
+
+    def uses(self, name: str) -> str:
+        """The model behind *name*: a template's model, else *name* itself.
+
+        Only a template name reads the list; an unknown template, or a list that cannot be
+        read, answers *name* unchanged.
+        """
+        if not name or not name.startswith("@"):
+            return name
+        try:
+            return self.template_models().get(name, name)
+        except GatewayError:
+            return name
+
+    def model_rows(self) -> list[GatewayModel]:
+        """``GET /v1/models``, cached for a minute: models first, then templates, each by id."""
         now = self._clock()
         if self._models is not None and now - self._models[0] < _MODELS_TTL_SECS:
             return list(self._models[1])
@@ -344,11 +403,15 @@ class Gateway:
             raise _status_error(resp.status_code, resp.headers, resp.content)
         try:
             data = resp.json().get("data") or []
-            ids = sorted({str(m["id"]) for m in data if isinstance(m, dict) and m.get("id")})
-        except (ValueError, AttributeError, KeyError):
+            rows = {
+                row.id: row
+                for row in (_model_row(m) for m in data if isinstance(m, dict) and m.get("id"))
+            }
+        except (ValueError, AttributeError, KeyError, TypeError):
             raise GatewayError("The AI gateway sent an unreadable model list") from None
-        self._models = (now, ids)
-        return list(ids)
+        ordered = sorted(rows.values(), key=lambda r: (r.kind != "model", r.id))
+        self._models = (now, ordered)
+        return list(ordered)
 
     def ping(self, model: str) -> Completion:
         """The smallest real call there is: address, key and model, end to end."""

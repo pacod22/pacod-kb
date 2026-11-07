@@ -7,7 +7,7 @@ on the next call without a restart:
   ``converter_temperature_enabled`` — document conversion;
 * ``security_model`` — the content-security second opinion.
 
-Model names are the gateway's (``provider/model`` or ``@pool``). The keys earlier
+Model names are the gateway's (``provider/model`` or a template ``@name``). The keys earlier
 releases actually read (``llm.primary_max_tokens``, ``llm.primary_temperature``,
 ``llm.primary_temperature_enabled``) are honoured when the new key is absent.
 """
@@ -61,7 +61,7 @@ def valid_model_name(name: str) -> str:
     """*name* as a gateway model name (bare legacy names qualified); ValueError if not one."""
     qualified = qualify_model(name)
     if not MODEL_NAME_RE.fullmatch(qualified):
-        raise ValueError(f"not a gateway model name (provider/model or @pool): {name!r}")
+        raise ValueError(f"not a gateway model name (provider/model or @template): {name!r}")
     return qualified
 
 
@@ -150,20 +150,27 @@ def get_runtime_config(session_factory: Any | None) -> dict[str, Any]:
 
 
 def get_runtime_config_state(
-    session_factory: Any | None, available: list[str] | None = None
+    session_factory: Any | None,
+    available: list[str] | None = None,
+    templates: dict[str, str] | None = None,
 ) -> dict[str, Any]:
-    """Effective values, env defaults, and the model names to offer (the gateway's)."""
+    """Effective values, env defaults, and the names to offer.
+
+    *available* is the gateway's list in its order (models, then templates); the names in
+    use follow when the gateway does not list them. *templates* maps each ``@name`` to
+    the model it uses, for the picker's labels.
+    """
     effective = get_runtime_config(session_factory)
     env_default = _CACHE.get("env_default")
     if not isinstance(env_default, dict):
         env_default = env_runtime_config()
-    models = set(available or [])
-    models.update(str(effective.get(k) or "") for k in ("converter_model", "security_model"))
-    models.discard("")
+    in_use = [str(effective.get(k) or "") for k in ("converter_model", "security_model")]
+    models = [m for m in dict.fromkeys([*(available or []), *in_use]) if m]
     return {
         "effective": effective,
         "env_default": dict(env_default),
-        "available_models": sorted(models),
+        "available_models": models,
+        "templates": dict(templates or {}),
     }
 
 

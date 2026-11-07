@@ -1,0 +1,93 @@
+{# Partial — the models kb uses and the gateway's models linked to broker resources. #}
+{% import "broker/_macros.html" as m %}
+{% set ov = overview %}
+{% set gateway_listed = not ov.get('gateway_error') %}
+<div class="stack-lg">
+  {% if not ov.get('configured') %}
+    {{ notice("info", "No broker is configured: set its address above, or <code>BROKER_URL</code> for the pipeline.") }}
+  {% elif ov.get('broker_error') %}
+    {% set msg %}The broker's facts are unavailable: {{ ov.get('broker_error') }}.{% endset %}
+    {{ notice("warn", msg) }}
+  {% endif %}
+  {% if ov.get('gateway_error') %}
+    {% set msg %}The AI gateway's model list is unavailable ({{ ov.get('gateway_error') }}), so no model can be linked to the broker.{% endset %}
+    {{ notice("warn", msg) }}
+  {% endif %}
+
+  <section class="section-card">
+    <div class="sc-header">
+      <h2>Models kb uses</h2>
+      <a href="/kb/pipeline/ai-management" class="btn btn-xs btn-quiet">Change in AI Management</a>
+    </div>
+    {% if not ov.get('in_use') %}
+      <div class="sc-body"><p class="muted">No model is configured.</p></div>
+    {% else %}
+    <div class="table-shell">
+      <table class="compact stack-table">
+        <thead>
+          <tr><th>Use</th><th>Model</th><th>Broker resource</th><th>Reputation</th><th>Price</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for u in ov.get('in_use', []) %}
+          {% set f = u.get('facts') %}
+          <tr>
+            <td data-label="Use">{{ {'converter': 'Document conversion', 'security': 'Content-security second opinion'}.get(u.get('role'), u.get('role')) }}</td>
+            <td data-label="Model">
+              <code>{{ u.get('name') }}</code>{% if u.get('uses') %} <span class="muted">→</span> <code>{{ u.get('uses') }}</code>{% endif %}
+              {% if u.get('enabled') == false %}<span class="badge neutral">off</span>
+              {% elif gateway_listed and not u.get('listed') %}<span class="badge warn">not in the gateway's list</span>{% endif %}
+            </td>
+            <td data-label="Broker resource">
+              {% if u.get('broker_resource_id') %}<code class="xs">{{ u.get('broker_resource_id') }}</code>
+              {% else %}<span class="muted">not linked</span>{% endif %}
+            </td>
+            <td data-label="Reputation">{{ m.reputation(f) }}</td>
+            <td data-label="Price">{{ m.price(f) }}</td>
+            <td data-label="Status">{{ m.status(f) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+
+  <section class="section-card">
+    <div class="sc-header">
+      <h2>Gateway models on the broker</h2>
+      <span class="hint">Models the gateway links to a broker resource</span>
+    </div>
+    {% if not ov.get('linked') %}
+      <div class="sc-body">
+        <p class="muted">No model in the gateway's list names a broker resource. The gateway's admin links them, by accepting the broker's proposals in its model discovery.</p>
+      </div>
+    {% else %}
+    <div class="table-shell">
+      <table class="compact stack-table">
+        <thead>
+          <tr><th>Model</th><th>Broker resource</th><th>Provider</th><th>Reputation</th><th>Price</th><th>Status</th></tr>
+        </thead>
+        <tbody>
+          {% for row in ov.get('linked', []) %}
+          {% set f = row.get('facts') %}
+          <tr>
+            <td data-label="Model">
+              <code>{{ row.get('id') }}</code>
+              {% for role in row.get('used_as', []) %}<span class="badge info">{{ 'conversion' if role == 'converter' else 'security' }}</span>{% endfor %}
+            </td>
+            <td data-label="Broker resource">
+              <code class="xs">{{ row.get('broker_resource_id') }}</code>
+              {% if f %}<div class="xs muted">{{ f.get('name') }}</div>{% elif ov.get('configured') and not ov.get('broker_error') %}<div class="xs muted">unknown to the broker</div>{% endif %}
+            </td>
+            <td data-label="Provider">{{ f.get('provider') if f else '—' }}</td>
+            <td data-label="Reputation">{{ m.reputation(f) }}</td>
+            <td data-label="Price">{{ m.price(f) }}</td>
+            <td data-label="Status">{{ m.status(f) }}</td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    {% endif %}
+  </section>
+</div>

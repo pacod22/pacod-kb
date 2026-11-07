@@ -1,0 +1,33 @@
+{# Shared cells of the Broker page. Broker text is written by other providers: autoescaped,
+   never marked safe; class names come from fixed values only. #}
+
+{% macro source_badge(source) -%}
+  {%- if source == 'console' -%}<span class="badge info">set here</span>
+  {%- elif source == 'deployment' -%}<span class="badge neutral">deployment</span>
+  {%- else -%}<span class="badge neutral">none</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro reputation(f) -%}
+  {%- if f and f.get('reputation') -%}
+    {%- set r = f.get('reputation') -%}
+    <span class="num">{{ '%.2f'|format(r.get('score', 0)) }}</span>
+    <span class="muted xs">{{ r.get('label') }}{% if r.get('of') == 'provider' %} · provider's{% endif %}</span>
+  {%- else -%}<span class="muted">—</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro price(f) -%}
+  {%- if f and f.get('price') -%}<span class="nowrap">{{ f.get('price') }}</span>{%- else -%}<span class="muted">—</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro status(f) -%}
+  {%- if f and f.get('status') -%}
+    <span class="badge {{ 'good' if f.get('status') == 'active' else 'warn' }}">{{ f.get('status') }}</span>
+  {%- else -%}<span class="muted">—</span>{%- endif -%}
+{%- endmacro %}
+
+{% macro interfaces(item) -%}
+  {#- Shown as text, never as links: the addresses were written by other providers. -#}
+  {%- for i in item.get('interfaces', []) -%}
+    <div class="xs break"><span class="muted">{{ i.get('protocol') }}</span> <code>{{ i.get('url') }}</code></div>
+  {%- endfor -%}
+{%- endmacro %}

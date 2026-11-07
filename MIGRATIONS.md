@@ -13,6 +13,19 @@ For SQLAlchemy-backed tables (tables defined in `pipeline/db_models.py`), the pi
 
 ---
 
+## Upgrade notes: November 2026 — gateway templates, pacod-broker
+
+Nothing is required. Two behaviours to know:
+
+- AI Management now refuses to save a converter or security model the AI gateway does not list
+  for kb's key (models and templates `@name`); a name already in use keeps working. Saving is
+  unchecked while the gateway cannot be reached.
+- The new Broker page (admins) is off until `BROKER_URL` is set ([docs/runbook.md](docs/runbook.md)
+  2.5). The pipeline image gains pacod-broker's client and `cryptography`: rebuild it
+  (`make upgrade`).
+
+---
+
 ## Upgrade notes: October 2026 — pacod-admin-net
 
 pacod-id's internal listener (8071) moved off `pacod-net` to `pacod-admin-net`, a second shared

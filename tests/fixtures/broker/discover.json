@@ -1,0 +1,234 @@
+{
+ "generation": 2,
+ "at": "2026-11-04T22:16:07.38011725Z",
+ "total": 1,
+ "hits": [
+  {
+   "resource": {
+    "id": "res_2b29ae959bdd5e62b79634845927b5f9",
+    "provider_id": "prv_c0d5ef14a9020103a065032533bb4215",
+    "key": "llama-70b",
+    "kind": "model",
+    "name": "llama-3.3-70b-instruct",
+    "tags": [
+     "llm",
+     "open-weights"
+    ],
+    "title": "Llama 3.3 70B Instruct (fp8)",
+    "summary": "Llama 3.3 70B Instruct, fp8, on H100s with vLLM; cheaper at night.",
+    "description": "An **OpenAI-compatible** chat endpoint. Off-peak (22:00–06:00 Sofia time) input is\nless than half price.\n",
+    "examples": [
+     {
+      "title": "curl",
+      "language": "bash",
+      "code": "curl https://api.sofia-gpu.example/v1/chat/completions \\\n  -H \"Authorization: Bearer $KEY\" \\\n  -d '{\"model\": \"llama-3.3-70b-instruct\", \"messages\": [{\"role\": \"user\", \"content\": \"Hi\"}]}'\n"
+     }
+    ],
+    "interfaces": [
+     {
+      "protocol": "openai-chat",
+      "url": "https://api.sofia-gpu.example/v1",
+      "auth": {
+       "scheme": "bearer",
+       "obtain_url": "https://sofia-gpu.example/keys"
+      }
+     }
+    ],
+    "model": {
+     "family": "llama",
+     "context_window": 131072,
+     "max_output_tokens": 8192,
+     "modalities": {
+      "input": [
+       "text"
+      ],
+      "output": [
+       "text"
+      ]
+     },
+     "quantisation": "fp8",
+     "parameters_b": 70.0
+    },
+    "capabilities": {
+     "tools": true,
+     "structured_output": true,
+     "streaming": true
+    },
+    "runs_on": {
+     "hardware": [
+      "h100"
+     ],
+     "software": [
+      "cuda",
+      "vllm"
+     ]
+    },
+    "pricing": {
+     "currency": "EUR",
+     "timezone": "Europe/Sofia",
+     "periods": [
+      {
+       "valid_from": "2026-01-01T00:00:00Z",
+       "rates": {
+        "input": 0.6,
+        "output": 0.9
+       },
+       "windows": [
+        {
+         "name": "off-peak",
+         "from_time": "22:00",
+         "to_time": "06:00",
+         "rates": {
+          "input": 0.25,
+          "output": 0.5
+         }
+        }
+       ],
+       "tiers": [
+        {
+         "above": 100000000.0,
+         "unit": "input_tokens",
+         "rates": {
+          "input": 0.45
+         }
+        }
+       ]
+      }
+     ]
+    },
+    "availability": {
+     "status": "active",
+     "regions": [
+      "bg"
+     ],
+     "capacity": {
+      "max_concurrency": 64
+     },
+     "latency": {
+      "ttft_ms": 320.0,
+      "ms_per_token": 18.0
+     },
+     "schedule": {
+      "timezone": "Europe/Sofia",
+      "maintenance": [
+       {
+        "from": "2026-11-08T01:00:00Z",
+        "to": "2026-11-08T03:00:00Z",
+        "reason": "Driver upgrade",
+        "announced_at": "2026-11-04T22:16:02.25815706Z"
+       }
+      ]
+     }
+    },
+    "policy": {
+     "data_retention": "none",
+     "training_use": false,
+     "residency": [
+      "eu"
+     ],
+     "classification": "confidential"
+    },
+    "access": {
+     "visibility": "public",
+     "allow_new_clients": true
+    },
+    "origin": "broker",
+    "source": "static",
+    "registered_at": "2026-11-04T22:16:02.25815706Z",
+    "updated_at": "2026-11-04T22:16:02.25815706Z"
+   },
+   "provider": {
+    "id": "prv_c0d5ef14a9020103a065032533bb4215",
+    "name": "sofia-gpu",
+    "title": "Sofia GPU Cloud",
+    "summary": "H100 and L40S capacity in Sofia, served models and GPU hours by the hour.",
+    "verified": false
+   },
+   "id": "res_2b29ae959bdd5e62b79634845927b5f9",
+   "price": {
+    "at": "2026-11-04T22:16:07.38011725Z",
+    "currency": "EUR",
+    "free": false,
+    "rates": {
+     "input": 0.25,
+     "output": 0.5
+    },
+    "source": "window:off-peak",
+    "period_from": "2026-01-01T00:00:00Z",
+    "period_to": null,
+    "tiers": [
+     {
+      "above": 100000000.0,
+      "unit": "input_tokens",
+      "rates": {
+       "input": 0.45
+      }
+     }
+    ]
+   },
+   "available": true,
+   "capacity": 64,
+   "live": {
+    "status": "active",
+    "last_seen": "2026-11-04T22:16:02.262Z"
+   },
+   "provider_reputation": {
+    "score": 0.5,
+    "confidence": 0.0488,
+    "label": "new",
+    "components": {
+     "accuracy": {
+      "score": 0.5,
+      "weight": 0.15,
+      "samples": 0.0
+     },
+     "availability": {
+      "score": 0.5,
+      "weight": 0.2,
+      "samples": 0.0
+     },
+     "lease_discipline": {
+      "score": 0.5,
+      "weight": 0.05,
+      "samples": 0.0
+     },
+     "performance": {
+      "score": 0.5,
+      "weight": 0.15,
+      "samples": 0.0
+     },
+     "quality": {
+      "score": 0.5,
+      "weight": 0.15,
+      "samples": 0.0
+     },
+     "reliability": {
+      "score": 0.5,
+      "weight": 0.2,
+      "samples": 0.0
+     },
+     "stability": {
+      "score": 0.5,
+      "weight": 0.05,
+      "samples": 0.0
+     },
+     "trust": {
+      "score": 0.5,
+      "weight": 0.05,
+      "samples": 1.0
+     }
+    },
+    "computed_at": "2026-11-04T22:16:02.291504428Z"
+   },
+   "why": {
+    "matched": [
+     "available",
+     "text"
+    ],
+    "sorted_by": "relevance",
+    "sort_value": 2.6567136723820552,
+    "relevance": 2.6567136723820552
+   }
+  }
+ ]
+}

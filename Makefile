@@ -267,7 +267,7 @@ coverage: ## Run the tests with a coverage report
 	uv run pytest tests/ -q --cov=pipeline --cov=web --cov=kblog --cov-report=term-missing:skip-covered
 
 audit: ## Check locked dependencies for known vulnerabilities
-	uv export --frozen --all-extras --no-hashes --no-emit-project --no-emit-package pacod-id -o /tmp/kb-requirements.txt
+	uv export --frozen --all-extras --no-hashes --no-emit-project --no-emit-package pacod-id --no-emit-package pacod-broker-client -o /tmp/kb-requirements.txt
 	uv run pip-audit --strict --disable-pip --no-deps -r /tmp/kb-requirements.txt
 
 ##@ Retrieval evaluation (docs/retrieval-eval.md)

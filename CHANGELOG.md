@@ -6,6 +6,20 @@ All notable changes to this project are recorded here. The format follows
 
 ## [Unreleased]
 
+### Added
+
+- AI Management offers the AI gateway's templates (`@name`) after its models, as pacod-ap does:
+  the picker labels each with the model it uses, the gateway panel shows `@name → model`, and
+  the connection test counts models and templates apart. Saving a model or template the gateway
+  does not list for kb's key is refused (`unknown_model`); an unchanged name is not checked.
+- A **Broker** page (admins): pacod-broker, read only. It shows the reputation, price and status
+  of the models kb uses (a template followed to its model) and of the gateway's models linked to
+  broker resources, the broker's catalogue of models and embeddings marked usable through the
+  gateway or not in it, and a search. The connection (`BROKER_URL`, `BROKER_TOKEN`,
+  `BROKER_TIMEOUT_SECONDS`) can be overridden on the page with a connection test; a token saved
+  there is encrypted and sent only to the address it was saved for. pacod-broker's Python client
+  is vendored (`scripts/vendor-pacod-broker.sh`). kb announces nothing on the broker.
+
 ### Changed
 
 - pacod-id's internal listener is on `pacod-admin-net` only, an internal network shared by the pacod

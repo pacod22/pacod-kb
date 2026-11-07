@@ -1,0 +1,65 @@
+{% extends "base.html" %}
+{% block title %}Broker{% endblock %}
+{% block content %}
+
+<header class="page-header">
+  <div>
+    <h1 class="page-title">Broker</h1>
+    <p class="page-subtitle">
+      pacod-broker, the platform's catalogue: the reputation and price of the models kb uses, and
+      which models and embeddings the AI gateway does not offer yet. kb only reads it; it offers nothing.
+    </p>
+  </div>
+</header>
+
+<div class="stack-lg">
+  {% include "broker/_connection.html" %}
+
+  <div id="broker-overview" hx-get="/kb/broker/overview" hx-trigger="broker-changed from:body" hx-swap="innerHTML">
+    {% include "broker/_overview.html" %}
+  </div>
+
+  <section class="section-card">
+    <div class="sc-header">
+      <h2>Catalogue</h2>
+      <span class="hint">Models and embeddings the broker lists, and how the gateway offers them</span>
+    </div>
+    <div class="sc-body stack">
+      <form class="row" hx-get="/kb/broker/catalogue" hx-target="#broker-catalogue" hx-swap="innerHTML"
+            hx-trigger="load, input changed delay:300ms, change, broker-changed from:body" hx-sync="this:replace"
+            hx-indicator="#broker-catalogue-loading" onsubmit="return false">
+        <input type="search" name="q" class="sm grow" placeholder="Filter by name, provider, tag…" aria-label="Filter the catalogue">
+        <select name="kind" class="sm" aria-label="Kind">
+          <option value="">Models and embeddings</option>
+          <option value="model">Models</option>
+          <option value="embedding">Embeddings</option>
+        </select>
+        <label class="check"><input type="checkbox" name="usable" value="1"> <span>Usable now</span></label>
+        <span id="broker-catalogue-loading" class="htmx-indicator spinner" aria-label="Loading"></span>
+      </form>
+      <div id="broker-catalogue"><p class="muted">Reading the catalogue…</p></div>
+    </div>
+  </section>
+
+  <section class="section-card">
+    <div class="sc-header">
+      <h2>Search</h2>
+      <span class="hint">Anything the broker lists: models, MCP servers, agents, tools, datasets</span>
+    </div>
+    <div class="sc-body stack">
+      <form class="row" hx-get="/kb/broker/search" hx-target="#broker-search-results" hx-swap="innerHTML"
+            hx-indicator="#broker-search-loading">
+        <input type="search" name="q" class="sm grow" maxlength="200" placeholder="Words, a kind, or both: e.g. legal german" aria-label="Search the broker">
+        <select name="kind" class="sm" aria-label="Kind">
+          <option value="">Any kind</option>
+          {% for k in kinds %}<option value="{{ k }}">{{ k | replace('_', ' ') }}</option>{% endfor %}
+        </select>
+        <button type="submit" class="btn btn-sm">{{ icon("search") }} Search</button>
+        <span id="broker-search-loading" class="htmx-indicator spinner" aria-label="Searching"></span>
+      </form>
+      <div id="broker-search-results"></div>
+    </div>
+  </section>
+</div>
+
+{% endblock %}

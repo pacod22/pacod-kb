@@ -25,6 +25,7 @@ from web.actor import add_actor_header
 from web.auth import IdentityUnavailable, NoKbAccess, require_user
 from web.identity import Identity, IdSettings
 from web.routers import auth_routes as auth_router
+from web.routers import broker as broker_router
 from web.routers import members as members_router
 from web.routers import pipeline as pipeline_router
 from web.routers import qdrant as qdrant_router
@@ -328,6 +329,7 @@ app.include_router(auth_router.router)
 app.include_router(members_router.router)
 app.include_router(pipeline_router.router)
 app.include_router(qdrant_router.router)
+app.include_router(broker_router.router)
 
 
 @app.get("/kb", response_class=HTMLResponse)

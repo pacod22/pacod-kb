@@ -898,6 +898,7 @@ def _ledger_factory_from_app(request: Request) -> Any | None:
 
 from pipeline.api_routes import (  # noqa: E402
     ai_interactions,
+    broker,
     documents,
     ingest,
     jobs,
@@ -921,6 +922,7 @@ app.include_router(usage.router)
 app.include_router(ai_interactions.router)
 app.include_router(project_tasks.router)
 app.include_router(people.router)
+app.include_router(broker.router)
 
 # Backwards-compatible re-exports (tests and external importers).
 from pipeline.api_routes.ingest import (  # noqa: E402

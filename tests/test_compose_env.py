@@ -83,6 +83,8 @@ def test_the_pipeline_never_sees_identity_secrets() -> None:
 def test_the_ui_never_sees_the_gateway_or_identity_server_secrets() -> None:
     names = _env_names("kb-ui")
     assert "PACOD_GW_API_KEY" not in names
+    # The broker is read by the pipeline; its token stays there.
+    assert not {n for n in names if n.startswith("BROKER_")}
     assert not {n for n in names if n.startswith(("PGW_", "PID_"))}
 
 

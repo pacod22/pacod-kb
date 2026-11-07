@@ -64,7 +64,7 @@ Point kb at a real gateway and drop the `dev-gateway` profile:
 PACOD_GW_URL=https://gw.example.com      # or http://pacod-gw:8080, the shared one on pacod-net
 PACOD_GW_API_KEY=pgw_kb_…                # a key for kb, created in the gateway
 LLM_CONVERTER_ENABLED=true
-LLM_CONVERTER_MODEL=anthropic/claude-opus-5-5   # a model (or @pool) the key may use
+LLM_CONVERTER_MODEL=anthropic/claude-opus-5-5   # a model (or template @name) the key may use
 ```
 
 - **Full pacod-gw**: create an organisation and workspace for kb in its console, a key in that
@@ -163,6 +163,32 @@ Measurements and the reasoning behind the defaults are in [retrieval-eval.md](re
   match, so the keyword list is empty for most natural-language questions. `or` / `and_or`
   search analysed terms instead (stopwords dropped, inflections as prefixes, article numbers
   as phrases). Change the mode only after an eval run shows it helps on your documents.
+
+### 2.5 pacod-broker (optional)
+
+pacod-broker is the platform's catalogue of models and other resources, with prices, live status
+and reputation. kb only reads it: the **Broker** page (admins) shows the reputation and price of
+the models kb uses, the gateway's models linked to broker resources, and which models and
+embeddings the gateway does not offer yet. kb announces nothing. Without an address it is off.
+
+```sh
+BROKER_URL=http://pacod-broker:8060   # the broker on pacod-net
+BROKER_TOKEN=pidt_…                   # blank = open mode (a broker without tokens)
+BROKER_TIMEOUT_SECONDS=5              # per call, 1 to 30
+```
+
+- **The token** belongs to a pacod-id service account holding `broker.consumer` at the platform
+  (pacod-id's admin, *Service accounts*). The pipeline holds it; kb-ui never does.
+- **On the Broker page** an admin may set each of the three instead; every setting shows whether
+  it is the deployment's or set there, and Reset returns all of them to `.env`. A token saved
+  there is encrypted under a key derived from `PIPELINE_API_SECRET` (changing the secret makes
+  it unreadable: enter it again) and is sent only to the address it was saved for. Pointing kb
+  at another broker therefore needs that broker's token, or "no token" for an open-mode broker.
+- **Test connection** reports three things apart: reachable (`/healthz`), ready (`/readyz`; a
+  broker waiting for pacod-id is not ready yet) and whether it takes kb's credentials.
+- **Making a model usable** stays with the gateway: its admin accepts the broker's proposals in
+  the gateway's model discovery, which links the model (`broker_resource_id`). A gateway
+  offering of a template is usable under its `@name` when the gateway lists that template.
 
 ## 3. Operations
 
@@ -287,6 +313,11 @@ Read JSON with `docker logs kb-ui | jq -r '.message'`, or set `LOG_FORMAT=text` 
 | Documents are not converted although AI is on | No gateway (`PACOD_GW_URL`/`PACOD_GW_API_KEY`), or the call failed | The pipeline log says "LLM conversion skipped" or why it failed; AI Management → Test model; the interaction log has the gateway's request id |
 | "The AI gateway refused the key" | Wrong or revoked `PACOD_GW_API_KEY` | Fix it in `.env`, restart the pipeline |
 | "The AI budget is used up" | The gateway's budget for kb's key | Raise it in the gateway |
+| AI Management: "The AI gateway does not offer … to kb's key" | The model or template is not granted to kb's key, or was renamed | Pick one from the list, or grant it in the gateway |
+| Broker page: "the broker is not ready (/readyz)" | The broker is up but waits for pacod-id | Wait a minute; `make logs` of the broker's stack |
+| Broker page: "the broker refused kb's credentials" | Wrong or revoked token, a token without `broker.consumer`, or a token sent to an open-mode broker | Fix `BROKER_TOKEN` (or the token on the page); choose "no token" for an open-mode broker |
+| Broker page: "Another broker needs its own token" | A new address while a token was in use | Give that broker's token with the address, or choose "no token" |
+| Broker page: the saved token "can no longer be read" | `PIPELINE_API_SECRET` changed since it was saved | Enter the token again |
 | The pipeline answers 503 to everything but `/health` | `PIPELINE_API_SECRET` is blank | `make setup` (it generates one), then `make up` |
 | `make up` stops with "missing for profiles …" | A secret the profiles need is blank | `make setup` |
 | `make up` stops with "hosts from before the shared network" | `.env` still names `postgres`, `kb-qdrant`, `gw`, `id` or `mailpit` | Use the `pacod-*` names ([MIGRATIONS.md](../MIGRATIONS.md)) |

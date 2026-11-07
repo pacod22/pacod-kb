@@ -256,8 +256,18 @@ async def update_llm_config(
     try:
         resp = await client.patch("/llm-config", json=payload)
         if resp.status_code == 422:
-            error = "Invalid value: model names are provider/model or @pool."
-            llm_state: dict[str, Any] = {"effective": payload, "env_default": {}}
+            detail = resp.json().get("detail")
+            # The pipeline's own refusal (unknown_model) names the model; pydantic's is a list.
+            error = (
+                str(detail.get("message") or detail.get("code"))
+                if isinstance(detail, dict)
+                else "Invalid value: model names are provider/model or a template @name."
+            )
+            # Keep the picker's list: refetch it, but show the values as typed.
+            llm_state: dict[str, Any] = await _get_json(
+                client, "/llm-config", {"effective": {}, "env_default": {}, "available_models": []}
+            )
+            llm_state["effective"] = {**llm_state.get("effective", {}), **payload}
         else:
             resp.raise_for_status()
             llm_state = resp.json()

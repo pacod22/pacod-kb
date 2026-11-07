@@ -1,0 +1,51 @@
+{# Partial — the broker's models and embeddings, filtered; each marked by how the gateway offers it. #}
+{% import "broker/_macros.html" as m %}
+{% set c = catalogue %}
+{% if c.get('broker_error') %}
+  {% set msg %}The catalogue is unavailable: {{ c.get('broker_error') }}.{% endset %}
+  {{ notice("warn", msg) }}
+{% else %}
+  {% if c.get('gateway_error') %}
+    {% set msg %}The AI gateway's model list is unavailable ({{ c.get('gateway_error') }}): nothing can be marked usable.{% endset %}
+    {{ notice("warn", msg) }}
+  {% endif %}
+  <p class="hint">
+    {{ items | length }} of {{ total }} shown.
+    {% if c.get('truncated') %}The broker lists more than kb reads (1000 per kind); narrow it with Search below.{% endif %}
+    Models not in the gateway are added by the gateway's admin (its model discovery takes the broker's proposals).
+  </p>
+  {% if not items %}
+    <div class="empty">{% if total %}Nothing matches.{% else %}The broker lists no models or embeddings.{% endif %}</div>
+  {% else %}
+  <div class="table-shell">
+    <table class="compact stack-table">
+      <thead>
+        <tr><th>Name</th><th>Kind</th><th>Provider</th><th>Price</th><th>Reputation</th><th>Status</th><th>In the gateway</th></tr>
+      </thead>
+      <tbody>
+        {% for item in items %}
+        {% set usage = item.get('usage', {}) %}
+        <tr>
+          <td data-label="Name">
+            <span class="strong">{{ item.get('name') or item.get('id') }}</span>
+            <div class="xs muted mono">{{ item.get('id') }}</div>
+          </td>
+          <td data-label="Kind">{{ item.get('kind') }}</td>
+          <td data-label="Provider">{{ item.get('provider') or '—' }}</td>
+          <td data-label="Price">{{ m.price(item) }}</td>
+          <td data-label="Reputation">{{ m.reputation(item) }}</td>
+          <td data-label="Status">{{ m.status(item) }}</td>
+          <td data-label="In the gateway">
+            {% if usage.get('state') == 'usable' %}
+              <span class="badge good">usable</span> <code class="xs">{{ usage.get('call') }}</code>
+            {% else %}
+              <span class="badge neutral">not in the gateway</span>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+  {% endif %}
+{% endif %}

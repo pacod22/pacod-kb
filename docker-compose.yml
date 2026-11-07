@@ -130,6 +130,11 @@ services:
       - CONTENT_SECURITY_LLM_ENABLED=${CONTENT_SECURITY_LLM_ENABLED:-false}
       - CONTENT_SECURITY_LLM_MODEL=${CONTENT_SECURITY_LLM_MODEL:-}
       - CONTENT_SECURITY_LLM_TIMEOUT_SECS=${CONTENT_SECURITY_LLM_TIMEOUT_SECS:-15}
+      # pacod-broker, read only (the Broker page); blank URL = no broker. An admin may override
+      # these on the Broker page. The token never goes to kb-ui.
+      - BROKER_URL=${BROKER_URL:-}
+      - BROKER_TOKEN=${BROKER_TOKEN:-}
+      - BROKER_TIMEOUT_SECONDS=${BROKER_TIMEOUT_SECONDS:-5}
       # Fetch and parser limits
       - WEB_FETCH_ALLOW_PRIVATE=${WEB_FETCH_ALLOW_PRIVATE:-true}
       - ALLOW_INSECURE_TLS=${ALLOW_INSECURE_TLS:-true}

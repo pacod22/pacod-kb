@@ -1,16 +1,19 @@
 {% set cfg = llm_state.get('effective', {}) %}
 {% set defaults = llm_state.get('env_default', {}) %}
 {% set models = llm_state.get('available_models', []) %}
+{% set template_models = llm_state.get('templates', {}) %}
 <section id="llm-config-panel" class="section-card">
   <div class="sc-header"><h2>Models</h2></div>
   <div class="sc-body">
     <p class="config-hint">
-      Gateway model names — <code>provider/model</code> or a pool <code>@name</code>. Overrides apply on the next call, without a restart.
+      Gateway names — a model <code>provider/model</code>, or a template <code>@name</code> (listed after the models; the gateway applies its settings and failover).
+      Overrides apply on the next call, without a restart. Reputation and price on the <a href="/kb/broker">Broker</a> page.
     </p>
     {% if saved %}{{ notice("good", "Saved.") }}{% endif %}
     {% if error %}{{ notice("bad", error | e) }}{% endif %}
     <datalist id="gateway-models">
-      {% for m in models %}<option value="{{ m }}">{% endfor %}
+      {# Firefox and Safari show an option's label instead of its value: the label repeats the id. #}
+      {% for m in models %}{% if m in template_models %}<option value="{{ m }}" label="{{ m }} — template, uses {{ template_models[m] }}">{% else %}<option value="{{ m }}">{% endif %}{% endfor %}
     </datalist>
     <form hx-post="/kb/pipeline/settings/llm-config" hx-target="#llm-config-panel" hx-swap="outerHTML" class="stack">
       <div class="grid-2">

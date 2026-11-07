@@ -513,6 +513,212 @@
      "summary": "Callback"
     }
    },
+   "/kb/broker": {
+    "get": {
+     "operationId": "broker_page_kb_broker_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Broker Page"
+    }
+   },
+   "/kb/broker/catalogue": {
+    "get": {
+     "description": "The broker's models and embeddings (cached by the pipeline), filtered here.",
+     "operationId": "broker_catalogue_kb_broker_catalogue_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "q",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 200,
+        "title": "Q",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "kind",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 32,
+        "title": "Kind",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "usable",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 8,
+        "title": "Usable",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Broker Catalogue"
+    }
+   },
+   "/kb/broker/config": {
+    "post": {
+     "operationId": "save_config_kb_broker_config_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Save Config"
+    }
+   },
+   "/kb/broker/config/reset": {
+    "post": {
+     "operationId": "reset_config_kb_broker_config_reset_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Reset Config"
+    }
+   },
+   "/kb/broker/overview": {
+    "get": {
+     "operationId": "broker_overview_kb_broker_overview_get",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Broker Overview"
+    }
+   },
+   "/kb/broker/search": {
+    "get": {
+     "operationId": "broker_search_kb_broker_search_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "q",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 200,
+        "title": "Q",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "kind",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 32,
+        "title": "Kind",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "summary": "Broker Search"
+    }
+   },
+   "/kb/broker/test": {
+    "post": {
+     "operationId": "test_connection_kb_broker_test_post",
+     "responses": {
+      "200": {
+       "content": {
+        "text/html": {
+         "schema": {
+          "type": "string"
+         }
+        }
+       },
+       "description": "Successful Response"
+      }
+     },
+     "summary": "Test Connection"
+    }
+   },
    "/kb/login": {
     "get": {
      "description": "Sign in at pacod-id (also pacod-id's initiate_login_uri, after an invitation).",
@@ -3750,6 +3956,55 @@
     "POST"
    ],
    "restore_snapshot"
+  ],
+  [
+   "/kb/broker",
+   [
+    "GET"
+   ],
+   "broker_page"
+  ],
+  [
+   "/kb/broker/overview",
+   [
+    "GET"
+   ],
+   "broker_overview"
+  ],
+  [
+   "/kb/broker/catalogue",
+   [
+    "GET"
+   ],
+   "broker_catalogue"
+  ],
+  [
+   "/kb/broker/search",
+   [
+    "GET"
+   ],
+   "broker_search"
+  ],
+  [
+   "/kb/broker/config",
+   [
+    "POST"
+   ],
+   "save_config"
+  ],
+  [
+   "/kb/broker/config/reset",
+   [
+    "POST"
+   ],
+   "reset_config"
+  ],
+  [
+   "/kb/broker/test",
+   [
+    "POST"
+   ],
+   "test_connection"
   ],
   [
    "/kb",

@@ -98,8 +98,13 @@ create accounts even though the realm is closed to sign-up.
 
 `pipeline/gateway.py` is the only way kb calls a model: OpenAI-shaped
 `POST {PACOD_GW_URL}/v1/chat/completions` with the `pgw_kb_…` key. The gateway holds the
-provider keys, routes by model name (`provider/model`, or a pool `@name`), translates a PDF
+provider keys, routes by model name (`provider/model`, or a template `@name`), translates a PDF
 `file` part for models that read documents, fails over between models, and prices each call.
+
+- **Models and templates**: `GET /v1/models` lists the models kb's key may call, then the
+  workspace's templates (`@name`, each naming the model it uses). AI Management offers them in
+  that order, labels a template with its model, and refuses a name the gateway does not list. A
+  call on a template sends `@name`; the gateway applies the template's settings and failover.
 
 - **Conversion** streams (`stream_options.include_usage`: the last chunk carries the cost), with
   the read timeout as idle timeout and a total deadline; a PDF over 20 MiB, or for a model that
@@ -112,6 +117,24 @@ provider keys, routes by model name (`provider/model`, or a pool `@name`), trans
 - **Accounting**: kb records each call's tokens with the gateway's cost, currency and request id
   (`usage_events`, `ai_interactions`), in both storage backends (the ledger).
 - **Not configured** (URL or key blank): AI is off, nothing else breaks.
+
+## Broker (pacod-broker)
+
+Optional and read only. The pipeline reads pacod-broker, the platform's catalogue, with
+pacod-broker's own Python client (vendored): `GET /v1/resources/{id}` for the gateway models
+that name a broker resource (`broker_resource_id` in the gateway's model list; a template is
+followed to its model), and `POST /v1/discover` for the catalogue of models and embeddings and
+for search. The Broker page (admins) shows reputation, price and live status, and marks each
+catalogue entry usable (under the name kb would call) or not in the gateway. kb announces
+nothing.
+
+- **Connection**: the deployment's `BROKER_URL`, `BROKER_TOKEN` (a `pidt_…` with
+  `broker.consumer`; blank = open mode) and `BROKER_TIMEOUT_SECONDS`, which an admin may
+  override on the page (ledger rows, both backends). A token goes only to the address it was
+  given for; one saved on the page is Fernet-encrypted under a key derived from
+  `PIPELINE_API_SECRET`.
+- **Failure**: a broker that is down or slow costs the page its facts after one call, never the
+  page; listings are other providers' words and are shown as text, addresses never as links.
 
 ## Who acted
 

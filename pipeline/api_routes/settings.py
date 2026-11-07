@@ -25,7 +25,7 @@ from pipeline.api import (
     _switch_active_project,
     request_actor,
 )
-from pipeline.gateway import Gateway, GatewayError
+from pipeline.gateway import Gateway, GatewayError, GatewayModel
 from pipeline.prompt_config import (
     list_prompt_state,
     set_prompt_text,
@@ -57,7 +57,7 @@ class SettingsRequest(BaseModel):
 
 
 class LlmConfigUpdate(BaseModel):
-    """AI Management overrides; model names are the gateway's (provider/model, @pool)."""
+    """AI Management overrides; model names are the gateway's (provider/model, @template)."""
 
     converter_model: str | None = None
     converter_max_tokens: int | None = Field(default=None, ge=1, le=200_000)
@@ -160,21 +160,26 @@ def _switch_target(request: Request, collection: str | None, project: str | None
         _mutation_lock.release()
 
 
-def _gateway_models(gateway: Gateway) -> list[str]:
-    """The gateway's model names for the AI Management picker; empty when unreachable."""
+def _gateway_model_rows(gateway: Gateway) -> list[GatewayModel]:
+    """The gateway's models, then its templates; empty when not set up or unreachable."""
     if not gateway.configured():
         return []
     try:
-        return gateway.models()
+        return gateway.model_rows()
     except GatewayError as exc:
         logger.info("Gateway model list unavailable: %s", exc)
         return []
 
 
+def _llm_state(factory: Any, rows: list[GatewayModel]) -> dict[str, Any]:
+    templates = {r.id: r.model for r in rows if r.kind == "template" and r.model}
+    return get_runtime_config_state(factory, [r.id for r in rows], templates)
+
+
 @router.get("/llm-config")
 def get_llm_config(request: Request, _auth: AuthDep) -> dict[str, Any]:
-    return get_runtime_config_state(
-        _ledger_factory_from_app(request), _gateway_models(_gateway_from_app(request))
+    return _llm_state(
+        _ledger_factory_from_app(request), _gateway_model_rows(_gateway_from_app(request))
     )
 
 
@@ -184,14 +189,27 @@ def patch_llm_config(
     req: LlmConfigUpdate,
     _auth: AuthDep,
 ) -> dict[str, Any]:
+    factory = _ledger_factory_from_app(request)
     updates = req.model_dump(exclude_unset=True)
-    state = set_runtime_config(
-        _ledger_factory_from_app(request), updates, updated_by=request_actor() or "api"
-    )
-    state["available_models"] = sorted(
-        set(state["available_models"]) | set(_gateway_models(_gateway_from_app(request)))
-    )
-    return state
+    rows = _gateway_model_rows(_gateway_from_app(request))
+    if rows:
+        # Only a changed name is checked: the form sends both names on every save, and the
+        # one left alone (often the env default, e.g. an unused security model) may not be
+        # one the key may call. With no list (gateway away) nothing is checked.
+        offered = {r.id for r in rows}
+        current = get_runtime_config(factory)
+        for field in ("converter_model", "security_model"):
+            name = updates.get(field)
+            if name and name != current.get(field) and name not in offered:
+                raise HTTPException(
+                    status_code=422,
+                    detail={
+                        "code": "unknown_model",
+                        "message": f"The AI gateway does not offer {name} to kb's key.",
+                    },
+                )
+    set_runtime_config(factory, updates, updated_by=request_actor() or "api")
+    return _llm_state(factory, rows)
 
 
 @router.get("/llm-prompts")
@@ -229,11 +247,22 @@ def gateway_status(request: Request, _auth: AuthDep) -> dict[str, Any]:
     """Whether AI is set up, where the gateway is, and the models in use (no key)."""
     gateway = _gateway_from_app(request)
     effective = get_runtime_config(_ledger_factory_from_app(request))
+    converter, security = str(effective["converter_model"]), str(effective["security_model"])
+
+    def uses(name: str) -> str | None:
+        # Only a template reads the gateway's list; None when it is not one (or unknown).
+        if not name.startswith("@") or not gateway.configured():
+            return None
+        model = gateway.uses(name)
+        return model if model != name else None
+
     return {
         "configured": gateway.configured(),
         "url": gateway.origin,
-        "converter_model": effective["converter_model"],
-        "security_model": effective["security_model"],
+        "converter_model": converter,
+        "converter_model_uses": uses(converter),
+        "security_model": security,
+        "security_model_uses": uses(security),
         "converter_enabled": bool(_runtime.get("llm_converter_enabled", False)),
         "security_llm_enabled": bool(request.app.state.config.content_security_llm_enabled),
     }
@@ -246,11 +275,12 @@ def gateway_ping(request: Request, req: GatewayPingRequest, _auth: AuthDep) -> d
     started = time.monotonic()
     try:
         if req.mode == "models":
-            models = gateway.models()
+            rows = gateway.model_rows()
             return {
                 "ok": True,
                 "mode": "models",
-                "models": models,
+                "models": [r.id for r in rows if r.kind == "model"],
+                "templates": [r.id for r in rows if r.kind == "template"],
                 "latency_ms": int((time.monotonic() - started) * 1000),
             }
         factory = _ledger_factory_from_app(request)

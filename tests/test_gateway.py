@@ -399,12 +399,90 @@ def test_models_are_listed_and_cached() -> None:
         return httpx.Response(200, json={"data": [{"id": "openai/gpt-x"}, {"id": "@fast"}]})
 
     gw, clock = _gateway(handler)
-    assert gw.models() == ["@fast", "openai/gpt-x"]
-    assert gw.models() == ["@fast", "openai/gpt-x"]
+    # Models first, then templates (a plain sort would put "@" first).
+    assert gw.models() == ["openai/gpt-x", "@fast"]
+    assert gw.models() == ["openai/gpt-x", "@fast"]
     assert calls == 1
     clock.now += 61
     gw.models()
     assert calls == 2
+
+
+def _listed(mid: str, owner: str, **gateway: Any) -> dict[str, Any]:
+    return {"id": mid, "object": "model", "created": 0, "owned_by": owner, "gateway": gateway}
+
+
+_LIST = {
+    "object": "list",
+    "data": [
+        _listed("openai/gpt-5", "openai", kind="model", model=None, state="active"),
+        _listed("@sonnet-fast", "template", kind="template", model="google/gemini-3-flash"),
+        _listed(
+            "anthropic/claude-sonnet-5-5",
+            "anthropic",
+            kind="model",
+            model=None,
+            state="deprecated",
+            broker_resource_id="res_sonnet",
+        ),
+        _listed("@careful", "template", kind="template", model="anthropic/claude-sonnet-5-5"),
+        # A template whose model left the snapshot, and an entry without the gateway object.
+        _listed("@orphan", "template", kind="template", model=None),
+        {"id": "@bare"},
+    ],
+}
+
+
+def test_the_rows_keep_kind_model_and_broker_link_models_first() -> None:
+    gw, _ = _gateway(lambda req: httpx.Response(200, json=_LIST))
+    rows = gw.model_rows()
+    assert [(r.id, r.kind) for r in rows] == [
+        ("anthropic/claude-sonnet-5-5", "model"),
+        ("openai/gpt-5", "model"),
+        ("@bare", "template"),
+        ("@careful", "template"),
+        ("@orphan", "template"),
+        ("@sonnet-fast", "template"),
+    ]
+    sonnet = rows[0]
+    assert (sonnet.broker_resource_id, sonnet.state, sonnet.owned_by) == (
+        "res_sonnet",
+        "deprecated",
+        "anthropic",
+    )
+    assert all(r.broker_resource_id is None and r.state is None for r in rows[2:])
+    assert gw.template_models() == {
+        "@careful": "anthropic/claude-sonnet-5-5",
+        "@sonnet-fast": "google/gemini-3-flash",
+    }
+
+
+def test_a_template_uses_its_model_and_a_model_reads_no_list() -> None:
+    calls = 0
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(200, json=_LIST)
+
+    gw, _ = _gateway(handler)
+    assert gw.uses("openai/gpt-5") == "openai/gpt-5"
+    assert gw.uses("") == ""
+    assert calls == 0
+    assert gw.uses("@careful") == "anthropic/claude-sonnet-5-5"
+    assert gw.uses("@orphan") == "@orphan"
+    assert gw.uses("@deleted") == "@deleted"
+    assert calls == 1
+
+
+def test_an_unreachable_gateway_resolves_nothing_and_uses_never_raises() -> None:
+    def handler(req: httpx.Request) -> httpx.Response:
+        raise httpx.ConnectError("refused", request=req)
+
+    gw, _ = _gateway(handler)
+    assert gw.uses("@careful") == "@careful"
+    with pytest.raises(GatewayError):
+        gw.model_rows()
 
 
 def test_ping_asks_for_a_json_answer() -> None:

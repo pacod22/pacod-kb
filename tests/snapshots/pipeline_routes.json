@@ -62,6 +62,47 @@
      "title": "Body_ingest_file_ingest_file_post",
      "type": "object"
     },
+    "BrokerConfigUpdate": {
+     "additionalProperties": false,
+     "description": "A field left out is kept; ``null`` returns it to the deployment's value.\n\n``token``: left out = kept; ``null`` = the deployment's pairing; ``\"\"`` = open mode (no\ntoken) for the resulting address; text = the token for the resulting address.",
+     "properties": {
+      "timeout_seconds": {
+       "anyOf": [
+        {
+         "type": "number"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Timeout Seconds"
+      },
+      "token": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Token"
+      },
+      "url": {
+       "anyOf": [
+        {
+         "type": "string"
+        },
+        {
+         "type": "null"
+        }
+       ],
+       "title": "Url"
+      }
+     },
+     "title": "BrokerConfigUpdate",
+     "type": "object"
+    },
     "CreateProjectRequest": {
      "properties": {
       "collection_name": {
@@ -254,7 +295,7 @@
      "type": "object"
     },
     "LlmConfigUpdate": {
-     "description": "AI Management overrides; model names are the gateway's (provider/model, @pool).",
+     "description": "AI Management overrides; model names are the gateway's (provider/model, @template).",
      "properties": {
       "converter_max_tokens": {
        "anyOf": [
@@ -840,6 +881,284 @@
       }
      ],
      "summary": "Gateway Ping"
+    }
+   },
+   "/broker": {
+    "get": {
+     "description": "The models kb uses and the gateway's linked models, with the broker's facts.",
+     "operationId": "broker_overview_broker_get",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Broker Overview Broker Get",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Broker Overview"
+    }
+   },
+   "/broker/catalogue": {
+    "get": {
+     "description": "Every model and embedding the broker lists, marked by how the gateway offers it.",
+     "operationId": "broker_catalogue_broker_catalogue_get",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Broker Catalogue Broker Catalogue Get",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Broker Catalogue"
+    }
+   },
+   "/broker/config": {
+    "delete": {
+     "operationId": "reset_broker_config_broker_config_delete",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Reset Broker Config Broker Config Delete",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Reset Broker Config"
+    },
+    "get": {
+     "operationId": "get_broker_config_broker_config_get",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Get Broker Config Broker Config Get",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Get Broker Config"
+    },
+    "put": {
+     "operationId": "put_broker_config_broker_config_put",
+     "requestBody": {
+      "content": {
+       "application/json": {
+        "schema": {
+         "$ref": "#/components/schemas/BrokerConfigUpdate"
+        }
+       }
+      },
+      "required": true
+     },
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Put Broker Config Broker Config Put",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Put Broker Config"
+    }
+   },
+   "/broker/config/test": {
+    "post": {
+     "description": "Whether the broker in force answers, is ready and takes kb's credentials.",
+     "operationId": "test_broker_config_broker_config_test_post",
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Test Broker Config Broker Config Test Post",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Test Broker Config"
+    }
+   },
+   "/broker/search": {
+    "get": {
+     "operationId": "broker_search_broker_search_get",
+     "parameters": [
+      {
+       "in": "query",
+       "name": "q",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 200,
+        "title": "Q",
+        "type": "string"
+       }
+      },
+      {
+       "in": "query",
+       "name": "kind",
+       "required": false,
+       "schema": {
+        "default": "",
+        "maxLength": 32,
+        "title": "Kind",
+        "type": "string"
+       }
+      }
+     ],
+     "responses": {
+      "200": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "additionalProperties": true,
+          "title": "Response Broker Search Broker Search Get",
+          "type": "object"
+         }
+        }
+       },
+       "description": "Successful Response"
+      },
+      "422": {
+       "content": {
+        "application/json": {
+         "schema": {
+          "$ref": "#/components/schemas/HTTPValidationError"
+         }
+        }
+       },
+       "description": "Validation Error"
+      }
+     },
+     "security": [
+      {
+       "APIKeyHeader": []
+      }
+     ],
+     "summary": "Broker Search"
     }
    },
    "/collections": {
@@ -2816,6 +3135,55 @@
     "POST"
    ],
    "erase_person"
+  ],
+  [
+   "/broker",
+   [
+    "GET"
+   ],
+   "broker_overview"
+  ],
+  [
+   "/broker/catalogue",
+   [
+    "GET"
+   ],
+   "broker_catalogue"
+  ],
+  [
+   "/broker/search",
+   [
+    "GET"
+   ],
+   "broker_search"
+  ],
+  [
+   "/broker/config",
+   [
+    "GET"
+   ],
+   "get_broker_config"
+  ],
+  [
+   "/broker/config",
+   [
+    "PUT"
+   ],
+   "put_broker_config"
+  ],
+  [
+   "/broker/config",
+   [
+    "DELETE"
+   ],
+   "reset_broker_config"
+  ],
+  [
+   "/broker/config/test",
+   [
+    "POST"
+   ],
+   "test_broker_config"
   ]
  ]
 }

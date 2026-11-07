@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import logging
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from dotenv import load_dotenv
@@ -86,6 +86,11 @@ class Config:
     # Its /rerank instead of a cross-encoder in this process (blank = local model)
     reranker_url: str = ""
     reranker_timeout_ms: int = 5000
+    # pacod-broker (pipeline/broker_config.py): the deployment's connection; the Broker page
+    # may override it. Blank URL = no broker.
+    broker_url: str = ""
+    broker_token: str = field(default="", repr=False)
+    broker_timeout_secs: float = 5.0
 
 
 # Shared components on pacod-net (pacod-demo/docs/NETWORK.md).
@@ -123,7 +128,7 @@ LEGACY_ENV: dict[str, str] = {
 
 
 def qualify_model(name: str, provider: str = "") -> str:
-    """A gateway model name for *name*: ``provider/model`` or ``@pool`` as given.
+    """A gateway model name for *name*: ``provider/model`` or a template ``@name`` as given.
 
     A bare legacy name (``claude-opus-5-5``) gets the provider from *provider* (the old
     LLM_CONVERTER_PROVIDER) or from its prefix; an unknown bare name is left alone and
@@ -307,4 +312,7 @@ def load_config() -> Config:
         embeddings_timeout_secs=max(1.0, _float_env("EMBEDDINGS_TIMEOUT_SECS", 120.0)),
         reranker_url=os.environ.get("RERANKER_URL", "").strip().rstrip("/"),
         reranker_timeout_ms=max(1, _int_env("RERANKER_TIMEOUT_MS", 5000)),
+        broker_url=os.environ.get("BROKER_URL", "").strip().rstrip("/"),
+        broker_token=os.environ.get("BROKER_TOKEN", "").strip(),
+        broker_timeout_secs=min(30.0, max(1.0, _float_env("BROKER_TIMEOUT_SECONDS", 5.0))),
     )

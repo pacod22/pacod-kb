@@ -20,6 +20,9 @@ os.environ.setdefault("UI_SESSION_SECRET", "test-session-secret")
 os.environ.setdefault("PIPELINE_API_URL", "http://127.0.0.1:9")
 # Never load a cross-encoder in tests (stubs stand in for it).
 os.environ.setdefault("RERANKER_ENABLED", "false")
+# No broker from the developer's shell: pacod_broker's client would read BROKER_* too.
+for _name in ("BROKER_URL", "BROKER_TOKEN", "BROKER_TIMEOUT_SECONDS", "BROKER_CLIENT"):
+    os.environ.pop(_name, None)
 # Sign-in: the fake pacod-id of tests/fake_id.py (installed per test as
 # app.state.id_transport). Without one the internal URL is a closed port.
 os.environ.setdefault("KB_UI_ORIGIN", "http://testserver")

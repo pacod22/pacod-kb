@@ -37,6 +37,10 @@ dependencies = [
     "httpx>=0.28",
     "sqlalchemy>=2.1",
     "beautifulsoup4>=4.15",
+    # pacod-broker's client (vendored wheel, see [tool.uv.sources]): the Broker page's reads.
+    "pacod-broker-client",
+    # Encrypts a broker token saved on the Broker page (pipeline/broker_config.py).
+    "cryptography>=50.0",
     # Declared directly so [tool.uv.sources] can take them from PyTorch's CPU index on Linux.
     "torch>=2.14",
     "torchvision>=0.29",
@@ -91,6 +95,8 @@ Issues = "https://github.com/pacod22/pacod-kb/issues"
 [tool.uv.sources]
 # Built from a pacod-id checkout by scripts/vendor-pacod-id.sh; never resolved through an index.
 pacod-id = { path = "vendor/wheels/pacod_id-0.1.0-py3-none-any.whl" }
+# Built from a pacod-broker checkout by scripts/vendor-pacod-broker.sh, likewise.
+pacod-broker-client = { path = "vendor/wheels/pacod_broker_client-0.1.0-py3-none-any.whl" }
 # The pipeline runs on CPU: Linux gets PyTorch's CPU-only wheels (no nvidia-*/triton CUDA
 # packages in the image). macOS wheels from PyPI are CPU/MPS already.
 torch = [{ index = "pytorch-cpu", marker = "sys_platform == 'linux'" }]
@@ -128,4 +134,9 @@ mypy_path = "."
 [[tool.mypy.overrides]]
 # pacod_id is annotated but ships no py.typed marker.
 module = ["pacod_id", "pacod_id.*"]
+follow_untyped_imports = true
+
+[[tool.mypy.overrides]]
+# pacod_broker (pacod-broker's client) is annotated but ships no py.typed marker either.
+module = ["pacod_broker", "pacod_broker.*"]
 follow_untyped_imports = true

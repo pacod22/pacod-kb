@@ -1,0 +1,98 @@
+{# Partial — kb's connection to pacod-broker; rendered on page load and after save, reset or test.
+   The token is write-only: no value of it is ever rendered. #}
+{% import "broker/_macros.html" as m %}
+{% set cfg = config %}
+<section id="broker-connection" class="section-card">
+  <div class="sc-header">
+    <h2>Connection</h2>
+    {% if cfg.get('configured') %}<span class="badge good">on</span>{% elif cfg %}<span class="badge neutral">off</span>{% endif %}
+  </div>
+  <div class="sc-body stack">
+    {% if saved %}{{ notice("good", "Saved.") }}{% endif %}
+    {% if error %}{{ notice("bad", error | e) }}{% endif %}
+    {% if not cfg %}
+      {{ notice("bad", "The pipeline did not answer: the connection cannot be shown.") }}
+    {% else %}
+    {% set url = cfg.get('url', {}) %}
+    {% set timeout = cfg.get('timeout_seconds', {}) %}
+    {% set token = cfg.get('token', {}) %}
+    {% set bounds = cfg.get('bounds', {}).get('timeout_seconds', {}) %}
+    {% if token.get('unreadable') %}
+      {{ notice("warn", "The token saved on this page can no longer be read (was <code>PIPELINE_API_SECRET</code> changed?). It is sent nowhere: enter it again.") }}
+    {% endif %}
+
+    <form hx-post="/kb/broker/config" hx-target="#broker-connection" hx-swap="outerHTML" class="stack">
+      <input type="hidden" name="url_current" value="{{ url.get('value', '') }}">
+      <input type="hidden" name="timeout_current" value="{{ timeout.get('value', '') }}">
+      <div class="grid-2">
+        <div class="field">
+          <label for="broker_url">Address {{ m.source_badge(url.get('source')) }}</label>
+          <input id="broker_url" name="url" class="sm mono" value="{{ url.get('value', '') }}" placeholder="http://pacod-broker:8060" maxlength="500">
+          <p class="hint break">Deployment <code>{{ url.get('default') or '—' }}</code> (<code>BROKER_URL</code>). Blank turns the broker off.</p>
+          <label class="check"><input type="checkbox" name="url_deployment" value="1" {% if url.get('source') != 'console' %}disabled{% endif %}> <span>Use the deployment's</span></label>
+        </div>
+        <div class="field">
+          <label for="broker_timeout">Timeout, seconds {{ m.source_badge(timeout.get('source')) }}</label>
+          <input id="broker_timeout" name="timeout_seconds" class="sm" inputmode="decimal" value="{{ timeout.get('value', '') }}">
+          <p class="hint">{{ bounds.get('min', 1) }} to {{ bounds.get('max', 30) }} s per call. Deployment {{ timeout.get('default', 5) }} s (<code>BROKER_TIMEOUT_SECONDS</code>).</p>
+          <label class="check"><input type="checkbox" name="timeout_deployment" value="1" {% if timeout.get('source') != 'console' %}disabled{% endif %}> <span>Use the deployment's</span></label>
+        </div>
+      </div>
+
+      <fieldset class="stack-sm">
+        <legend>Token {{ m.source_badge(token.get('source')) }}</legend>
+        <p class="hint">
+          {% if token.get('configured') %}
+            A token is in use{% if token.get('last4') %} (ending <code>{{ token.get('last4') }}</code>){% endif %}, {{ 'the deployment\'s' if token.get('source') == 'deployment' else 'saved here' }}.
+          {% elif not token.get('unreadable') %}
+            No token: open mode, kb names itself <code>pacod-kb</code>.
+          {% endif %}
+          A pacod-id service account's <code>pidt_…</code> with <code>broker.consumer</code>. A token goes only to the address it was given for: another address needs its own (or open mode).
+        </p>
+        <div class="row loose">
+          <label class="check"><input type="radio" name="token_action" value="keep" checked> <span>Keep</span></label>
+          <label class="check"><input type="radio" name="token_action" value="set" {% if not cfg.get('editable') %}disabled{% endif %}> <span>New token</span></label>
+          <label class="check"><input type="radio" name="token_action" value="open"> <span>No token (open mode)</span></label>
+          <label class="check"><input type="radio" name="token_action" value="deployment" {% if token.get('source') != 'console' and token.get('source') != 'none' %}disabled{% endif %}> <span>The deployment's</span></label>
+        </div>
+        <input type="password" name="token" class="sm mono" autocomplete="off" spellcheck="false" placeholder="pidt_…" aria-label="New token"
+               {% if not cfg.get('editable') %}disabled{% endif %}>
+        {% if not cfg.get('editable') %}
+          <p class="hint">A token cannot be stored here: the pipeline has no <code>PIPELINE_API_SECRET</code>.</p>
+        {% endif %}
+      </fieldset>
+
+      <div class="row end">
+        <button class="btn btn-sm btn-primary" type="submit">Save</button>
+      </div>
+    </form>
+
+    <div class="row spread">
+      <form hx-post="/kb/broker/test" hx-target="#broker-connection" hx-swap="outerHTML">
+        <button class="btn btn-sm" type="submit" {% if not cfg.get('configured') %}disabled{% endif %}>Test connection</button>
+      </form>
+      <form hx-post="/kb/broker/config/reset" hx-target="#broker-connection" hx-swap="outerHTML"
+            hx-confirm="Return the address, the timeout and the token to the deployment's?">
+        <button class="btn btn-sm btn-quiet" type="submit">Reset to the deployment's</button>
+      </form>
+    </div>
+
+    {% if probe %}
+      {% if probe.get('accepted') %}
+        {% set msg %}Connected: the broker answers, is ready and takes kb's credentials{% if probe.get('client') %} (as <code>{{ probe.get('client') }}</code>){% endif %}.{% endset %}
+        {{ notice("good", msg) }}
+      {% else %}
+        {% set msg %}
+          <div>{{ probe.get('error') or 'The test failed.' }}</div>
+          <div class="xs">
+            reachable {{ 'yes' if probe.get('reachable') else 'no' }} · ready {{ 'yes' if probe.get('ready') else 'no' }}
+            · credentials {{ 'refused' if probe.get('accepted') == false else 'not checked' }}
+          </div>
+          {% if probe.get('hint') %}<div class="xs">{{ probe.get('hint') }}</div>{% endif %}
+        {% endset %}
+        {{ notice("bad", msg) }}
+      {% endif %}
+    {% endif %}
+    {% endif %}
+  </div>
+</section>

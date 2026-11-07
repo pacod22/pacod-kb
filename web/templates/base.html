@@ -25,6 +25,7 @@
     {"label": "Jobs", "href": "/kb/pipeline/jobs", "icon": "list-checks", "current": _path.startswith("/kb/pipeline/jobs")},
   ] + ([
     {"label": "AI Management", "href": "/kb/pipeline/ai-management", "icon": "sparkles", "current": _path.startswith("/kb/pipeline/ai-management")},
+    {"label": "Broker", "href": "/kb/broker", "icon": "network", "current": _path.startswith("/kb/broker")},
   ] if user_can("admin") else [])},
 ] + ([
   {"label": "Qdrant", "items": [
