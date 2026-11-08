@@ -342,6 +342,7 @@ class TestConfigFields:
             "CONTENT_SECURITY_LLM_MODEL",
             "PACOD_GW_URL",
             "PACOD_GW_API_KEY",
+            "PACOD_GW_AGENT_ID",
         ):
             monkeypatch.delenv(key, raising=False)
         for k, v in env.items():
@@ -357,6 +358,7 @@ class TestConfigFields:
         assert config.content_security_llm_model == "anthropic/claude-haiku-4-5"
         assert config.llm_converter_max_tokens == 64000
         assert (config.gateway_url, config.gateway_api_key) == ("", "")
+        assert config.gateway_agent_id == ""
 
     def test_gateway_and_model_from_env(
         self, monkeypatch: pytest.MonkeyPatch, tmp_path: Any
@@ -366,10 +368,12 @@ class TestConfigFields:
             tmp_path,
             PACOD_GW_URL="http://pacod-gw:8080/",
             PACOD_GW_API_KEY="pgw_kb_x",
+            PACOD_GW_AGENT_ID=" pacod-kb ",
             LLM_CONVERTER_MODEL="@fast",
             LLM_CONVERTER_MAX_TOKENS="16384",
         )
         assert (config.gateway_url, config.gateway_api_key) == ("http://pacod-gw:8080", "pgw_kb_x")
+        assert config.gateway_agent_id == "pacod-kb"
         assert config.llm_converter_model == "@fast"
         assert config.llm_converter_max_tokens == 16384
 

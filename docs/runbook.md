@@ -63,12 +63,16 @@ Point kb at a real gateway and drop the `dev-gateway` profile:
 ```sh
 PACOD_GW_URL=https://gw.example.com      # or http://pacod-gw:8080, the shared one on pacod-net
 PACOD_GW_API_KEY=pgw_kb_…                # a key for kb, created in the gateway
+# blank, or the agent that key is bound to (a comment after a blank value would become the value)
+PACOD_GW_AGENT_ID=
 LLM_CONVERTER_ENABLED=true
 LLM_CONVERTER_MODEL=anthropic/claude-opus-5-5   # a model (or template @name) the key may use
 ```
 
 - **Full pacod-gw**: create an organisation and workspace for kb in its console, a key in that
-  workspace, and allow the models kb uses.
+  workspace, and allow the models kb uses. Where the key is bound to a registered agent,
+  `PACOD_GW_AGENT_ID` may stay blank or name that agent; the gateway refuses (403) every call
+  that names another one, the model list included.
 - **pacod-gw-lite** (`pacod-gw/deploy/lite`): put the providers' keys there
   (`PGW_PROVIDER_ANTHROPIC_KEY`, …), declare the models (`PGW_MODEL_OPUS=anthropic/claude-opus-5-5`,
   with `_PRICE` so calls are priced) and kb's key (`PGW_CLIENT_KB_KEY=pgw_kb_…`, generated with

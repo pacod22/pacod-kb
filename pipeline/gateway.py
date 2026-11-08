@@ -18,6 +18,9 @@ Rules (shared with pacod-cms's AiGateway):
 * attribution headers carry opaque ids only: ``x-gw-task`` (the feature),
   ``x-gw-trace`` (the job or document), ``x-gw-end-user`` (the project),
   ``x-gw-user-id`` (the person's ``usr_`` id);
+* ``x-gw-agent-id`` (``PACOD_GW_AGENT_ID``, blank by default) goes on every call, the model
+  list included, when set: it must be the agent the key is bound to, since the gateway refuses
+  a key's call that names another agent (403); a key bound to one agent needs none;
 * one retry, and only for a 429, after its ``Retry-After`` (at most 30 s) — never for
   a 402 (the budget is spent) or a 504 (the model may still be generating, and billing);
   the gateway already retries and fails over;
@@ -257,9 +260,17 @@ class Gateway:
         transport: httpx.BaseTransport | None = None,
         sleep: Callable[[float], None] = time.sleep,
         clock: Callable[[], float] = time.monotonic,
+        agent_id: str = "",
     ) -> None:
         self.url = (url or "").strip().rstrip("/")
         self._key = (api_key or "").strip()
+        agent = (agent_id or "").strip()
+        self._agent_id = _token(agent)
+        if agent and self._agent_id is None:
+            # Not sent, as a bad attribution value is not: the gateway could not read it as meant.
+            logger.warning(
+                "PACOD_GW_AGENT_ID is not an agent id ([A-Za-z0-9_.:-], 1-200): none is sent"
+            )
         self._connect_timeout = connect_timeout
         self._idle_timeout = idle_timeout
         self._sleep = sleep
@@ -273,6 +284,7 @@ class Gateway:
             config.gateway_url,
             config.gateway_api_key,
             idle_timeout=config.gateway_idle_timeout_secs,
+            agent_id=config.gateway_agent_id,
         )
 
     def configured(self) -> bool:
@@ -290,6 +302,13 @@ class Gateway:
 
     def close(self) -> None:
         self._client.close()
+
+    def _identity(self) -> dict[str, str]:
+        """The key, and the agent it speaks for when one is set: on every call."""
+        headers = {"authorization": f"Bearer {self._key}"}
+        if self._agent_id:
+            headers["x-gw-agent-id"] = self._agent_id
+        return headers
 
     # ---- calls ------------------------------------------------------------------
 
@@ -324,7 +343,7 @@ class Gateway:
             body["temperature"] = temperature
         if response_format is not None:
             body["response_format"] = response_format
-        headers = {"authorization": f"Bearer {self._key}", **attribution.headers()}
+        headers = {**self._identity(), **attribution.headers()}
         started = self._clock()
         deadline = started + total_timeout
 
@@ -392,7 +411,7 @@ class Gateway:
         try:
             resp = self._client.get(
                 f"{self.url}/v1/models",
-                headers={"authorization": f"Bearer {self._key}"},
+                headers=self._identity(),
                 timeout=self._timeout(15.0),
             )
         except httpx.TransportError as exc:
@@ -613,12 +632,17 @@ def _check_output(c: Completion) -> None:
 
 
 _lock = threading.Lock()
-_gateways: dict[tuple[str, str, float], Gateway] = {}
+_gateways: dict[tuple[str, str, float, str], Gateway] = {}
 
 
 def get_gateway(config: Config) -> Gateway:
     """The process-wide gateway client for this configuration."""
-    key = (config.gateway_url, config.gateway_api_key, config.gateway_idle_timeout_secs)
+    key = (
+        config.gateway_url,
+        config.gateway_api_key,
+        config.gateway_idle_timeout_secs,
+        config.gateway_agent_id,
+    )
     with _lock:
         gateway = _gateways.get(key)
         if gateway is None:

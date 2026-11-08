@@ -496,3 +496,64 @@ def test_ping_asks_for_a_json_answer() -> None:
     assert gw.ping("anthropic/claude-test").text == '{"reply": "pong"}'
     assert seen[0]["response_format"]["type"] == "json_schema"
     assert seen[0]["max_tokens"] == 64
+
+
+# ---------------------------------------------------------------------------
+# The agent (PACOD_GW_AGENT_ID)
+# ---------------------------------------------------------------------------
+
+
+def _requests_of(agent_id: str) -> list[httpx.Request]:
+    """A chat call, a streamed one and the model list, by a gateway client of *agent_id*."""
+    seen: list[httpx.Request] = []
+
+    def handler(req: httpx.Request) -> httpx.Response:
+        seen.append(req)
+        if req.url.path == "/v1/models":
+            return httpx.Response(200, json={"data": [{"id": "openai/gpt-x"}]})
+        if json.loads(req.content).get("stream"):
+            return httpx.Response(
+                200,
+                content=_sse(_delta("# Doc", finish="stop"), "[DONE]"),
+                headers={"content-type": "text/event-stream"},
+            )
+        return httpx.Response(200, json=_ok())
+
+    gw = Gateway(URL, KEY, transport=httpx.MockTransport(handler), agent_id=agent_id)
+    _call(gw)
+    _call(gw, stream=True)
+    gw.model_rows()
+    assert [r.url.path for r in seen] == ["/v1/chat/completions"] * 2 + ["/v1/models"]
+    return seen
+
+
+def test_the_agent_goes_on_every_call_the_model_list_included() -> None:
+    for req in _requests_of(" pacod-kb "):
+        assert req.headers["x-gw-agent-id"] == "pacod-kb"
+        assert req.headers["authorization"] == f"Bearer {KEY}"
+
+
+def test_no_agent_by_default_sends_none() -> None:
+    # A key bound to one agent speaks for it unnamed; an unbound key names none.
+    for req in _requests_of(""):
+        assert "x-gw-agent-id" not in req.headers
+
+
+def test_an_agent_that_is_not_an_id_is_not_sent(caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level("WARNING", logger="pipeline.gateway"):
+        requests = _requests_of("pacod kb\n")
+    assert all("x-gw-agent-id" not in req.headers for req in requests)
+    assert "PACOD_GW_AGENT_ID" in caplog.text
+
+
+def test_the_process_wide_client_is_one_per_agent(config: Any) -> None:
+    from dataclasses import replace
+
+    from pipeline.gateway import get_gateway
+
+    base = replace(config, gateway_url=URL, gateway_api_key=KEY, gateway_agent_id="")
+    named = replace(base, gateway_agent_id="pacod-kb")
+    assert get_gateway(base) is get_gateway(base)
+    assert get_gateway(named) is not get_gateway(base)
+    assert get_gateway(named)._identity()["x-gw-agent-id"] == "pacod-kb"
+    assert "x-gw-agent-id" not in get_gateway(base)._identity()

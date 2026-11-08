@@ -113,6 +113,9 @@ provider keys, routes by model name (`provider/model`, or a template `@name`), t
 - **Content security**: an optional second opinion (JSON-schema answer, 15 s, fails open).
 - **Attribution**: `x-gw-task` (the feature), `x-gw-trace` (the job), `x-gw-end-user` (the
   project), `x-gw-user-id` (the person) — opaque ids only.
+- **Agent**: `x-gw-agent-id` (`PACOD_GW_AGENT_ID`) on every call, the model list included, when
+  set. Blank by default; set, it must be the agent the key is bound to at the gateway, which
+  refuses a call naming another (403).
 - **Retries**: once, only for a 429 after its `Retry-After`; never for 402 or 504.
 - **Accounting**: kb records each call's tokens with the gateway's cost, currency and request id
   (`usage_events`, `ai_interactions`), in both storage backends (the ledger).
