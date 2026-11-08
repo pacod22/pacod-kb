@@ -46,6 +46,8 @@ class Config:
     gateway_url: str
     gateway_api_key: str
     gateway_idle_timeout_secs: float
+    # x-gw-agent-id on every call; blank sends none. It must be the agent the key is bound to.
+    gateway_agent_id: str
     language_validation_enabled: bool
     storage_backend: str
     database_host: str | None
@@ -276,6 +278,7 @@ def load_config() -> Config:
         gateway_url=os.environ.get("PACOD_GW_URL", "").strip().rstrip("/"),
         gateway_api_key=os.environ.get("PACOD_GW_API_KEY", "").strip(),
         gateway_idle_timeout_secs=_float_env("PACOD_GW_IDLE_TIMEOUT_SECS", 120.0),
+        gateway_agent_id=os.environ.get("PACOD_GW_AGENT_ID", "").strip(),
         language_validation_enabled=os.environ.get("LANGUAGE_VALIDATION_ENABLED", "true").lower()
         == "true",
         storage_backend=storage_backend,

@@ -8,6 +8,10 @@ All notable changes to this project are recorded here. The format follows
 
 ### Added
 
+- `PACOD_GW_AGENT_ID` names the agent kb's calls to the AI gateway are made as: `x-gw-agent-id`
+  on every call, the model list included. It is blank by default, which sends none; set, it must
+  be the agent the key is bound to at the gateway, which refuses a call naming another (403). A
+  value that is not an agent id (`[A-Za-z0-9_.:-]`, at most 200) is not sent, with a warning.
 - AI Management offers the AI gateway's templates (`@name`) after its models, as pacod-ap does:
   the picker labels each with the model it uses, the gateway panel shows `@name → model`, and
   the connection test counts models and templates apart. Saving a model or template the gateway

@@ -120,6 +120,8 @@ services:
       # AI: every LLM call goes through the gateway (pacod-gw); a blank key = AI off.
       - PACOD_GW_URL=${PACOD_GW_URL:-http://pacod-gw:8080}
       - PACOD_GW_API_KEY=${PACOD_GW_API_KEY:-}
+      # The agent the key is bound to at the gateway (x-gw-agent-id), or blank: blank sends none.
+      - PACOD_GW_AGENT_ID=${PACOD_GW_AGENT_ID:-}
       - PACOD_GW_IDLE_TIMEOUT_SECS=${PACOD_GW_IDLE_TIMEOUT_SECS:-120}
       - LLM_CONVERTER_ENABLED=${LLM_CONVERTER_ENABLED:-true}
       - LLM_CONVERTER_MODEL=${LLM_CONVERTER_MODEL:-}
