@@ -24,7 +24,7 @@ uv run pytest tests/test_phase2.py::test_name -v
 
 **Type-check scope:** `make typecheck` (part of `make check` and CI) runs `mypy --strict` on `pipeline/`, `web/` and `kblog/`. Other targets: `make coverage` (pytest-cov), `make audit` (pip-audit over the locked dependencies).
 
-**Logging** (`kblog/`, pacod-demo/docs/LOGGING.md): stdlib-only, copied into both images (`Dockerfile` installs it with the project, `Dockerfile.ui` copies it next to `web/`). `kblog.setup(<service>)` runs once per process: at import of `pipeline/api.py` and `web/app.py` (uvicorn imports the app after its own logging set-up, so its startup lines are formatted too), in the CLI's Typer callback (stderr), and as a no-op fallback in `load_config()`. One handler on the root logger (never remove others: pytest's capture lives there); uvicorn's loggers propagate to it; `AccessFilter` turns uvicorn's access line into `<METHOD> <path> <status>` with `method`/`path` (no query)/`status`/`client_ip`, health paths at debug; httpx/httpcore at WARNING unless `LOG_LEVEL=debug` (they log every outgoing URL). Variables `LOG_LEVEL`, `LOG_FORMAT` (json|text, default json), `SERVICE_NAME`. Log with `extra={...}` for fields; never secrets, tokens, codes or bodies. Every compose service has `logging: *logging` (`tests/test_compose_env.py`).
+**Logging** (`kblog/`, pacod-stack/docs/LOGGING.md): stdlib-only, copied into both images (`Dockerfile` installs it with the project, `Dockerfile.ui` copies it next to `web/`). `kblog.setup(<service>)` runs once per process: at import of `pipeline/api.py` and `web/app.py` (uvicorn imports the app after its own logging set-up, so its startup lines are formatted too), in the CLI's Typer callback (stderr), and as a no-op fallback in `load_config()`. One handler on the root logger (never remove others: pytest's capture lives there); uvicorn's loggers propagate to it; `AccessFilter` turns uvicorn's access line into `<METHOD> <path> <status>` with `method`/`path` (no query)/`status`/`client_ip`, health paths at debug; httpx/httpcore at WARNING unless `LOG_LEVEL=debug` (they log every outgoing URL). Variables `LOG_LEVEL`, `LOG_FORMAT` (json|text, default json), `SERVICE_NAME`. Log with `extra={...}` for fields; never secrets, tokens, codes or bodies. Every compose service has `logging: *logging` (`tests/test_compose_env.py`).
 
 **Route contract:** `tests/test_route_contract.py` snapshots the ordered route table and OpenAPI schema of both apps (`tests/snapshots/`). An intentional API change requires regenerating them with `KB_UPDATE_ROUTE_SNAPSHOTS=1 uv run pytest tests/test_route_contract.py`.
 
@@ -44,7 +44,7 @@ It exits 1 when a corpus file does not ingest with status `ok` and its declared 
 ```bash
 make setup          # write/complete .env from .env.example: every blank secret the configured profiles need
                     # (scripts/init-env.sh; never printed; refuses to replace one existing data depends on)
-# Shared network pacod-net (pacod-demo/docs/NETWORK.md): docker-compose.yml is the app file
+# Shared network pacod-net (pacod-stack/docs/NETWORK.md): docker-compose.yml is the app file
 # (kb-pipeline, kb-ui, always on, no profile; depends_on shared components with required: false);
 # docker-compose.standalone.yml holds kb's copies of the shared components, by COMPOSE_PROFILES in
 # .env: server (pacod-qdrant), db (pacod-postgres + pacod-db-init), id (pacod-id, its DB on

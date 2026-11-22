@@ -1,8 +1,8 @@
 # pacod-kb on the shared network pacod-net: the app file. It holds kb's own services, the
 # pipeline API and the UI; the shared components they use (pacod-postgres, pacod-db-init,
 # pacod-qdrant, pacod-id, pacod-gw, pacod-mailpit) come from docker-compose.standalone.yml in kb's
-# own stack, or from the full stack (pacod-demo), which loads this file and provides them once.
-# The naming convention is in pacod-demo/docs/NETWORK.md. kb-ui also joins pacod-admin-net, the
+# own stack, or from the full stack (pacod-stack), which loads this file and provides them once.
+# The naming convention is in pacod-stack/docs/NETWORK.md. kb-ui also joins pacod-admin-net, the
 # internal network on which pacod-id's internal listener (pacod-id-internal:8071) alone listens.
 #
 #   make up      this file + docker-compose.standalone.yml, with the profiles in COMPOSE_PROFILES
@@ -18,7 +18,7 @@
 # a server). A value without a slash is a named volume instead (kb-data, kb-model-cache): macOS,
 # where /data cannot be shared, and the full stack use those.
 
-# Every service rotates its log (pacod-demo/docs/LOGGING.md, section 2); anchors do not cross
+# Every service rotates its log (pacod-stack/docs/LOGGING.md, section 2); anchors do not cross
 # files, so docker-compose.standalone.yml has its own copy.
 x-logging: &logging
   driver: json-file
@@ -51,7 +51,7 @@ services:
       - KB_DONE=${KB_DONE:-}
       - KB_FAILED=${KB_FAILED:-}
       - DROPZONE_INTERVAL_SECS=${DROPZONE_INTERVAL_SECS:-10}
-      # The log (pacod-demo/docs/LOGGING.md): level debug|info|warn|error, format json|text.
+      # The log (pacod-stack/docs/LOGGING.md): level debug|info|warn|error, format json|text.
       - SERVICE_NAME=kb-pipeline
       - LOG_LEVEL=${LOG_LEVEL:-info}
       - LOG_FORMAT=${LOG_FORMAT:-json}

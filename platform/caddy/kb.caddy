@@ -6,7 +6,7 @@
 # believes them only from UI_FORWARDED_ALLOW_IPS, so the full stack sets that to pacod-caddy's
 # address (or *, as nothing else reaches kb-ui there). The pipeline API is never routed.
 #
-# Access log (pacod-demo/docs/LOGGING.md, section 6): stdout, in KB_CADDY_LOG_FORMAT, console
+# Access log (pacod-stack/docs/LOGGING.md, section 6): stdout, in KB_CADDY_LOG_FORMAT, console
 # (Caddy's text, the default) or json; sign-in codes, state, return paths, tokens and keys are
 # removed from the query, the Referer and API-key headers and the redirects' Location dropped.
 {$KB_SITE:http://kb.localhost} {

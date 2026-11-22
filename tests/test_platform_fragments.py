@@ -1,4 +1,4 @@
-"""platform/: kb's share of the shared configuration (pacod-demo/docs/NETWORK.md, section 4)."""
+"""platform/: kb's share of the shared configuration (pacod-stack/docs/NETWORK.md, section 4)."""
 
 from __future__ import annotations
 
@@ -40,7 +40,7 @@ def test_the_caddy_site_is_kb_ui() -> None:
 
 
 def test_the_caddy_access_log_follows_the_convention() -> None:
-    # pacod-demo/docs/LOGGING.md, section 6.
+    # pacod-stack/docs/LOGGING.md, section 6.
     site = (_ROOT / "platform" / "caddy" / "kb.caddy").read_text(encoding="utf-8")
     assert "output stdout" in site
     assert "wrap {$KB_CADDY_LOG_FORMAT:console}" in site

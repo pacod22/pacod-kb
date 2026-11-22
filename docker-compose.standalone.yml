@@ -1,5 +1,5 @@
 # pacod-kb's own stack, standalone: its copies of the shared components kb needs, under their
-# shared names (pacod-demo/docs/NETWORK.md). Loaded together with docker-compose.yml by `make up`.
+# shared names (pacod-stack/docs/NETWORK.md). Loaded together with docker-compose.yml by `make up`.
 # The full stack does not load this file; it runs one of each for every product and reuses these
 # definitions through "extends".
 #
@@ -18,7 +18,7 @@
 # default, as on a server). A value without a slash is a named volume instead (pacod-qdrant-data,
 # pacod-postgres-data): macOS, where /data cannot be shared, uses those.
 
-# Every service rotates its log (pacod-demo/docs/LOGGING.md, section 2); anchors do not cross
+# Every service rotates its log (pacod-stack/docs/LOGGING.md, section 2); anchors do not cross
 # files, so docker-compose.yml has its own copy.
 x-logging: &logging
   driver: json-file
@@ -157,7 +157,7 @@ services:
       PID_SMTP_PASSWORD: ${PID_SMTP_PASSWORD:-}
       PID_EMAIL_FROM_ADDRESS: ${ID_MAIL_FROM:-id@pacod-kb.test}
       PID_EMAIL_FROM_NAME: pacod-kb
-      # The log (pacod-demo/docs/LOGGING.md): a filter directive, and json|text.
+      # The log (pacod-stack/docs/LOGGING.md): a filter directive, and json|text.
       PID_LOG: ${PID_LOG:-info,sqlx=warn}
       PID_LOG_FORMAT: ${PID_LOG_FORMAT:-text}
       # Its address on pacod-admin-net alone: on 0.0.0.0 all of pacod-net would reach it.

@@ -13,7 +13,7 @@ SHELL := /bin/bash
 # id (+ mailpit) unless PACOD_ID_INTERNAL_URL names another pacod-id; dev-gateway unless
 # PACOD_GW_URL names another gateway. The old names pipeline and ui are accepted and ignored.
 # Override per command: make up PROFILES=server,db
-# All of it joins the shared network pacod-net (pacod-demo/docs/NETWORK.md).
+# All of it joins the shared network pacod-net (pacod-stack/docs/NETWORK.md).
 comma := ,
 hash  := \#
 env_get = $(shell sed -n 's/^$(1)=\([^ $(hash)]*\).*/\1/p' .env 2>/dev/null | tail -n 1)

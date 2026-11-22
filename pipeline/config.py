@@ -95,7 +95,7 @@ class Config:
     broker_timeout_secs: float = 5.0
 
 
-# Shared components on pacod-net (pacod-demo/docs/NETWORK.md).
+# Shared components on pacod-net (pacod-stack/docs/NETWORK.md).
 DEFAULT_QDRANT_URL = "http://pacod-qdrant:6333"
 DEFAULT_DATABASE_HOST = "pacod-postgres"
 

@@ -10,7 +10,7 @@
 #
 # kb's own stack (docker-compose.standalone.yml) connects as the role kb itself, the superuser of
 # its PostgreSQL since before the shared network: then the role is left as it is. The full stack
-# (pacod-demo) connects as postgres. Mount this directory whole: the SQL is read from kb/ next to
+# (pacod-stack) connects as postgres. Mount this directory whole: the SQL is read from kb/ next to
 # this file.
 
 set -eu

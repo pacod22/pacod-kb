@@ -15,7 +15,7 @@ make up        # builds pacod-id's and the dev gateway's images the first time (
 ```
 
 Every container joins the shared Docker network `pacod-net` (`make network`, run by `make setup`
-and `make up`, creates it and `pacod-admin-net`, where kb-ui reaches pacod-id's internal listener) under the names of the pacod convention (pacod-demo/docs/NETWORK.md). kb itself,
+and `make up`, creates it and `pacod-admin-net`, where kb-ui reaches pacod-id's internal listener) under the names of the pacod convention (pacod-stack/docs/NETWORK.md). kb itself,
 `kb-pipeline` and `kb-ui`, always runs (`docker-compose.yml`). The default profiles
 (`COMPOSE_PROFILES` in `.env`) add kb's copies of the shared components
 (`docker-compose.standalone.yml`): `pacod-qdrant` (server), `pacod-postgres` with the one-shot
@@ -265,7 +265,7 @@ sign-in methods are each person's own, at pacod-id (**My account**).
 
 ### 3.4 Logs
 
-kb logs like every pacod product (pacod-demo/docs/LOGGING.md): one event per line on stdout,
+kb logs like every pacod product (pacod-stack/docs/LOGGING.md): one event per line on stdout,
 kept by Docker (`json-file`, 5 files of 10 MB per container, every service of both compose
 files). `make logs S=<service>` follows one.
 
