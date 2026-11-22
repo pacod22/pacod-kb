@@ -66,7 +66,7 @@ Production — a real gateway, pacod-id behind TLS — is [docs/runbook.md](docs
 ## Shared network
 
 kb follows the pacod network and naming convention,
-[pacod-demo/docs/NETWORK.md](../pacod-demo/docs/NETWORK.md): every container joins the external
+[pacod-stack/docs/NETWORK.md](../pacod-stack/docs/NETWORK.md): every container joins the external
 Docker network `pacod-net`, kb's own services are `kb-pipeline` and `kb-ui`, and the components
 other products share keep their shared names (`pacod-qdrant`, `pacod-postgres`, `pacod-id`,
 `pacod-gw`, `pacod-mailpit`). pacod-id's internal listener is on a second shared network,
@@ -76,7 +76,7 @@ that address, and the rest of `pacod-net` cannot reach it. `make network` create
 - `docker-compose.yml` is the app file: kb-pipeline and kb-ui only.
 - `docker-compose.standalone.yml` holds kb's own copies of the shared components, switched by
   `COMPOSE_PROFILES`. `make up` loads both files.
-- The full stack (pacod-demo) loads only the app file and runs every shared component once. kb
+- The full stack (pacod-stack) loads only the app file and runs every shared component once. kb
   then keeps its `kb_*` collections on the shared Qdrant (the UI's Qdrant pages show nothing
   else), its database `kb` on the shared PostgreSQL (`platform/postgres/kb-db.sh`), and can embed
   through the shared embeddings service (`EMBEDDINGS_URL`). Its edge serves the UI through

@@ -1,4 +1,4 @@
-"""kblog: the pacod logging convention (pacod-demo/docs/LOGGING.md) for kb-pipeline and kb-ui."""
+"""kblog: the pacod logging convention (pacod-stack/docs/LOGGING.md) for kb-pipeline and kb-ui."""
 
 from __future__ import annotations
 

@@ -29,7 +29,7 @@ All notable changes to this project are recorded here. The format follows
 - pacod-id's internal listener is on `pacod-admin-net` only, an internal network shared by the pacod
   stacks, bound to its alias there, `pacod-id-internal:8071`; kb-ui joins it to call that
   address. `make network` creates the network (MIGRATIONS.md).
-- The shared network pacod-net (pacod-demo/docs/NETWORK.md): every container joins it alone, under
+- The shared network pacod-net (pacod-stack/docs/NETWORK.md): every container joins it alone, under
   the convention's names (`kb-pipeline`, `kb-ui`; `pacod-qdrant`, `pacod-postgres`, `pacod-id`,
   `pacod-gw`, `pacod-mailpit`, `gw-mock`). `docker-compose.yml` holds kb's own services, the new
   `docker-compose.standalone.yml` its copies of the shared components. The bundled pacod-id keeps
@@ -38,7 +38,7 @@ All notable changes to this project are recorded here. The format follows
 - The `/data/...` bind mounts are variables (`KB_DATA`/`KB_ROOT`, `KB_MODEL_CACHE`,
   `KB_QDRANT_DATA`, `KB_POSTGRES_DATA`); a name is a Docker volume (macOS).
 - `QDRANT_IMAGE_TAG` defaults to `v1.19.2`.
-- Logging follows the pacod convention (pacod-demo/docs/LOGGING.md): kb-pipeline and kb-ui (uvicorn's
+- Logging follows the pacod convention (pacod-stack/docs/LOGGING.md): kb-pipeline and kb-ui (uvicorn's
   lines included) write one JSON event per line by default (`LOG_FORMAT=text` for a terminal;
   `LOG_LEVEL` takes `debug|info|warn|error`); request lines without the query string, health
   checks at debug; every compose service rotates its log (json-file, 5 × 10 MB). The UI now

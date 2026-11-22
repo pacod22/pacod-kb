@@ -1,4 +1,4 @@
-"""kb's log, after the pacod logging convention (pacod-demo/docs/LOGGING.md).
+"""kb's log, after the pacod logging convention (pacod-stack/docs/LOGGING.md).
 
 Both processes (kb-pipeline, kb-ui) and the `kb` CLI call :func:`setup` once at start. It puts
 one handler on the root logger, takes over uvicorn's loggers (their lines become events like any

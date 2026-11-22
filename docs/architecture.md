@@ -23,11 +23,11 @@ kb-pipeline :8000  (pipeline/)  ── Bearer pgw_kb_… ──▶ pacod-gw /v1/
 ```
 
 Every container joins one external Docker network, `pacod-net`, under a name that is unique
-across the pacod repositories (pacod-demo/docs/NETWORK.md): kb's own services are `kb-pipeline`
+across the pacod repositories (pacod-stack/docs/NETWORK.md): kb's own services are `kb-pipeline`
 and `kb-ui` (`docker-compose.yml`, the app file); the components other products share are
 `pacod-qdrant`, `pacod-postgres` (+ the one-shot `pacod-db-init`), `pacod-id`, `pacod-gw`
 (gw-lite here) with `gw-mock`, and `pacod-mailpit`. kb's own stack runs its copies of those
-(`docker-compose.standalone.yml`); the full stack (pacod-demo) runs one of each for every product
+(`docker-compose.standalone.yml`); the full stack (pacod-stack) runs one of each for every product
 and loads only kb's app file. In the full stack kb also shares Qdrant (its collections are
 `kb_*`; the UI's Qdrant pages show nothing else) and, with `EMBEDDINGS_URL`, pacod-ap's
 embeddings service.

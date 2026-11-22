@@ -1,7 +1,7 @@
 """The compose files: each service its own environment and nothing else, on pacod-net alone.
 
 docker-compose.yml is the app file (kb-pipeline, kb-ui), docker-compose.standalone.yml kb's own
-copies of the shared components (pacod-demo/docs/NETWORK.md).
+copies of the shared components (pacod-stack/docs/NETWORK.md).
 """
 
 from __future__ import annotations
@@ -153,7 +153,7 @@ def _env(service: str) -> dict[str, str]:
 
 
 def test_every_service_rotates_its_log() -> None:
-    # pacod-demo/docs/LOGGING.md, section 2: each file its own x-logging anchor.
+    # pacod-stack/docs/LOGGING.md, section 2: each file its own x-logging anchor.
     block = {"driver": "json-file", "options": {"max-size": "10m", "max-file": "5"}}
     for name, doc in _COMPOSE.items():
         assert doc["x-logging"] == block, name
